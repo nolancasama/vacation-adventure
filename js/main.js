@@ -38,7 +38,10 @@ VA.Main = {
     const scr = VA.$('#scr-title');
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
-    VA.Art.layer(art, { painter: 'title', file: 'background_title.png?v=20260802' });
+    // The title screen has the real artwork as its CSS background from the
+    // first paint.  Do not cover it with the procedural fallback while the
+    // image layer finishes decoding.
+    VA.Art.layer(art, { painter: 'title', file: 'background_title.png?v=20260802', fallback: false });
 
     // This layer sits above the global clouds and birds but below title controls.
     const foreground = VA.$('#title-foreground');

@@ -137,6 +137,7 @@ VA.Data.DESTS = [
         backdrop: 'event_australia_icecream.png', painter: 'ev_au_icecream',
         photoFile: 'photo_australia_icecream.png', photoIcon: '🍦',
         caption: 'I ate ice cream.', captionJP: 'アイスクリームを食べたよ。',
+        photoPlayerPose: { x: 620, y: 600 },
         actors: [
           { id: 'player', char: 'player', x: 235, y: 600, scale: 1.05 },
           {
@@ -149,7 +150,7 @@ VA.Data.DESTS = [
         props: [
           { id: 'ice', icon: '🍦', file: 'icecream.png', x: 520, y: 415, size: 84, hidden: true },
         ],
-        amb: [{ type: 'birds', band: [0.05, 0.2], every: [6, 12] }],
+        amb: [],
         steps: [
           { cam: { x: 480, y: 340, s: 1.12, dur: 1700 } },
           { say: ['au_vendor', 'Hello!', 'こんにちは！'] },
@@ -176,6 +177,7 @@ VA.Data.DESTS = [
         backdrop: 'event_australia_kangaroo.png', painter: 'ev_au_kangaroo',
         photoFile: 'photo_australia_kangaroo.png', photoIcon: '🦘',
         caption: 'I saw a kangaroo.', captionJP: 'カンガルーを見たよ。',
+        photoPlayerPose: { x: 270, y: 555 },
         actors: [
           { id: 'au_ranger', char: 'au_ranger', x: 170, y: 545, scale: 1.3, conversation: { x: 480, y: 545, scale: 1.12 } },
           { id: 'player', char: 'player', x: 300, y: 555, scale: 1.05 },
@@ -270,6 +272,7 @@ VA.Data.DESTS = [
         backdrop: 'event_france_crepe.png', painter: 'ev_fr_crepe',
         photoFile: 'photo_france_crepe.png', photoIcon: '🥞',
         caption: 'I ate a crepe.', captionJP: 'クレープを食べたよ。',
+        photoPlayerPose: { x: 260, y: 555 },
         actors: [
           { id: 'player', char: 'player', x: 250, y: 555, scale: 1.05 },
           { id: 'fr_vendor', char: 'fr_vendor', x: 470, y: 558, scale: 1.3, conversation: { x: 480, y: 558, scale: 1.12 } },
@@ -402,6 +405,7 @@ VA.Data.DESTS = [
         backdrop: 'event_egypt_kebab.png', painter: 'ev_eg_kebab',
         photoFile: 'photo_egypt_kebab.png', photoIcon: '🍢',
         caption: 'I ate a kebab.', captionJP: 'ケバブを食べたよ。',
+        photoPlayerPose: { x: 260, y: 555 },
         actors: [
           { id: 'player', char: 'player', x: 265, y: 555, scale: 1.05 },
           { id: 'eg_vendor', char: 'eg_vendor', x: 500, y: 558, scale: 1.3, conversation: { x: 480, y: 558, scale: 1.12 } },
@@ -438,6 +442,7 @@ VA.Data.DESTS = [
         backdrop: 'event_egypt_pyramid.png', painter: 'ev_eg_pyramid',
         photoFile: 'photo_egypt_pyramids.png', photoIcon: '🐪',
         caption: 'I saw the pyramids.', captionJP: 'ピラミッドを見たよ。',
+        photoPlayerPose: { x: 300, y: 610 },
         actors: [
           { id: 'eg_guide', char: 'eg_guide', x: 250, y: 595, scale: 1.12, conversation: { x: 480, y: 595, scale: 1.15 } },
           { id: 'player', char: 'player', x: 365, y: 610, scale: 1.05 },

@@ -62,6 +62,7 @@ VA.Cine = {
         el.dataset.photoPose = 'true';
         el.dataset.photoX = a.x;
         el.dataset.photoY = a.y;
+        el.dataset.conversationScale = conversation.scale || 1;
         el.classList.add('conversation-pose');
         el.style.setProperty('--conversation-scale', conversation.scale || 1);
       }
@@ -349,17 +350,27 @@ VA.Cine = {
       actorsLay.style.transition = 'none';
       actorsLay.style.transform = 'translateY(0)';
     }
-    // Restore any enlarged/repositioned conversation actors before composing
-    // the live shutter moment and the matching saved photo.
+    // Standard conversation memories keep the NPC's centered conversation
+    // pose.  Activities can opt into their older, on-field composition.
     Object.values(this.ctx.actors).forEach(actor => {
       if (actor.dataset.photoPose !== 'true') return;
-      actor.style.left = actor.dataset.photoX + 'px';
-      actor.style.top = actor.dataset.photoY + 'px';
-      actor.classList.remove('conversation-pose');
-      actor.style.removeProperty('--conversation-scale');
+      if (evt.restoreConversationBeforePhoto) {
+        actor.style.left = actor.dataset.photoX + 'px';
+        actor.style.top = actor.dataset.photoY + 'px';
+        actor.classList.remove('conversation-pose');
+        actor.style.removeProperty('--conversation-scale');
+      } else {
+        actor.dataset.photoSnapshotScale =
+          (parseFloat(actor.dataset.scale) || 1) * (parseFloat(actor.dataset.conversationScale) || 1);
+      }
     });
     const player = this.ctx.actors.player;
     if (player && player.dataset.photoOnly === 'true') {
+      const pose = evt.photoPlayerPose;
+      if (pose) {
+        player.style.left = pose.x + 'px';
+        player.style.top = pose.y + 'px';
+      }
       // Give the player a brief, calm return to the scene before the shutter,
       // then retain that same on-stage position in the saved photo.
       player.style.visibility = 'visible';
@@ -388,7 +399,7 @@ VA.Cine = {
         char: el.dataset.char,
         x: parseFloat(el.style.left) || 0,
         y: parseFloat(el.style.top) || 0,
-        scale: parseFloat(el.dataset.scale) || 1,
+        scale: parseFloat(el.dataset.photoSnapshotScale || el.dataset.scale) || 1,
         flip: el.classList.contains('flip'),
       })),
       file: evt.photoFile,
