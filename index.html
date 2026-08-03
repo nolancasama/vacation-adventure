@@ -107,6 +107,19 @@
 
     <div id="hint-photo" style="display:none"></div>
 
+    <!-- Reusable vocabulary-reward moment.  It sits above the world so it can
+         pause a scene without changing the scene's camera or character poses. -->
+    <div id="item-reward" aria-live="polite" aria-label="Item received" hidden>
+      <div class="item-reward-halo"></div>
+      <div id="item-reward-particles" aria-hidden="true"></div>
+      <div class="item-reward-card">
+        <div class="item-reward-shadow"></div>
+        <img id="item-reward-art" alt="">
+        <div id="item-reward-word"></div>
+        <div class="item-reward-hint">Tap to continue</div>
+      </div>
+    </div>
+
     <div id="modal" style="display:none">
       <div class="modal-card" id="modal-card"></div>
     </div>

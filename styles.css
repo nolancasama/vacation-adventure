@@ -585,6 +585,43 @@ body {
 #fade { position:absolute; inset:0; background:rgba(30,20,14,.92); opacity:0; pointer-events:none; z-index:85; transition:opacity .3s ease; }
 #fade.on { opacity:1; pointer-events:auto; }
 
+/* ---------- item received / vocabulary reward ---------- */
+#scr-cine.item-reward-active #cine-world {
+  filter:brightness(.62) blur(1.5px);
+  transition:filter .2s ease;
+}
+#scr-cine.item-reward-paused #cine-world *,
+#scr-cine.item-reward-paused #ambient { animation-play-state:paused !important; }
+#item-reward {
+  position:absolute; inset:0; z-index:100; overflow:hidden; isolation:isolate;
+  display:grid; place-items:center; pointer-events:auto;
+  opacity:0; transition:opacity .28s ease;
+  background:rgba(17,20,33,.18);
+}
+#item-reward[hidden] { display:none; }
+#item-reward.is-visible { opacity:1; }
+.item-reward-halo {
+  position:absolute; width:430px; height:430px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,244,183,.78) 0%, rgba(255,205,82,.28) 37%, rgba(255,190,60,0) 70%);
+  transform:scale(.78); opacity:0; filter:blur(3px);
+}
+.is-visible .item-reward-halo { animation:itemRewardHalo 1.8s ease-out both; }
+.item-reward-card { position:relative; width:420px; height:490px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.item-reward-shadow { position:absolute; top:306px; width:230px; height:33px; border-radius:50%; background:rgba(25,15,15,.42); filter:blur(12px); opacity:0; }
+#item-reward-art { position:relative; z-index:1; display:block; width:290px; height:285px; object-fit:contain; opacity:0; filter:drop-shadow(0 10px 8px rgba(35,20,8,.34)); }
+#item-reward-word { position:relative; z-index:2; margin-top:16px; font-family:var(--font); font-size:48px; font-weight:800; letter-spacing:.02em; color:#fffdf5; opacity:0; text-align:center; text-shadow:0 3px 0 rgba(57,35,27,.82), 0 5px 12px rgba(0,0,0,.42); }
+.item-reward-hint { position:relative; z-index:2; margin-top:8px; font-size:15px; font-weight:bold; color:rgba(255,255,255,.84); opacity:0; text-shadow:0 2px 5px rgba(0,0,0,.5); }
+.is-visible #item-reward-art { animation:itemRewardPop .48s cubic-bezier(.2,1.35,.42,1) .08s both; }
+.is-visible .item-reward-shadow { animation:itemRewardFade .34s ease-out .13s both; }
+.is-visible #item-reward-word { animation:itemRewardFade .32s ease-out .36s both; }
+.is-visible .item-reward-hint { animation:itemRewardFade .26s ease-out .62s both; }
+#item-reward-particles { position:absolute; inset:0; z-index:3; pointer-events:none; }
+.item-reward-particle { position:absolute; left:50%; top:46%; font-size:25px; color:#fff1a8; text-shadow:0 0 8px rgba(255,205,66,.95); animation:itemRewardSpark .75s ease-out both; }
+@keyframes itemRewardPop { 0%{opacity:0; transform:scale(.9)} 68%{opacity:1; transform:scale(1.05)} 100%{opacity:1; transform:scale(1)} }
+@keyframes itemRewardFade { from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:translateY(0)} }
+@keyframes itemRewardHalo { 0%{opacity:0; transform:scale(.72)} 28%{opacity:1; transform:scale(1.05)} 100%{opacity:.7; transform:scale(1)} }
+@keyframes itemRewardSpark { 0%{opacity:0; transform:translate(0,0) scale(.3)} 24%{opacity:1} 100%{opacity:0; transform:translate(var(--x),var(--y)) scale(1.05)} }
+
 .fly-polaroid { position:absolute; z-index:76; transition: all .8s cubic-bezier(.5,-.2,.4,1); }
 
 .stamp-slam { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); animation:stampslam .5s cubic-bezier(.3,1.6,.5,1) backwards; }

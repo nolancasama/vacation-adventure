@@ -190,6 +190,8 @@ VA.Cine = {
         continue;
       }
 
+      if (st.reward) { await this._showItemReward(st.reward); continue; }
+
       if (st.show) {
         const el = this._target(st.show);
         if (el) {
@@ -226,6 +228,80 @@ VA.Cine = {
     el.style.top = toY + 'px';
     el.style.transform = `translate(-50%,-50%) scale(${endScale})`;
     flight.cancel();
+  },
+
+  /* A reusable JRPG-like vocabulary moment for food and future collectible
+     items.  The world prop is only used for a tiny handoff, then hidden; the
+     reward overlay renders a separate, full-resolution image instead. */
+  async _showItemReward(cfg = {}) {
+    const item = this._target(cfg.itemId);
+    const screen = VA.$('#scr-cine');
+    const overlay = VA.$('#item-reward');
+    const art = VA.$('#item-reward-art');
+    const word = VA.$('#item-reward-word');
+    const particles = VA.$('#item-reward-particles');
+    if (!overlay || !art || !word) return;
+
+    // Short, deliberate pause: CSS pauses bobbing/idle effects and the overlay
+    // captures input while the cinematic engine waits here.
+    screen.classList.add('item-reward-paused');
+    overlay.hidden = false;
+    overlay.classList.remove('is-visible');
+    await VA.wait(200);
+
+    // Let the tiny world item lean toward the viewer for a beat, then remove it
+    // before the crisp reward illustration enters.
+    if (item) {
+      const x = parseFloat(item.style.left) || VA.W / 2;
+      const y = parseFloat(item.style.top) || VA.H / 2;
+      const handoff = item.animate([
+        { left: x + 'px', top: y + 'px', transform: item.style.transform || 'translate(-50%,-50%) scale(1)', opacity: 1 },
+        { left: VA.W / 2 + 'px', top: VA.H / 2 + 'px', transform: 'translate(-50%,-50%) scale(1.25)', opacity: .15 },
+      ], { duration: 240, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' });
+      await handoff.finished.catch(() => {});
+      item.style.visibility = 'hidden';
+      handoff.cancel();
+    }
+
+    // Only darken and blur once the tiny world sprite is gone, so the clean
+    // reward art replaces it rather than looking like an enlarged blurry prop.
+    screen.classList.add('item-reward-active');
+    particles.replaceChildren();
+    art.src = 'assets/objects/' + cfg.illustration;
+    art.alt = cfg.word || 'Item received';
+    word.textContent = cfg.word || '';
+    // Restart entry animations on repeat visits.
+    overlay.classList.remove('is-visible');
+    void overlay.offsetWidth;
+    overlay.classList.add('is-visible');
+    for (let i = 0; i < 11; i++) {
+      const particle = VA.el('span', 'item-reward-particle', VA.pick(['✦', '✧', '•']));
+      particle.style.setProperty('--x', VA.rand(-210, 210) + 'px');
+      particle.style.setProperty('--y', VA.rand(-145, 130) + 'px');
+      particle.style.animationDelay = VA.rand(0, .32) + 's';
+      particles.appendChild(particle);
+    }
+    VA.Audio.sfx('obtain');
+    VA.Voice.speak(cfg.pronunciation || cfg.word || '', VA.Data.CHARS.player.voice);
+
+    await new Promise(resolve => {
+      let closed = false;
+      let acceptTap = false;
+      const close = () => {
+        if (closed || !acceptTap) return;
+        closed = true;
+        clearTimeout(timeout);
+        overlay.removeEventListener('pointerdown', close);
+        overlay.classList.remove('is-visible');
+        setTimeout(() => { overlay.hidden = true; particles.replaceChildren(); resolve(); }, 280);
+      };
+      // A slight delay avoids treating the dialogue tap that led here as a
+      // dismissal, but a deliberate tap can still close the reward early.
+      setTimeout(() => { acceptTap = true; }, 300);
+      overlay.addEventListener('pointerdown', close);
+      const timeout = setTimeout(close, cfg.duration || 1850);
+    });
+    screen.classList.remove('item-reward-active', 'item-reward-paused');
   },
 
   /* --------- the little "TAP!" play mini-game --------- */

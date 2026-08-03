@@ -115,6 +115,7 @@ VA.Audio = {
     camera() { this._noise({ dur: 0.05, freq: 4000, gain: 0.5 });
                this._tone({ f0: 1800, f1: 900, dur: 0.05, gain: 0.3, at: 0.045 }); },
     chime()  { [523, 659, 784].forEach((f, i) => this._tone({ f0: f, dur: 0.5, type: 'triangle', gain: 0.22, at: i * 0.09 })); },
+    obtain() { [523, 659, 784, 1046].forEach((f, i) => this._tone({ f0: f, dur: 0.42, type: 'triangle', gain: 0.2, at: i * 0.08 })); },
     fanfare(){ [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this._tone({ f0: f, dur: 0.42, type: 'triangle', gain: 0.22, at: i * 0.13 })); },
     pop()    { this._tone({ f0: 300, f1: 620, dur: 0.09, gain: 0.3 }); },
     whoosh() { this._noise({ dur: 0.7, freq: 900, gain: 0.3, type: 'bandpass', q: 0.8 }); },
