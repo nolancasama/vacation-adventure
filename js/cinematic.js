@@ -482,6 +482,15 @@ VA.Cine = {
       if (pose) {
         player.style.left = pose.x + 'px';
         player.style.top = pose.y + 'px';
+        if (pose.scale && pose.scale !== 1) {
+          const body = player.querySelector('.actor-svg-wrap');
+          if (body) {
+            body.style.transform = `scale(${pose.scale})`;
+            body.style.transformOrigin = 'center bottom';
+          }
+          player.dataset.photoSnapshotScale =
+            (parseFloat(player.dataset.scale) || 1) * pose.scale;
+        }
       }
       // Give the player a brief, calm return to the scene before the shutter,
       // then retain that same on-stage position in the saved photo.

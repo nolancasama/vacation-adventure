@@ -270,7 +270,7 @@ VA.Data.DESTS = [
         backdrop: 'event_france_crepe.png', painter: 'ev_fr_crepe',
         photoFile: 'photo_france_crepe.png', photoIcon: '🥞',
         caption: 'I ate a crepe.', captionJP: 'クレープを食べたよ。',
-        photoPlayerPose: { x: 260, y: 555 },
+        photoPlayerPose: { x: 260, y: 555, scale: 1.18 },
         actors: [
           { id: 'player', char: 'player', x: 250, y: 555, scale: 1.05 },
           { id: 'fr_vendor', char: 'fr_vendor', x: 470, y: 558, scale: 1.3, conversation: { x: 480, y: 558, scale: 1.12 } },
@@ -435,7 +435,7 @@ VA.Data.DESTS = [
         backdrop: 'event_egypt_pyramid.png', painter: 'ev_eg_pyramid',
         photoFile: 'photo_egypt_pyramids.png', photoIcon: '🐪',
         caption: 'I saw the pyramids.', captionJP: 'ピラミッドを見たよ。',
-        photoPlayerPose: { x: 300, y: 610 },
+        photoPlayerPose: { x: 300, y: 610, scale: 1.18 },
         actors: [
           { id: 'eg_guide', char: 'eg_guide', x: 250, y: 595, scale: 1.12, conversation: { x: 480, y: 595, scale: 1.15 } },
           { id: 'player', char: 'player', x: 365, y: 610, scale: 1.05 },
