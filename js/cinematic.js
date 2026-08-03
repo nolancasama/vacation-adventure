@@ -145,6 +145,10 @@ VA.Cine = {
       if (st.move) {
         const el = this._target(st.move.id);
         if (el) {
+          if (st.move.towardScreen) {
+            await this._moveTowardScreen(el, st.move);
+            continue;
+          }
           el.style.transition = `left ${st.move.dur || 900}ms ease-in-out, top ${st.move.dur || 900}ms ease-in-out`;
           el.style.left = st.move.x + 'px';
           if (st.move.y != null) el.style.top = st.move.y + 'px';
@@ -190,6 +194,25 @@ VA.Cine = {
       if (st.photo) { await this.snapPhoto(); continue; }
       if (st.fn)    { await st.fn(ctx); continue; }
     }
+  },
+
+  /* A received item moves straight toward the viewer: it finishes centered
+     and larger, giving a simple, friendly sense of depth without a 3D scene. */
+  async _moveTowardScreen(el, cfg = {}) {
+    const fromX = parseFloat(el.style.left) || VA.W / 2;
+    const fromY = parseFloat(el.style.top) || VA.H / 2;
+    const toX = cfg.x == null ? VA.W / 2 : cfg.x;
+    const toY = cfg.y == null ? VA.H / 2 : cfg.y;
+    const endScale = cfg.scale || 2.15;
+    const flight = el.animate([
+      { offset: 0, left: fromX + 'px', top: fromY + 'px', transform: 'translate(-50%,-50%) scale(1)' },
+      { offset: 1, left: toX + 'px', top: toY + 'px', transform: `translate(-50%,-50%) scale(${endScale})` },
+    ], { duration: cfg.dur || 760, easing: 'cubic-bezier(.2,.78,.28,1)', fill: 'forwards' });
+    await flight.finished.catch(() => {});
+    el.style.left = toX + 'px';
+    el.style.top = toY + 'px';
+    el.style.transform = `translate(-50%,-50%) scale(${endScale})`;
+    flight.cancel();
   },
 
   /* --------- the little "TAP!" play mini-game --------- */

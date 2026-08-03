@@ -51,15 +51,22 @@ VA.Art = {
   },
 
   layer(parent, opts) {
-    const { painter, file, kind = 'backgrounds', w = VA.W, h = VA.H, chip = true, fallback = true } = opts;
+    const { painter, file, kind = 'backgrounds', w = VA.W, h = VA.H, chip = true, fallback } = opts;
     const lay = VA.el('div', 'art-layer');
     const path = file ? ('assets/' + kind + '/' + file) : null;
     const cached = path ? this._imgCache[path] : null;
     const alreadyLoaded = !!(cached && cached.state === 'ok');
+    // When a real asset is supplied, begin painting that same asset right
+    // away.  This prevents the procedural default art from flashing before
+    // the decoded <img> clone is ready on a screen's first visit.
+    if (path) {
+      lay.style.background = `center / cover no-repeat url("${path}")`;
+    }
+    const useFallback = fallback == null ? !file : fallback;
 
-    // only pay for the procedural placeholder when the real art isn't
-    // already loaded — avoids a visible placeholder->real flash on repeat visits
-    if (!alreadyLoaded && fallback) {
+    // Procedural art is now only a true fallback for layers without a supplied
+    // file (or for callers that explicitly request one).
+    if (!alreadyLoaded && useFallback) {
       const cv = document.createElement('canvas');
       const scale = 2; // crispness when the stage is upscaled
       cv.width = w * scale; cv.height = h * scale;
