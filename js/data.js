@@ -207,6 +207,7 @@ VA.Data.DESTS = [
       {
         id: 'volleyball', verb: 'played',
         title: 'Beach Volleyball', titleJP: 'ビーチバレー', icon: '🏐', price: 0,
+        photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.
         keepCastOnStage: true,
         hotspot: { x: 820, y: 430 },
@@ -337,6 +338,7 @@ VA.Data.DESTS = [
       {
         id: 'soccer', verb: 'played',
         title: 'Park Soccer', titleJP: '公園でサッカー', icon: '⚽', price: 0,
+        photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.
         keepCastOnStage: true,
         hotspot: { x: 820, y: 430 },
@@ -471,6 +473,7 @@ VA.Data.DESTS = [
       {
         id: 'sand', verb: 'played',
         title: 'Sand Play', titleJP: 'すなあそび', icon: '🏖️', price: 0,
+        photoProps: ['pyr', 'flag'],
         // This shared activity keeps both children in the established layout.
         keepCastOnStage: true,
         hotspot: { x: 820, y: 430 },

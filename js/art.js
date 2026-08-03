@@ -430,6 +430,9 @@ VA.Art = {
     // Keep an anchored prop's ground point stable when its artwork is resized.
     pr.dataset.baseSize = size;
     pr.dataset.renderHeight = file ? size * 1.1 : size;
+    pr.dataset.file = file || '';
+    pr.dataset.icon = icon || '';
+    pr.dataset.anchor = anchor;
     if (hidden) pr.style.visibility = 'hidden';
     const em = VA.el('span', 'prop-emoji', icon);
     em.style.fontSize = size + 'px';
@@ -515,6 +518,26 @@ VA.Art = {
       else { ctx.drawImage(img, dx, dy, wA, hA); }
       ctx.restore();
       drewActor = true;
+    }
+
+    // Activity objects are part of the memory too: a ball in play, or the
+    // finished sand pyramid and flag.  Draw only the explicitly captured props
+    // so ordinary scene decorations do not clutter a small keepsake photo.
+    for (const p of (photo.props || [])) {
+      const cached = p.file && VA.Art._imgCache['assets/objects/' + p.file];
+      const hP = (p.height || 44) * (p.scale || 1) * sy;
+      const xP = p.x * sx, yP = p.y * sy;
+      if (cached && cached.state === 'ok') {
+        const img = cached.img;
+        const wP = hP * (img.naturalWidth / img.naturalHeight);
+        const dx = xP - wP / 2;
+        const dy = p.anchor === 'bottom' ? yP - hP : yP - hP / 2;
+        ctx.drawImage(img, dx, dy, wP, hP);
+      } else if (p.icon) {
+        ctx.font = hP + 'px "Segoe UI Emoji", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(p.icon, xP, yP);
+      }
     }
 
     // subject emoji "in" the photo — only as a fallback when no real

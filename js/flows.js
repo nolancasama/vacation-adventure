@@ -38,7 +38,7 @@ VA.Flows = {
     await D.say('grandma', 'I have a present for you.', { jp: 'プレゼントがあるよ。' });
     VA.Audio.sfx('coins');
     VA.State.addCoins(VA.Data.ALLOWANCE);
-    VA.Fx.sparkles(VA.$('#scr-home'), 600, 380);
+    VA.Fx.sparkles(VA.$('#scr-home'), 480, 380);
     await D.say('grandma', 'Here is some money.', { jp: 'はい、おこづかい。' });
     await D.say('grandma', 'Please go on a trip!', { jp: '旅行に行っておいで！' });
     await D.say('grandma', 'And take many photos!', { jp: '写真をたくさん撮ってね！' });
@@ -47,7 +47,7 @@ VA.Flows = {
       { text: 'Yay! A trip!', jp: 'やったー！旅行だ！' },
     ]);
     VA.Art.setMood(grandma, 'happy');
-    VA.Fx.hearts(VA.$('#scr-home'), 600, 360);
+    VA.Fx.hearts(VA.$('#scr-home'), 480, 360);
     await D.say('grandma', 'Have fun!', { jp: '楽しんでね！' });
     D.hide();
     await this.toMap();
@@ -283,10 +283,10 @@ VA.Flows = {
       const s = trip.souvenir;
       await D.choice([{ text: 'Grandma, this is for you!', jp: 'おばあちゃん、これどうぞ！' }]);
       VA.Audio.sfx('pop');
-      VA.Fx.sparkles(VA.$('#scr-home'), 600, 380);
+      VA.Fx.sparkles(VA.$('#scr-home'), 480, 380);
       await D.say('grandma', `Oh! A ${s.label.toLowerCase()}!`, { jp: `まあ！${s.reactJP}` });
       await D.say('grandma', 'Thank you!', { jp: 'ありがとう！' });
-      VA.Fx.hearts(VA.$('#scr-home'), 600, 350);
+      VA.Fx.hearts(VA.$('#scr-home'), 480, 350);
       VA.Audio.sfx('heart');
       await D.say('grandma', 'I love it!', { jp: 'とっても気に入ったわ！' });
       if (VA.Data.FEATURES.grandmaHomeSouvenirs) {
@@ -340,7 +340,7 @@ VA.Flows = {
     VA.Fx.captionBig('🏆 SUPER TRAVELER! 🏆', 2600);
     await D.say('grandma', 'You are a super traveler!', { jp: 'あなたはスーパートラベラーよ！' });
     await D.choice([{ text: 'Thank you, Grandma!', jp: 'ありがとう、おばあちゃん！' }]);
-    VA.Fx.hearts(VA.$('#scr-home'), 600, 350);
+    VA.Fx.hearts(VA.$('#scr-home'), 480, 350);
     await D.say('grandma', 'Where next, I wonder?', { jp: 'つぎはどこに行こうか？' });
     D.hide();
     await this.newTripIntro();

@@ -44,6 +44,19 @@ VA.Cine = {
     actorsLay.style.transition = 'none';
     actorsLay.style.transform = 'translateY(0)';
 
+    // Start every visual request together, before any layer is attached. This
+    // lets the backdrop, character sprites, and props decode in parallel on a
+    // first visit instead of making sprites visibly trail the background.
+    const sceneAssets = [
+      evt.backdrop && ('assets/backgrounds/' + evt.backdrop),
+      ...(evt.actors || []).map(a => {
+        const char = VA.Data.CHARS[a.char];
+        return char && ('assets/characters/' + char.file);
+      }),
+      ...(evt.props || []).map(pr => pr.file && ('assets/objects/' + pr.file)),
+    ].filter(Boolean);
+    VA.Art.preload(sceneAssets);
+
     VA.Art.layer(art, { painter: evt.painter, file: evt.backdrop, kind: 'backgrounds' });
 
     const ctx = { event: evt, dest, actors: {}, props: {} };
@@ -425,6 +438,22 @@ VA.Cine = {
         scale: parseFloat(el.dataset.photoSnapshotScale || el.dataset.scale) || 1,
         flip: el.classList.contains('flip'),
       })),
+      props: (evt.photoProps || []).map(id => this.ctx.props[id]).filter(el =>
+        el && el.style.visibility !== 'hidden'
+      ).map(el => {
+        const art = el.querySelector('.prop-emoji img');
+        const transform = el.style.transform || '';
+        const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+        return {
+          file: el.dataset.file,
+          icon: el.dataset.icon,
+          x: parseFloat(el.style.left) || 0,
+          y: parseFloat(el.style.top) || 0,
+          height: art ? (parseFloat(art.style.height) || Number(el.dataset.renderHeight)) : Number(el.dataset.renderHeight),
+          scale: scaleMatch ? parseFloat(scaleMatch[1]) || 1 : 1,
+          anchor: el.dataset.anchor,
+        };
+      }),
       file: evt.photoFile,
       trip: VA.State.data.trip ? VA.State.data.trip.no : 0,
     };

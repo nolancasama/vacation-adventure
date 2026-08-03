@@ -119,7 +119,12 @@ VA.Dialogue = {
           b.style.borderColor = 'var(--leaf)';
           // the player "says" their chosen line out loud
           VA.Voice.speak(it.text, VA.Data.CHARS.player.voice);
-          await VA.wait(opts.speakDelay != null ? opts.speakDelay : 750);
+          // Do not cut a longer player answer off with the next speaker. The
+          // estimate is deliberately a little generous because browser voices
+          // vary, and callers can still override it for a special beat.
+          const rate = VA.Data.CHARS.player.voice.rate || 0.9;
+          const estimatedSpeechMs = Math.max(900, Math.ceil((it.text.length * 82) / rate + 260));
+          await VA.wait(opts.speakDelay != null ? opts.speakDelay : estimatedSpeechMs);
           wrap.style.display = 'none';
           wrap.innerHTML = '';
           res(it.value !== undefined ? it.value : it.text);
