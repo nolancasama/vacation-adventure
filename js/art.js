@@ -348,7 +348,16 @@ VA.Art = {
     };
 
     if (alreadyLoaded) applyReal(cached.img);
-    else body.innerHTML = this.charSVG(c, mood, hPx);
+    else {
+      // Use the requested transparent asset immediately instead of briefly
+      // drawing the legacy SVG character while it loads and decodes.
+      const pending = document.createElement('img');
+      pending.className = 'actor-pending-photo';
+      pending.src = path;
+      pending.alt = c.name === '{player}' ? 'Player' : c.name;
+      pending.style.height = hPx + 'px';
+      body.appendChild(pending);
+    }
     a.appendChild(body);
     if (tag) a.appendChild(VA.el('span', 'actor-tag', c.name === '{player}' ? VA.State.data.name : c.name));
     a.appendChild(VA.el('span', 'actor-chip' + (alreadyLoaded ? ' real' : ''), c.file));
