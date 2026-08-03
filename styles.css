@@ -83,6 +83,10 @@ body {
 .actor-layer { position:absolute; inset:0; pointer-events:none; }
 #scr-home .actor-layer { z-index:2; }
 
+/* Affection effects should appear above Grandma, rather than behind her sprite. */
+#scr-home .float-heart,
+#scr-home .fx-sparkle { z-index:3; }
+
 /* Grandma's home becomes a calm, permanent travel diary.  The objects live
    behind the characters but remain tappable because the actor layer itself
    does not capture pointer events. */

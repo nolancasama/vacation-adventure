@@ -360,7 +360,7 @@ VA.Data.DESTS = [
           { say: ['fr_kid', "Let's play soccer!", 'サッカーしよう！'] },
           { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
           { caption: 'TAP to kick!' },
-          { game: { n: 3, label: 'KICK! ⚽', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'fr_kid', goal: { x: 790, y: 370, scale: 0.7 }, sfx: 'kick' } },
+          { game: { n: 3, label: 'KICK! ⚽', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'fr_kid', goal: { x: 790, y: 370, scale: 0.25 }, sfx: 'kick' } },
           { caption: 'GOAL!' },
           { anim: { id: 'fr_kid', name: 'cheer', wait: false } },
           { anim: { id: 'pige', name: 'wiggle', wait: false } },
