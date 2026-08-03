@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Vacation Adventure — えいごで旅行！</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+
+    <!-- ======== SCREENS ======== -->
+    <div class="screen" id="scr-title">
+      <div class="scene-art"></div>
+      <div class="title-card">
+        <h1 id="game-logo"><span>Vacation</span> <span>Adventure</span></h1>
+        <p class="title-sub">えいごで りょこう！ &nbsp;·&nbsp; Travel and talk in English!</p>
+        <div class="title-btns">
+          <button class="big-btn" id="btn-continue" style="display:none">▶ Continue</button>
+          <button class="big-btn" id="btn-start">✈ New Game</button>
+        </div>
+        <p class="title-note">Placeholder build — all art &amp; sound are temporary stand-ins.</p>
+      </div>
+      <div id="title-foreground" aria-hidden="true"></div>
+    </div>
+
+    <div class="screen" id="scr-home">
+      <div class="scene-art"></div>
+      <div id="home-souvenirs" aria-label="Grandma's travel souvenirs"></div>
+      <div class="actor-layer"></div>
+      <div id="debrief-page"></div>
+    </div>
+
+    <div class="screen" id="scr-map">
+      <div class="scene-art"></div>
+      <div class="map-banner" id="map-banner">Where do you want to go? <span class="jp-inline">どこに行きたい？</span></div>
+      <div class="dest-cards" id="dest-cards"></div>
+    </div>
+
+    <div class="screen" id="scr-travel">
+      <div class="scene-art"></div>
+      <div class="travel-banner" id="travel-banner"></div>
+      <div id="travel-plane"></div>
+    </div>
+
+    <div class="screen" id="scr-explore">
+      <div class="scene-art"></div>
+      <div class="actor-layer"></div>
+      <div class="hotspot-layer" id="hotspot-layer"></div>
+      <button class="big-btn depart-btn" id="btn-depart" style="display:none">🛫 Time to go home!</button>
+      <div class="explore-hint" id="explore-hint"></div>
+    </div>
+
+    <div class="screen" id="scr-cine">
+      <div id="cine-world">
+        <div class="scene-art"></div>
+        <div class="actor-layer"></div>
+      </div>
+      <div id="tap-game" style="display:none">
+        <button id="tap-btn">TAP!</button>
+        <div id="tap-stars"></div>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-scrapbook">
+      <div class="book-bg"></div>
+      <div class="book-frame">
+        <h2 class="book-title">📖 My Vacation Scrapbook</h2>
+        <div class="book-tabs" id="book-tabs"></div>
+        <div id="book-page"></div>
+        <button class="big-btn" id="btn-book-close">OK!</button>
+      </div>
+    </div>
+
+    <!-- ======== OVERLAYS ======== -->
+    <canvas id="ambient" width="1920" height="1200"></canvas>
+
+    <div id="hud" style="display:none">
+      <div class="hud-pill" id="hud-coins"><span class="coin-ico">💰</span><span class="val">0</span></div>
+      <div class="hud-right">
+        <button class="hud-btn" id="btn-album"   title="Photo Album">📷</button>
+        <button class="hud-btn" id="btn-passport" title="Passport">🛂</button>
+        <button class="hud-btn" id="btn-book"    title="Scrapbook">📖</button>
+        <button class="hud-btn" id="btn-settings" title="Settings">⚙️</button>
+      </div>
+    </div>
+
+    <div id="dialogue" style="display:none">
+      <div id="dlg-portrait"></div>
+      <div class="dlg-box">
+        <div id="dlg-name"></div>
+        <div id="dlg-text"></div>
+        <div id="dlg-jp"></div>
+        <button id="btn-say-again" title="Listen again">🔊</button>
+        <div id="dlg-next">▼</div>
+      </div>
+    </div>
+
+    <div id="choices" style="display:none"></div>
+
+    <div id="photo-toast" style="display:none">
+      <div class="pt-polaroid" id="pt-polaroid"></div>
+      <div class="pt-caption" id="pt-caption"></div>
+    </div>
+
+    <div id="hint-photo" style="display:none"></div>
+
+    <div id="modal" style="display:none">
+      <div class="modal-card" id="modal-card"></div>
+    </div>
+
+    <div id="name-modal" style="display:none">
+      <div class="modal-card name-card">
+        <h2>What is your name?</h2>
+        <p class="jp-inline">なまえを いれてね！</p>
+        <div class="name-row">
+          <input id="name-input" maxlength="10" placeholder="Your name" autocomplete="off">
+          <button id="btn-name-dice" title="Random name">🎲</button>
+        </div>
+        <button class="big-btn" id="btn-name-ok">OK!</button>
+      </div>
+    </div>
+
+    <div id="fly-layer"></div>
+    <div id="stamp-layer"></div>
+    <div id="caption-big" style="display:none"></div>
+    <div id="toast" style="display:none"></div>
+    <div id="flash"></div>
+    <div id="fade"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/art.js"></script>
+<script src="js/ambient.js"></script>
+<script src="js/dialogue.js"></script>
+<script src="js/cinematic.js"></script>
+<script src="js/data.js"></script>
+<script src="js/flows.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

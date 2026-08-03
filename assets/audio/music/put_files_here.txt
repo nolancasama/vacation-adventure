@@ -1,0 +1,1 @@
+﻿Drop real asset files in this folder (exact filenames are listed in ASSETS.md). The game finds them automatically - no code changes needed.
