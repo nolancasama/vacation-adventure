@@ -33,12 +33,14 @@ VA.Data.CHARS = {
     colors: { skin: '#ffe3c4', hair: '#e8e6e3', top: '#c47ab8', bottom: '#8a7f96' },
     hairStyle: 'bun', glasses: true,
     voice: { rate: 0.82, pitch: 1.02 },
+    footPad: 3.8,
   },
   officer: {
     name: 'Officer', file: 'officer.png', color: '#3d6b8f',
     colors: { skin: '#e8c49c', hair: '#3a3a3a', top: '#3d5f8f', bottom: '#2c4668', hat: '#2c4668' },
     hat: 'cap',
     voice: { rate: 0.88, pitch: 0.9 },
+    footPad: 3.7,
   },
   sign: { name: 'Guide Book', file: 'ui_guidebook.png', color: '#8a705c', noPortrait: true, voice: { rate: 0.9, pitch: 1 } },
 
@@ -48,20 +50,23 @@ VA.Data.CHARS = {
     colors: { skin: '#f2c9a0', hair: '#7a4a2c', top: '#67bde0', hat: '#e35f4f' },
     hat: 'cap', apron: true,
     voice: { rate: 0.92, pitch: 1.15 },
+    footPad: 2.9,
   },
   au_ranger: {
     name: 'Ranger', file: 'ranger_australia-alpha.png', color: '#79b851',
     colors: { skin: '#e8b988', hair: '#4a3220', top: '#a8925c', bottom: '#6b5a3c' },
     hat: 'ranger',
     voice: { rate: 0.9, pitch: 1.0 },
+    footPad: 1.1,
   },
   au_kid: {
     name: 'Beach Kid', file: 'kids_australia-alpha.png', color: '#ffb35c',
     colors: { skin: '#ffd9b3', hair: '#f2d16b', top: '#ffd166', bottom: '#e35f4f' },
     hairStyle: 'pigtails',
     voice: { rate: 1.0, pitch: 1.4 },
+    footPad: 2.5,
   },
-  kangaroo: { name: 'Kangaroo', file: 'kangaroo.png', color: '#b5875a', animal: 'kangaroo', voice: { rate: 1, pitch: 1.6 } },
+  kangaroo: { name: 'Kangaroo', file: 'kangaroo.png', color: '#b5875a', animal: 'kangaroo', voice: { rate: 1, pitch: 1.6 }, footPad: 16.0 },
 
   /* --- France --- */
   fr_vendor: {
@@ -69,20 +74,23 @@ VA.Data.CHARS = {
     colors: { skin: '#f2c9a0', hair: '#2c2c2c', top: '#5c7fa8', hat: '#c94f43' },
     hat: 'beret', apron: true,
     voice: { rate: 0.88, pitch: 1.05 },
+    footPad: 2.3,
   },
   fr_guide: {
     name: 'Marie', file: 'guide_paris.png', color: '#c47ab8',
     colors: { skin: '#ffe3c4', hair: '#8a5a34', top: '#b088c9', bottom: '#6d5a96' },
     hairStyle: 'long',
     voice: { rate: 0.9, pitch: 1.25 },
+    footPad: 1.7,
   },
   fr_kid: {
     name: 'Louis', file: 'kids_paris.png', color: '#79b851',
     colors: { skin: '#f2c9a0', hair: '#3a2c1e', top: '#79b851', bottom: '#4a6b8a', hat: '#3d5f8f' },
     hat: 'cap',
     voice: { rate: 1.0, pitch: 1.4 },
+    footPad: 5.1,
   },
-  pigeon: { name: 'Pigeon', file: 'pigeon.png', color: '#8493a6', animal: 'pigeon', size: 0.45, voice: { rate: 1, pitch: 1.8 } },
+  pigeon: { name: 'Pigeon', file: 'pigeon.png', color: '#8493a6', animal: 'pigeon', size: 0.45, voice: { rate: 1, pitch: 1.8 }, footPad: 16.3 },
 
   /* --- Egypt --- */
   eg_vendor: {
@@ -90,20 +98,23 @@ VA.Data.CHARS = {
     colors: { skin: '#d9a06b', hair: '#2c2c2c', top: '#c9704a', hat: '#e8b96f' },
     hat: 'scarf', apron: true,
     voice: { rate: 0.9, pitch: 1.0 },
+    footPad: 2.0,
   },
   eg_guide: {
     name: 'Amira', file: 'guide_egypt.png', color: '#c9913c',
     colors: { skin: '#d9a06b', hair: '#1e1e1e', top: '#e8d3a8', bottom: '#a8763c', hat: '#fff' },
     hat: 'scarf',
     voice: { rate: 0.88, pitch: 0.95 },
+    footPad: 2.4,
   },
   eg_kid: {
     name: 'Layla', file: 'kids_egypt.png', color: '#3fa9a0',
     colors: { skin: '#e0ab77', hair: '#1e1e1e', top: '#3fa9a0', bottom: '#e8d3a8' },
     hairStyle: 'long',
     voice: { rate: 1.0, pitch: 1.45 },
+    footPad: 1.9,
   },
-  camel: { name: 'Coco', file: 'camel.png', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 } },
+  camel: { name: 'Coco', file: 'camel.png', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 }, footPad: 7.1 },
 };
 
 /* ------------------------------------------------------------

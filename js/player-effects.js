@@ -32,7 +32,7 @@ VA.PlayerFX = {
      Calling this again is intentional: it updates the level profile when a
      reused actor enters a new scene without creating duplicate DOM. */
   attach(actor, level = {}) {
-    if (!actor || actor.dataset.char !== 'player') return;
+    if (!actor) return;
     actor._playerFXLevel = level || {};
     const sprite = actor.querySelector('.actor-breathe-sprite, .actor-svg-wrap');
     if (!sprite) return; // actorEl calls us again after a pending PNG resolves

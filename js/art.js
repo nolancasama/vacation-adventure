@@ -387,7 +387,7 @@ VA.Art = {
     // Real character PNGs are exported on a padded canvas (headroom/footroom
     // around the figure). The ground-shadow rig anchors to the sprite box's
     // bottom edge, so without this the shadow sits below the actual feet.
-    if (charId === 'player') a.style.setProperty('--foot-pad', (c.footPad || 0) + '%');
+    a.style.setProperty('--foot-pad', (c.footPad || 0) + '%');
     const hPx = 300 * scale * (c.size || 1); // ~50% of stage height at scale 1
     const body = VA.el('div', 'actor-svg-wrap');
     const path = 'assets/characters/' + c.file;
@@ -397,7 +397,7 @@ VA.Art = {
     const assetFailed = !!(cached && cached.state === 'fail');
 
     const applyPlayerEffects = () => {
-      if (charId === 'player' && VA.PlayerFX) VA.PlayerFX.attach(a, playerVisual);
+      if (VA.PlayerFX) VA.PlayerFX.attach(a, playerVisual);
     };
     const applyReal = img => {
       a.dataset.real = '1';
