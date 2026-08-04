@@ -163,8 +163,11 @@ VA.Flows = {
   async _runEventInner(evt, dest) {
 
     VA.HUD.show(); // stays visible: coins + the photo flying into the album
-    VA.Cine.setup(evt, dest);
+    // Start loading before the screen switch so the cinematic is already
+    // covered by its loading overlay when it becomes visible.
+    const sceneReady = VA.Cine.setup(evt, dest);
     await VA.Screens.show('cine');
+    await sceneReady;
     await VA.wait(250);
     await VA.Cine.play(evt.steps);
     VA.Dialogue.hide();

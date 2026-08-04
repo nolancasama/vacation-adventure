@@ -26,20 +26,25 @@ VA.Art = {
      --------------------------------------------------------- */
   _imgCache: {},
 
-  _loadImage(path, onReady) {
+  _loadImage(path, onReady, onError) {
     let entry = this._imgCache[path];
     if (!entry) {
-      entry = this._imgCache[path] = { state: 'pending', img: null, cbs: [] };
+      entry = this._imgCache[path] = { state: 'pending', img: null, cbs: [], errorCbs: [] };
       const img = new Image();
       img.onload = () => {
         entry.state = 'ok'; entry.img = img;
         entry.cbs.forEach(cb => cb(img)); entry.cbs = [];
       };
-      img.onerror = () => { entry.state = 'fail'; entry.cbs = []; };
+      img.onerror = () => {
+        entry.state = 'fail'; entry.cbs = [];
+        entry.errorCbs.forEach(cb => cb(path)); entry.errorCbs = [];
+      };
       img.src = path;
     }
     if (entry.state === 'ok' && onReady) onReady(entry.img);
     else if (entry.state === 'pending' && onReady) entry.cbs.push(onReady);
+    if (entry.state === 'fail' && onError) onError(path);
+    else if (entry.state === 'pending' && onError) entry.errorCbs.push(onError);
     return entry;
   },
 
@@ -48,6 +53,32 @@ VA.Art = {
      procedural fallback. */
   preload(paths) {
     paths.forEach(path => this._loadImage(path));
+  },
+
+  /* Load a scene's initial bitmap set concurrently.  Image.decode() gives the
+     browser a chance to finish decoding before the scene is assembled, so the
+     first visible frame contains real pixels rather than late-loading sprites. */
+  preloadAndWait(paths) {
+    const uniquePaths = [...new Set(paths.filter(Boolean))];
+    return Promise.all(uniquePaths.map(path => new Promise(resolve => {
+      const ready = img => {
+        const decoded = img.decode ? img.decode() : Promise.resolve();
+        decoded.then(
+          () => resolve({ path, ok: true }),
+          () => {
+            const entry = this._imgCache[path];
+            if (entry) { entry.state = 'fail'; entry.img = null; }
+            console.error(`[Asset preload failed to decode] ${path}`);
+            resolve({ path, ok: false });
+          },
+        );
+      };
+      const failed = file => {
+        console.error(`[Asset preload failed] ${file}`);
+        resolve({ path: file, ok: false });
+      };
+      this._loadImage(path, ready, failed);
+    })));
   },
 
   layer(parent, opts) {
@@ -62,7 +93,8 @@ VA.Art = {
     if (path) {
       lay.style.background = `center / cover no-repeat url("${path}")`;
     }
-    const useFallback = fallback == null ? !file : fallback;
+    const assetFailed = !!(cached && cached.state === 'fail');
+    const useFallback = fallback == null ? (!file || assetFailed) : fallback;
 
     // Procedural art is now only a true fallback for layers without a supplied
     // file (or for callers that explicitly request one).
@@ -338,6 +370,7 @@ VA.Art = {
     const path = 'assets/characters/' + c.file;
     const cached = this._imgCache[path];
     const alreadyLoaded = !!(cached && cached.state === 'ok');
+    const assetFailed = !!(cached && cached.state === 'fail');
 
     const applyReal = img => {
       a.dataset.real = '1';
@@ -348,6 +381,7 @@ VA.Art = {
     };
 
     if (alreadyLoaded) applyReal(cached.img);
+    else if (assetFailed) body.innerHTML = this.charSVG(c, mood, hPx);
     else {
       // Use the requested transparent asset immediately instead of briefly
       // drawing the legacy SVG character while it loads and decodes.
@@ -361,7 +395,9 @@ VA.Art = {
     a.appendChild(body);
     if (tag) a.appendChild(VA.el('span', 'actor-tag', c.name === '{player}' ? VA.State.data.name : c.name));
     a.appendChild(VA.el('span', 'actor-chip' + (alreadyLoaded ? ' real' : ''), c.file));
-    if (!alreadyLoaded) this._loadImage(path, applyReal);
+    if (!alreadyLoaded && !assetFailed) {
+      this._loadImage(path, applyReal, () => { body.innerHTML = this.charSVG(c, mood, hPx); });
+    }
     return a;
   },
 
