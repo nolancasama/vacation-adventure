@@ -375,7 +375,7 @@ VA.Art = {
   /* an actor standing on a scene */
   actorEl(charId, opts = {}) {
     const c = VA.Data.CHARS[charId];
-    const { x = 480, y = 470, scale = 1, mood = 'happy', flip = false, tag = true, bob = false } = opts;
+    const { x = 480, y = 470, scale = 1, mood = 'happy', flip = false, tag = true, bob = false, playerVisual = null } = opts;
     const a = VA.el('div', 'actor' + (flip ? ' flip' : '') + (bob ? ' bob' : ''));
     a.dataset.char = charId;
     a.dataset.scale = scale; // read back by VA.Art.polaroid() to redraw this actor at the same size
@@ -388,16 +388,20 @@ VA.Art = {
     const alreadyLoaded = !!(cached && cached.state === 'ok');
     const assetFailed = !!(cached && cached.state === 'fail');
 
+    const applyPlayerEffects = () => {
+      if (charId === 'player' && VA.PlayerFX) VA.PlayerFX.attach(a, playerVisual);
+    };
     const applyReal = img => {
       a.dataset.real = '1';
       body.innerHTML = '';
       body.appendChild(this.breathingSprite(img, 'actor', hPx));
       const chipEl = a.querySelector('.actor-chip');
       if (chipEl) chipEl.classList.add('real');
+      applyPlayerEffects();
     };
 
     if (alreadyLoaded) applyReal(cached.img);
-    else if (assetFailed) body.innerHTML = this.charSVG(c, mood, hPx);
+    else if (assetFailed) { body.innerHTML = this.charSVG(c, mood, hPx); applyPlayerEffects(); }
     else {
       // Use the requested transparent asset immediately instead of briefly
       // drawing the legacy SVG character while it loads and decodes.
@@ -412,7 +416,7 @@ VA.Art = {
     if (tag) a.appendChild(VA.el('span', 'actor-tag', c.name === '{player}' ? VA.State.data.name : c.name));
     a.appendChild(VA.el('span', 'actor-chip' + (alreadyLoaded ? ' real' : ''), c.file));
     if (!alreadyLoaded && !assetFailed) {
-      this._loadImage(path, applyReal, () => { body.innerHTML = this.charSVG(c, mood, hPx); });
+      this._loadImage(path, applyReal, () => { body.innerHTML = this.charSVG(c, mood, hPx); applyPlayerEffects(); });
     }
     return a;
   },

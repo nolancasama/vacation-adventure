@@ -165,6 +165,61 @@ body {
 .actor .cheer  { animation: cheer .6s ease-in-out 2; }
 @keyframes cheer { 0%,100%{ transform:translateY(0) scale(1) } 50%{ transform:translateY(-16px) scale(1.06) } }
 
+/* ---------- player scene integration ----------
+   These are independent DOM layers beneath/above the transparent PNG; no art
+   is baked into the sprite. Shadow geometry is anchored to the sprite box, so
+   it follows CSS movement and resizes with the character automatically. */
+.player-vfx-rig { position:absolute; inset:0; pointer-events:none; overflow:visible; }
+.player-ground-shadow, .player-contact-shadow {
+  position:absolute; left:50%; border-radius:50%; pointer-events:none;
+  transform:translate(-50%,-50%); transition:opacity .18s ease, filter .18s ease, transform .18s ease;
+}
+.player-ground-shadow {
+  top:calc(100% - 5px); width:58%; height:11px; z-index:0;
+  background:rgba(36,38,42,.68); opacity:var(--shadow-opacity, .34);
+  filter:blur(var(--shadow-blur, 7px));
+  transform:translate(-50%,-50%) scaleX(calc(var(--shadow-scale, 1) * var(--shadow-width, 1))) scaleY(var(--shadow-scale, 1));
+}
+.player-contact-shadow {
+  top:calc(100% - 3px); width:29%; height:5px; z-index:0;
+  background:rgba(22,24,28,.72); opacity:var(--contact-opacity, 1);
+  filter:blur(1.5px);
+  transform:translate(-50%,-50%) scaleX(var(--shadow-scale, 1));
+}
+.player-state-swim .player-ground-shadow { background:rgba(48,108,130,.58); }
+.player-state-walk .player-ground-shadow { animation:player-shadow-step .58s ease-in-out infinite; }
+@keyframes player-shadow-step {
+  0%,100% { transform:translate(-50%,-50%) scaleX(calc(var(--shadow-scale, 1) * var(--shadow-width, 1) * .92)) scaleY(calc(var(--shadow-scale, 1) * 1.06)); }
+  50% { transform:translate(-50%,-50%) scaleX(calc(var(--shadow-scale, 1) * var(--shadow-width, 1) * 1.08)) scaleY(calc(var(--shadow-scale, 1) * .91)); }
+}
+.player-rim-light, .player-tint-overlay, .player-direction-overlay {
+  position:absolute; inset:0; pointer-events:none; -webkit-mask-image:var(--player-mask); mask-image:var(--player-mask);
+  -webkit-mask-size:100% 100%; mask-size:100% 100%; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+}
+.player-rim-light { z-index:0; background:var(--rim-color, transparent); opacity:var(--rim-opacity, 0); transform:translate(var(--rim-offset, 0, 0)); }
+.player-tint-overlay { z-index:4; background:var(--tint-color, transparent); opacity:var(--tint-opacity, 0); mix-blend-mode:soft-light; }
+.player-direction-overlay { z-index:5; background:var(--direction-gradient); opacity:.72; mix-blend-mode:soft-light; }
+.player-effects-ready .actor-photo { filter:brightness(var(--sprite-brightness, 1)) saturate(var(--sprite-saturation, 1)); }
+
+/* One slow overlay sits above both the painted scene and player, but below
+   activity cards and interface controls, keeping its lighting shared. */
+.environment-light { position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; overflow:hidden; }
+.hotspot-layer, .depart-btn, .explore-hint { z-index:2; }
+.environment-leaf-shadow { opacity:var(--environment-opacity); mix-blend-mode:multiply; background:radial-gradient(ellipse at 10% 15%, rgba(35,68,32,.42) 0 8%, transparent 24%), radial-gradient(ellipse at 82% 40%, rgba(35,68,32,.32) 0 8%, transparent 25%), radial-gradient(ellipse at 48% 82%, rgba(35,68,32,.26) 0 7%, transparent 22%); background-size:52% 64%, 58% 66%, 48% 58%; animation:environment-drift var(--environment-speed, 14s) ease-in-out infinite alternate; }
+.environment-cloud-shadow { opacity:var(--environment-opacity); mix-blend-mode:multiply; background:radial-gradient(ellipse at 18% 30%, rgba(57,71,104,.28) 0 14%, transparent 38%), radial-gradient(ellipse at 78% 65%, rgba(57,71,104,.2) 0 17%, transparent 42%); background-size:130% 110%; animation:environment-drift var(--environment-speed, 18s) ease-in-out infinite alternate; }
+.environment-fire-flicker { opacity:var(--environment-opacity); mix-blend-mode:screen; background:radial-gradient(ellipse at 50% 88%, rgba(255,109,44,.58), transparent 55%); animation:environment-flicker var(--environment-speed, 3s) ease-in-out infinite; }
+.environment-water-shimmer { opacity:var(--environment-opacity); mix-blend-mode:soft-light; background:repeating-linear-gradient(108deg, transparent 0 20px, rgba(214,247,255,.45) 25px 30px, transparent 38px 58px); background-size:180px 100%; animation:environment-shimmer var(--environment-speed, 12s) linear infinite; }
+@keyframes environment-drift { from{background-position:0% 0%, 20% 5%, 55% 25%} to{background-position:20% 12%, -15% 10%, 35% 5%} }
+@keyframes environment-flicker { 0%,100%{opacity:calc(var(--environment-opacity) * .65)} 45%{opacity:var(--environment-opacity)} 68%{opacity:calc(var(--environment-opacity) * .76)} }
+@keyframes environment-shimmer { from{background-position:0 0} to{background-position:180px 0} }
+
+/* Created only when VA.PlayerFX.DEV_PANEL_ENABLED is true. */
+.player-fx-dev { position:absolute; top:10px; right:10px; z-index:220; width:225px; padding:10px; border-radius:12px; background:rgba(38,30,49,.92); color:#fffdf5; font:12px/1.25 system-ui,sans-serif; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+.player-fx-dev strong { display:block; margin-bottom:7px; }
+.player-fx-dev-row { display:grid; grid-template-columns:78px 1fr 34px; gap:5px; align-items:center; margin:4px 0; }
+.player-fx-dev-row input, .player-fx-dev-row select { width:100%; }
+.player-fx-dev button { margin:8px 5px 0 0; padding:4px 7px; border:0; border-radius:6px; cursor:pointer; }
+
 /* props (emoji stand-ins for object art) */
 .prop { position:absolute; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
 .prop.prop-bottom { transform:translate(-50%,-100%); }
@@ -711,4 +766,5 @@ body {
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .scene-art.drift, .hotspot, .depart-btn, #tap-btn, .map-pin, .actor.bob { animation:none !important; }
+  .player-ground-shadow, .environment-light { animation:none !important; }
 }

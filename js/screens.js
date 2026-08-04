@@ -180,7 +180,7 @@ VA.UI = {
 
     const lay = scr.querySelector('.actor-layer');
     lay.innerHTML = '';
-    lay.appendChild(VA.Art.actorEl('player', { x: 110, y: 565, scale: 0.95, bob: true }));
+    lay.appendChild(VA.Art.actorEl('player', { x: 110, y: 565, scale: 0.95, bob: true, playerVisual: dest }));
 
     const trip = VA.State.data.trip || { done: [] };
     const hsLayer = VA.$('#hotspot-layer');

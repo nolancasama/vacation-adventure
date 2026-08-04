@@ -141,6 +141,10 @@ VA.Data.DESTS = [
     name: 'Australia', jp: 'オーストラリア',
     flag: '🇦🇺', stampIcon: '🦘', color: '#e8873c',
     bg: 'background_australia_beach.png', painter: 'australiaBeach',
+    lighting: { brightness: 0.99, saturation: 0.96, temperature: 'warm', tintColor: 'rgba(255,229,170,.10)' },
+    lightDirection: 'left',
+    rimLight: { enabled: true, direction: 'left', color: 'rgba(255,238,190,.30)', strength: 0.16 },
+    environmentEffect: { type: 'leaf-shadow', enabled: true, opacity: 0.055, speed: 18 },
     music: 'theme_australia',
     ambient: [
       { type: 'birds', band: [0.06, 0.3], every: [8, 16] },
@@ -276,6 +280,10 @@ VA.Data.DESTS = [
     name: 'France', jp: 'フランス',
     flag: '🇫🇷', stampIcon: '🗼', color: '#7a6aa8',
     bg: 'background_paris_evening.png', painter: 'parisEvening',
+    lighting: { brightness: 0.93, saturation: 0.95, temperature: 'night', tintColor: 'rgba(98,116,198,.10)' },
+    lightDirection: 'left',
+    rimLight: { enabled: true, direction: 'left', color: 'rgba(255,201,142,.24)', strength: 0.14 },
+    environmentEffect: { type: 'cloud-shadow', enabled: true, opacity: 0.045, speed: 24 },
     music: 'theme_paris',
     ambient: [
       { type: 'twinkle', rect: [0.44, 0.16, 0.24, 0.5], n: 8 },
@@ -412,6 +420,10 @@ VA.Data.DESTS = [
     name: 'Egypt', jp: 'エジプト',
     flag: '🇪🇬', stampIcon: '🐪', color: '#c9913c',
     bg: 'background_egypt_desert.png', painter: 'egyptDesert',
+    lighting: { brightness: 0.98, saturation: 0.95, temperature: 'warm', tintColor: 'rgba(255,191,92,.11)' },
+    lightDirection: 'left',
+    rimLight: { enabled: false },
+    environmentEffect: { type: 'cloud-shadow', enabled: true, opacity: 0.025, speed: 28 },
     music: 'theme_egypt',
     ambient: [
       { type: 'particles', kind: 'sand', n: 8 },

@@ -11,6 +11,7 @@ VA.Main = {
     VA.Stage.init();
     VA.Ambient.init();
     VA.Cine.init();
+    VA.PlayerFX.init();
     VA.Dialogue.init();
     VA.Voice.init();
 

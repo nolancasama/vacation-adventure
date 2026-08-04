@@ -96,7 +96,7 @@ VA.Cine = {
         x: conversation.x == null ? a.x : conversation.x,
         y: conversation.y == null ? a.y : conversation.y,
       } : a;
-      const el = VA.Art.actorEl(a.char, screenPose);
+      const el = VA.Art.actorEl(a.char, { ...screenPose, playerVisual: a.char === 'player' ? dest : null });
       el.style.zIndex = a.z || 2;
       if (conversation) {
         el.dataset.photoPose = 'true';
@@ -187,14 +187,17 @@ VA.Cine = {
       if (st.move) {
         const el = this._target(st.move.id);
         if (el) {
+          if (el.dataset.char === 'player' && VA.PlayerFX) VA.PlayerFX.setState('walk', { actor: el, levelLighting: ctx.dest });
           if (st.move.towardScreen) {
             await this._moveTowardScreen(el, st.move);
+            if (el.dataset.char === 'player' && VA.PlayerFX) VA.PlayerFX.setState('idle', { actor: el, levelLighting: ctx.dest });
             continue;
           }
           el.style.transition = `left ${st.move.dur || 900}ms ease-in-out, top ${st.move.dur || 900}ms ease-in-out`;
           el.style.left = st.move.x + 'px';
           if (st.move.y != null) el.style.top = st.move.y + 'px';
           await VA.wait((st.move.dur || 900) + 40);
+          if (el.dataset.char === 'player' && VA.PlayerFX) VA.PlayerFX.setState('idle', { actor: el, levelLighting: ctx.dest });
         }
         continue;
       }
@@ -203,11 +206,16 @@ VA.Cine = {
         const el = this._target(st.anim.id);
         if (el) {
           const node = el.classList.contains('prop') ? el : el.querySelector('.actor-svg-wrap');
+          if (el.dataset.char === 'player' && VA.PlayerFX) {
+            const state = st.anim.name === 'hop' ? 'jump' : (st.anim.name === 'cheer' ? 'celebrate' : 'fail');
+            VA.PlayerFX.setState(state, { actor: el, height: state === 'jump' ? 80 : 0, levelLighting: ctx.dest });
+          }
           node.classList.remove(st.anim.name);
           void node.offsetWidth;
           node.classList.add(st.anim.name);
           const ms = this.ANIM_MS[st.anim.name] || 600;
           setTimeout(() => node.classList.remove(st.anim.name), ms + 60);
+          if (el.dataset.char === 'player' && VA.PlayerFX) setTimeout(() => VA.PlayerFX.setState('idle', { actor: el, levelLighting: ctx.dest }), ms + 60);
           if (st.anim.wait !== false) await VA.wait(ms);
         }
         continue;
