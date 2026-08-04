@@ -82,8 +82,12 @@ VA.Flows = {
     VA.Audio.ambient(['wind']);
     VA.Ambient.set([{ type: 'clouds', band: [0.05, 0.85], n: 4 }]);
 
-    // The country picker is the natural lead-in to a flight. Decode the two
-    // travel-screen images now, without delaying the map or unrelated scenes.
+    this.preloadTravelScreen();
+  },
+
+  // Both the country picker and the souvenir purchase lead directly into the
+  // established airplane screen. Keep that small, shared asset set warm.
+  preloadTravelScreen() {
     VA.Art.preloadAndWait([
       'assets/backgrounds/background_travel_sky.png',
       'assets/objects/plane.png?v=20260802',
@@ -226,6 +230,7 @@ VA.Flows = {
       const items = dest.souvenirs.map(s => ({ text: s.line, jp: s.jp, value: s.id }));
       const chosen = await D.choice(items);
       const souv = dest.souvenirs.find(s => s.id === chosen);
+      this.preloadTravelScreen();
       VA.Audio.sfx('coins');
       VA.State.addCoins(-3);
       VA.State.setSouvenir(souv);

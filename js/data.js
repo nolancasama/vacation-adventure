@@ -25,7 +25,7 @@ VA.Data.CHARS = {
     voice: { rate: 0.95, pitch: 1.35 },
   },
   grandma: {
-    name: 'Grandma', file: 'grandma.png', color: '#b06ab8',
+    name: 'Grandma', file: 'grandma-clean.png', color: '#b06ab8',
     colors: { skin: '#ffe3c4', hair: '#e8e6e3', top: '#c47ab8', bottom: '#8a7f96' },
     hairStyle: 'bun', glasses: true,
     voice: { rate: 0.82, pitch: 1.02 },
@@ -61,7 +61,7 @@ VA.Data.CHARS = {
 
   /* --- France --- */
   fr_vendor: {
-    name: 'Crêpe Chef', file: 'vendor_crepe.png', color: '#3d8fb8',
+    name: 'Crêpe Chef', file: 'vendor_crepe-clean.png', color: '#3d8fb8',
     colors: { skin: '#f2c9a0', hair: '#2c2c2c', top: '#5c7fa8', hat: '#c94f43' },
     hat: 'beret', apron: true,
     voice: { rate: 0.88, pitch: 1.05 },
