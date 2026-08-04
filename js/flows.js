@@ -27,7 +27,7 @@ VA.Flows = {
     VA.State.checkpoint('home');
     const name = VA.State.data.name;
     const { grandma } = VA.UI.home();
-    await VA.Screens.show('home');
+    await VA.Screens.show('home', { transition: 'home' });
     VA.HUD.show();
     VA.Audio.music('theme_home');
     VA.Audio.ambient(['room']);
@@ -56,7 +56,7 @@ VA.Flows = {
   /* ---------- between trips: a quick new allowance ---------- */
   async newTripIntro() {
     VA.UI.home();
-    await VA.Screens.show('home');
+    await VA.Screens.show('home', { transition: 'home' });
     VA.Audio.music('theme_home');
     VA.Audio.ambient(['room']);
     const D = VA.Dialogue;
@@ -97,7 +97,7 @@ VA.Flows = {
     VA.UI.explore(dest);
     const hsLayer = VA.$('#hotspot-layer');
     hsLayer.style.visibility = 'hidden';
-    await VA.Screens.show('explore');
+    await VA.Screens.show('explore', { transition: 'travel' });
     VA.HUD.show();
     VA.Audio.music(dest.music);
     VA.Audio.ambient(dest.ambientFiles);
@@ -119,7 +119,7 @@ VA.Flows = {
   async _flight(bannerText, homeward) {
     VA.UI.travel(homeward);
     VA.$('#travel-banner').textContent = bannerText;
-    await VA.Screens.show('travel');
+    await VA.Screens.show('travel', { transition: 'travel' });
     VA.HUD.hide();
     VA.Audio.music('theme_travel');
     VA.Audio.ambient(['wind']);
@@ -166,7 +166,7 @@ VA.Flows = {
     // Start loading before the screen switch so the cinematic is already
     // covered by its loading overlay when it becomes visible.
     const sceneReady = VA.Cine.setup(evt, dest);
-    await VA.Screens.show('cine');
+    await VA.Screens.show('cine', { ready: sceneReady });
     await sceneReady;
     await VA.wait(250);
     await VA.Cine.play(evt.steps);
@@ -228,7 +228,7 @@ VA.Flows = {
 
     const { grandma } = VA.UI.home();
     const panel = VA.UI.debriefPanel(dest);
-    await VA.Screens.show('home');
+    await VA.Screens.show('home', { transition: 'home' });
     VA.HUD.show();
     VA.Audio.music('theme_home');
     VA.Audio.ambient(['room']);

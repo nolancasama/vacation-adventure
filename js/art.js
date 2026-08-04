@@ -81,10 +81,23 @@ VA.Art = {
     })));
   },
 
+  /* Every scene layer and sprite registers its source path.  The screen
+     manager can then wait for just the incoming screen's assets, instead of
+     holding a transition for unrelated background preloads. */
+  waitForScreenAssets(screen) {
+    if (!screen) return Promise.resolve([]);
+    const paths = [
+      ...Array.from(screen.querySelectorAll('[data-asset-path]'), el => el.dataset.assetPath),
+      ...Array.from(screen.querySelectorAll('img[src]'), img => img.getAttribute('src')),
+    ].filter(path => path && !path.startsWith('data:'));
+    return this.preloadAndWait(paths);
+  },
+
   layer(parent, opts) {
     const { painter, file, kind = 'backgrounds', w = VA.W, h = VA.H, chip = true, fallback } = opts;
     const lay = VA.el('div', 'art-layer');
     const path = file ? ('assets/' + kind + '/' + file) : null;
+    if (path) lay.dataset.assetPath = path;
     const cached = path ? this._imgCache[path] : null;
     const alreadyLoaded = !!(cached && cached.state === 'ok');
     // When a real asset is supplied, begin painting that same asset right
@@ -98,7 +111,8 @@ VA.Art = {
 
     // Procedural art is now only a true fallback for layers without a supplied
     // file (or for callers that explicitly request one).
-    if (!alreadyLoaded && useFallback) {
+    const renderFallback = () => {
+      if (lay.querySelector('canvas')) return;
       const cv = document.createElement('canvas');
       const scale = 2; // crispness when the stage is upscaled
       cv.width = w * scale; cv.height = h * scale;
@@ -107,7 +121,8 @@ VA.Art = {
       const fn = this.painters[painter];
       if (fn) fn(ctx, w, h); else this.painters._missing(ctx, w, h, painter || file);
       lay.appendChild(cv);
-    }
+    };
+    if (!alreadyLoaded && useFallback) renderFallback();
 
     if (file && chip) {
       lay.appendChild(VA.el('span', 'asset-chip' + (alreadyLoaded ? ' real' : ''), file));
@@ -118,7 +133,7 @@ VA.Art = {
         const chipEl = lay.querySelector('.asset-chip');
         if (chipEl) lay.insertBefore(clone, chipEl); else lay.appendChild(clone);
         if (chipEl) chipEl.classList.add('real');
-      });
+      }, renderFallback);
     }
     if (parent) parent.appendChild(lay);
     return lay;
@@ -368,6 +383,7 @@ VA.Art = {
     const hPx = 300 * scale * (c.size || 1); // ~50% of stage height at scale 1
     const body = VA.el('div', 'actor-svg-wrap');
     const path = 'assets/characters/' + c.file;
+    a.dataset.assetPath = path;
     const cached = this._imgCache[path];
     const alreadyLoaded = !!(cached && cached.state === 'ok');
     const assetFailed = !!(cached && cached.state === 'fail');
@@ -467,6 +483,7 @@ VA.Art = {
     pr.dataset.baseSize = size;
     pr.dataset.renderHeight = file ? size * 1.1 : size;
     pr.dataset.file = file || '';
+    if (file) pr.dataset.assetPath = 'assets/objects/' + file;
     pr.dataset.icon = icon || '';
     pr.dataset.anchor = anchor;
     if (hidden) pr.style.visibility = 'hidden';

@@ -594,6 +594,13 @@ body {
 @keyframes snapflash { 0%{opacity:0} 12%{opacity:1} 100%{opacity:0} }
 #fade { position:absolute; inset:0; background:rgba(30,20,14,.92); opacity:0; pointer-events:none; z-index:85; transition:opacity .3s ease; }
 #fade.on { opacity:1; pointer-events:auto; }
+#scene-wipe {
+  position:absolute; inset:0; z-index:86; pointer-events:auto;
+  background:#f8f3e8;
+  transform:translateX(-100%);
+  will-change:transform;
+}
+#stage.is-transitioning #ambient { visibility:hidden; }
 
 /* ---------- item received / vocabulary reward ---------- */
 #scr-cine.item-reward-active #cine-world {
