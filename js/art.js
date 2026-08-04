@@ -388,6 +388,12 @@ VA.Art = {
     // around the figure). The ground-shadow rig anchors to the sprite box's
     // bottom edge, so without this the shadow sits below the actual feet.
     a.style.setProperty('--foot-pad', (c.footPad || 0) + '%');
+    // The shadow ellipse is sized/centered from each art file's actual foot
+    // stance rather than a single fixed guess — outfits vary a lot in how
+    // much of the canvas they fill (a robed guide's feet are much narrower
+    // than a wide-stance camel), so one flat width reads wrong on most of them.
+    a.style.setProperty('--shadow-footprint-w', (c.shadowWidth != null ? c.shadowWidth : 68) + '%');
+    a.style.setProperty('--shadow-footprint-cx', (c.shadowCenterX != null ? c.shadowCenterX : 50) + '%');
     const hPx = 300 * scale * (c.size || 1); // ~50% of stage height at scale 1
     const body = VA.el('div', 'actor-svg-wrap');
     const path = 'assets/characters/' + c.file;
