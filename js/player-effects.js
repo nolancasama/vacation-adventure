@@ -37,7 +37,12 @@ VA.PlayerFX = {
     const sprite = actor.querySelector('.actor-breathe-sprite, .actor-svg-wrap');
     if (!sprite) return; // actorEl calls us again after a pending PNG resolves
 
-    let rig = sprite.querySelector('.player-vfx-rig');
+    // Mounted on the outer .actor anchor rather than inside the sprite wrap:
+    // cinematic anim() steps (hop/wiggle/cheer) and the conversation-pose
+    // close-up both apply a transform to the wrap, and a shadow nested
+    // inside that wrap would visually ride along with it instead of
+    // staying pinned to the ground.
+    let rig = actor.querySelector(':scope > .player-vfx-rig');
     if (!rig) {
       rig = VA.el('span', 'player-vfx-rig');
       rig.innerHTML =
@@ -46,8 +51,14 @@ VA.PlayerFX = {
         '<span class="player-rim-light"></span>' +
         '<span class="player-tint-overlay"></span>' +
         '<span class="player-direction-overlay"></span>';
-      sprite.prepend(rig);
+      actor.prepend(rig);
     }
+    // .actor also contains the name tag and asset-filename chip below the
+    // sprite, which would otherwise stretch a percentage-sized rig taller
+    // than the character itself — pin the rig's box to the sprite's own
+    // rendered size instead.
+    rig.style.width = sprite.offsetWidth + 'px';
+    rig.style.height = sprite.offsetHeight + 'px';
 
     const source = actor.querySelector('.actor-photo, .actor-pending-photo');
     if (source && source.src) rig.style.setProperty('--player-mask', `url("${source.src}")`);
