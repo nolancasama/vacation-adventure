@@ -102,6 +102,27 @@ VA.Data.CHARS = {
   camel: { name: 'Coco', file: 'camel.png', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 } },
 };
 
+/* ------------------------------------------------------------
+   PLAYER LOOKS — chosen once at the start (before naming).
+   Applied by merging into VA.Data.CHARS.player, so every event
+   script's existing `char: 'player'` references keep working
+   unchanged; only the appearance/voice underneath them changes.
+   ------------------------------------------------------------ */
+VA.Data.PLAYER_LOOKS = {
+  boy: {
+    file: 'player-alpha.png',
+    colors: { skin: '#ffd9b3', hair: '#5a3b2e', top: '#ff8a5c', bottom: '#4a6b8a' },
+    hairStyle: undefined,
+    voice: { rate: 0.95, pitch: 1.35 },
+  },
+  girl: {
+    file: 'player_girl-alpha.png',
+    colors: { skin: '#ffd9b3', hair: '#6b4423', top: '#7ec9a8', bottom: '#4a6b8a' },
+    hairStyle: 'pigtails',
+    voice: { rate: 0.95, pitch: 1.5 },
+  },
+};
+
 /* random name suggestions for the 🎲 button */
 VA.Data.NAMES = ['Yuki', 'Hana', 'Ken', 'Mio', 'Sora', 'Riku', 'Emi', 'Taiga', 'Aoi', 'Ren'];
 

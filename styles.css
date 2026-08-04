@@ -541,7 +541,7 @@ body {
 #debrief-page .dp-slot .dp-ico { font-size:26px; }
 
 /* ---------- modals ---------- */
-#modal, #name-modal {
+#modal, #name-modal, #look-modal {
   position:absolute; inset:0; z-index:80; background:rgba(18,12,8,.55);
   display:flex; align-items:center; justify-content:center;
 }
@@ -564,6 +564,20 @@ body {
 }
 #name-input:focus { border-color:var(--coral); }
 #btn-name-dice { font-size:26px; width:56px; border:none; border-radius:16px; cursor:pointer; background:var(--paper-2); box-shadow:0 3px 0 rgba(0,0,0,.12); }
+
+/* look picker ("who are you?") */
+.look-card { width:460px; }
+.look-row { display:flex; gap:18px; justify-content:center; margin:18px 0 6px; }
+.look-option {
+  font-family:var(--font); display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:180px; padding:14px 10px 12px; border:4px solid transparent; border-radius:20px;
+  background:var(--paper-2); cursor:pointer; box-shadow:var(--shadow);
+  transition:transform .12s ease, border-color .12s ease; font-size:19px; font-weight:bold; color:var(--ink);
+}
+.look-option:hover  { transform:translateY(-4px); border-color:var(--sun); }
+.look-option.picked { border-color:var(--leaf); }
+.look-portrait-slot { height:150px; display:flex; align-items:flex-end; justify-content:center; }
+.look-portrait-slot .look-preview { display:block; }
 
 /* album grid */
 .album-grid { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:6px; }
