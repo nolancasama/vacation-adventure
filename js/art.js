@@ -623,6 +623,24 @@ VA.Art = {
       const hA = 300 * (a.scale || 1) * (c.size || 1) * sy;
       const wA = hA * (img.naturalWidth / img.naturalHeight);
       const dx = a.x * sx - wA / 2, dy = a.y * sy - hA;
+
+      // ground shadow, matched to this same character's live on-stage
+      // footprint (see the --foot-pad/--shadow-footprint-* CSS vars)
+      const footPad = (c.footPad || 0) / 100;
+      const shadowWPct = (c.shadowWidth != null ? c.shadowWidth : 68) / 100;
+      const shadowCxPct = (c.shadowCenterX != null ? c.shadowCenterX : 50) / 100;
+      const shW = wA * shadowWPct, shH = 13 * sy;
+      const shCx = dx + wA * shadowCxPct;
+      const shCy = dy + hA - hA * footPad - 4 * sy;
+      ctx.save();
+      ctx.globalAlpha = 0.46;
+      ctx.fillStyle = '#1d1f23';
+      ctx.filter = `blur(${(2 * sy).toFixed(1)}px)`;
+      ctx.beginPath();
+      ctx.ellipse(shCx, shCy, Math.max(0, shW / 2), Math.max(0, shH / 2), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
       ctx.save();
       if (a.flip) { ctx.translate(dx + wA, dy); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0, wA, hA); }
       else { ctx.drawImage(img, dx, dy, wA, hA); }
