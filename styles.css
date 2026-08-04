@@ -35,7 +35,7 @@ body {
 #stage {
   position:relative;
   width:960px; height:600px;
-  background:#000;
+  background:#d9edf2;
   border-radius:14px;
   overflow:hidden;
   box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.06);
@@ -53,9 +53,7 @@ body {
    clouds and birds travel behind it, while the buttons remain readable above. */
 #scr-title .scene-art {
   z-index:0;
-  /* Keep the sky visible immediately, including while the scripted image layer
-     finishes decoding. */
-  background:url('assets/backgrounds/background_title.png') center / cover no-repeat;
+  background:#d9edf2;
 }
 #title-foreground { position:absolute; inset:0; z-index:21; pointer-events:none; }
 #scr-title .title-card { z-index:22; }
@@ -78,6 +76,24 @@ body {
 .asset-chip::before { content:"🖼 "; }
 .asset-chip.real::before { content:"✓ "; }
 #stage.no-labels .asset-chip { display:none; }
+
+/* Assemble the initial title scene behind this warm cover so its artwork and
+   controls cannot arrive in separate visible frames after a hard refresh. */
+#stage.is-booting .screen,
+#stage.is-booting #ambient { visibility:hidden; }
+#boot-loading {
+  position:absolute; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  color:#6f5947; font-weight:bold; font-size:18px;
+  background:#f8f3e8;
+  transition:opacity 180ms ease;
+}
+#stage:not(.is-booting) #boot-loading { opacity:0; pointer-events:none; }
+.boot-loading-spinner {
+  width:22px; height:22px; border:3px solid rgba(111,89,71,.2);
+  border-top-color:#b77d53; border-radius:50%; animation:boot-loading-spin .75s linear infinite;
+}
+@keyframes boot-loading-spin { to { transform:rotate(360deg); } }
 
 /* ---------- actors (characters on stage) ---------- */
 .actor-layer { position:absolute; inset:0; pointer-events:none; }
@@ -263,8 +279,18 @@ body {
 .explore-hint:empty { display:none; }
 
 /* ---------- cinematic ---------- */
-#scr-cine { background:#111; }
+#scr-cine { background:var(--scene-loader-bg, #6b5a70); }
 #cine-world { position:absolute; inset:0; transform-origin:0 0; will-change:transform; }
+#scr-cine.is-loading #cine-world { visibility:hidden; }
+#cine-loading {
+  position:absolute; inset:0; z-index:70; display:grid; place-items:center;
+  color:#fff9ee; background:linear-gradient(145deg, color-mix(in srgb, var(--scene-loader-bg, #6b5a70) 82%, #1e1725), var(--scene-loader-bg, #6b5a70));
+  font-size:20px; font-weight:bold; letter-spacing:.01em;
+}
+#cine-loading[hidden] { display:none; }
+.cine-loading-card { display:flex; align-items:center; gap:13px; padding:16px 22px; border-radius:16px; background:rgba(28,20,27,.24); box-shadow:0 10px 28px rgba(20,10,18,.22); }
+.cine-loading-spinner { width:22px; height:22px; border:3px solid rgba(255,255,255,.35); border-top-color:#fff9ee; border-radius:50%; animation:cine-loading-spin .75s linear infinite; }
+@keyframes cine-loading-spin { to { transform:rotate(360deg); } }
 #tap-game { position:absolute; left:0; right:0; bottom:130px; text-align:center; z-index:40; }
 #tap-btn {
   font-family:var(--font); font-size:36px; font-weight:bold; color:#fff;
@@ -584,6 +610,13 @@ body {
 @keyframes snapflash { 0%{opacity:0} 12%{opacity:1} 100%{opacity:0} }
 #fade { position:absolute; inset:0; background:rgba(30,20,14,.92); opacity:0; pointer-events:none; z-index:85; transition:opacity .3s ease; }
 #fade.on { opacity:1; pointer-events:auto; }
+#scene-wipe {
+  position:absolute; inset:0; z-index:86; pointer-events:auto;
+  background:#f8f3e8;
+  transform:translateX(-100%);
+  will-change:transform;
+}
+#stage.is-transitioning #ambient { visibility:hidden; }
 
 /* ---------- item received / vocabulary reward ---------- */
 #scr-cine.item-reward-active #cine-world {

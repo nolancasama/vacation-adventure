@@ -5,18 +5,13 @@
 
 VA.Main = {
 
-  boot() {
+  async boot() {
     VA.State.load();
     VA.Stage.init();
     VA.Ambient.init();
     VA.Cine.init();
     VA.Dialogue.init();
     VA.Voice.init();
-
-    // The map is the first large screen shown after the opening conversation.
-    // Decode it now behind the title screen so its procedural placeholder never
-    // flashes during the map transition.
-    VA.Art.preload(['assets/backgrounds/background_map_world.png']);
 
     VA.$('#stage').classList.toggle('no-labels', !VA.State.data.settings.labels);
 
@@ -29,6 +24,16 @@ VA.Main = {
 
     this.buildTitle();
     this.wireHud();
+
+    // On a hard refresh, title UI, foreground, and background images can each
+    // finish on different frames. Keep the scene behind the warm boot cover
+    // until its complete initial asset set has decoded and painted once.
+    await VA.Art.waitForScreenAssets(VA.$('#scr-title'));
+    await VA.Fx.afterNextPaint();
+    VA.$('#stage').classList.remove('is-booting');
+
+    // This is used later, so warm it only after the title has been revealed.
+    VA.Art.preload(['assets/backgrounds/background_map_world.png']);
 
     console.log('%c🏝 Vacation Adventure v' + VA.VERSION + ' — placeholder build',
       'font-size:14px;color:#ef6d3d;font-weight:bold');
@@ -128,7 +133,7 @@ VA.Main = {
         if (ret === 'home') { VA.UI.home(); }
         if (ret === 'explore' && VA.State.data.trip) { return VA.Flows.exploreScreen(true); }
         if (ret === 'map') { return VA.Flows.toMap(); }
-        await VA.Screens.show(ret);
+        await VA.Screens.show(ret, ret === 'home' ? { transition: 'home' } : undefined);
       } else {
         await VA.Flows.afterScrapbook();
       }

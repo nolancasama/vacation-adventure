@@ -276,7 +276,8 @@ VA.Data.DESTS = [
           { id: 'fr_vendor', char: 'fr_vendor', x: 470, y: 558, scale: 1.3, conversation: { x: 480, y: 558, scale: 1.12 } },
         ],
         props: [
-          { id: 'crepe', icon: '🥞', file: 'crepe.png', x: 470, y: 400, size: 80, hidden: true },
+          // Serve the crêpe from the center of the pan in the backdrop.
+          { id: 'crepe', icon: '🥞', file: 'crepe.png', x: 645, y: 305, size: 80, hidden: true },
         ],
         amb: [{ type: 'fireflies', band: [0.55, 0.8], n: 4 }],
         steps: [
@@ -286,7 +287,7 @@ VA.Data.DESTS = [
           { say: ['fr_vendor', 'One crepe?', 'クレープはいかが？'] },
           { choice: { items: [{ text: 'Yes, please!', jp: 'はい、ください！' }] } },
           { coins: -3 },
-          { fx: ['steam', 460, 285] },
+          { fx: ['steam', 645, 305] },
           { sfx: 'sizzle' },
           { wait: 1000 },
           { show: 'crepe' }, { sfx: 'pop' },
@@ -407,7 +408,8 @@ VA.Data.DESTS = [
           { id: 'eg_vendor', char: 'eg_vendor', x: 500, y: 558, scale: 1.3, conversation: { x: 480, y: 558, scale: 1.12 } },
         ],
         props: [
-          { id: 'keb', icon: '🍢', file: 'kebab.png', x: 500, y: 400, size: 80, hidden: true },
+          // Serve the kebab directly from the grill in the backdrop.
+          { id: 'keb', icon: '🍢', file: 'kebab.png', x: 390, y: 280, size: 80, hidden: true },
         ],
         amb: [{ type: 'particles', kind: 'sand', n: 6 }],
         steps: [
@@ -417,7 +419,7 @@ VA.Data.DESTS = [
           { choice: { items: [{ text: 'Yes, please!', jp: 'はい、ください！' }] } },
           { coins: -3 },
           { sfx: 'sizzle' },
-          { fx: ['steam', 480, 265] },
+          { fx: ['steam', 390, 280] },
           { wait: 1000 },
           { show: 'keb' }, { sfx: 'pop' },
           { say: ['eg_vendor', 'Here you are.', 'はい、どうぞ。'] },

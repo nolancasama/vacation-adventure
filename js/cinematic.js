@@ -34,8 +34,47 @@ VA.Cine = {
     this.world = VA.$('#cine-world');
   },
 
-  /* build the event's little stage */
-  setup(evt, dest) {
+  _setLoading(isLoading, dest) {
+    const screen = VA.$('#scr-cine');
+    const overlay = VA.$('#cine-loading');
+    screen.style.setProperty('--scene-loader-bg', (dest && dest.color) || '#6b5a70');
+    screen.classList.toggle('is-loading', isLoading);
+    overlay.hidden = !isLoading;
+  },
+
+  _initialAssets(evt) {
+    // Include the art required by the first assembled frame only. Later
+    // rewards/photos are intentionally not here, so they can load lazily.
+    const dialogueCharacters = (evt.steps || []).flatMap(step => [
+      step.say && step.say[0],
+      step.auto && step.auto[0],
+    ]).filter(charId => VA.Data.CHARS[charId]);
+    const stageCharacters = (evt.actors || []).map(actor => actor.char);
+    const characterAssets = [...new Set([...stageCharacters, ...dialogueCharacters])]
+      .map(charId => VA.Data.CHARS[charId])
+      .filter(Boolean)
+      .map(char => 'assets/characters/' + char.file);
+    return [
+      evt.backdrop && ('assets/backgrounds/' + evt.backdrop),
+      ...characterAssets,
+      ...(evt.props || []).map(prop => prop.file && ('assets/objects/' + prop.file)),
+      ...(evt.initialAssets || []), // reserved for a scene's initial UI/animation art
+    ].filter(Boolean);
+  },
+
+  _afterNextPaint() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  },
+
+  /* Build the event only after all assets needed for its opening frame have
+     loaded or failed. The screen remains covered by the loading overlay until
+     that complete DOM tree has been painted at least once. */
+  async setup(evt, dest) {
+    this._setLoading(true, dest);
+    const results = await VA.Art.preloadAndWait(this._initialAssets(evt));
+    const failed = results.filter(result => !result.ok);
+    if (failed.length) console.warn('[Scene preload using fallbacks]', failed.map(result => result.path));
+
     this.world.style.transition = 'none';
     this.world.style.transform = 'translate(0px,0px) scale(1)';
     const art = this.world.querySelector('.scene-art');
@@ -43,19 +82,7 @@ VA.Cine = {
     art.innerHTML = ''; actorsLay.innerHTML = '';
     actorsLay.style.transition = 'none';
     actorsLay.style.transform = 'translateY(0)';
-
-    // Start every visual request together, before any layer is attached. This
-    // lets the backdrop, character sprites, and props decode in parallel on a
-    // first visit instead of making sprites visibly trail the background.
-    const sceneAssets = [
-      evt.backdrop && ('assets/backgrounds/' + evt.backdrop),
-      ...(evt.actors || []).map(a => {
-        const char = VA.Data.CHARS[a.char];
-        return char && ('assets/characters/' + char.file);
-      }),
-      ...(evt.props || []).map(pr => pr.file && ('assets/objects/' + pr.file)),
-    ].filter(Boolean);
-    VA.Art.preload(sceneAssets);
+    VA.$('#tap-game').style.display = 'none';
 
     VA.Art.layer(art, { painter: evt.painter, file: evt.backdrop, kind: 'backgrounds' });
 
@@ -96,6 +123,8 @@ VA.Cine = {
     });
     this.ctx = ctx;
     VA.Ambient.set(evt.amb || []);
+    await this._afterNextPaint();
+    this._setLoading(false, dest);
     return ctx;
   },
 

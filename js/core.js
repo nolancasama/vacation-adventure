@@ -216,23 +216,95 @@ VA.Screens = {
   current: null,
 
   async show(id, opts = {}) {
-    const { fade = true } = opts;
-    if (fade) await VA.Fx.fadeOut(170);
+    const { transition = 'wipe', ready = null } = opts;
+    const next = VA.$('#scr-' + id);
+    const previous = this.current ? VA.$('#scr-' + this.current) : null;
+    if (!next || next === previous) return next;
+
+    // Country travel keeps its established fade-and-flight sequence exactly as
+    // it was. Every other ordinary screen handoff uses the cream wipe below.
+    if (transition === 'travel') {
+      await VA.Fx.fadeOut(170);
+      VA.$$('.screen').forEach(s => s.classList.remove('active'));
+      next.classList.add('active');
+      this.current = id;
+      await VA.Fx.fadeIn(170);
+      return next;
+    }
+
+    const assetsReady = Promise.all([
+      VA.Art.waitForScreenAssets(next),
+      Promise.resolve(ready),
+    ]);
+
+    if (transition === 'home') {
+      await assetsReady;
+      return this._crossfadeTo(next, previous, id);
+    }
+
+    VA.$('#stage').classList.add('is-transitioning');
+    await VA.Fx.wipeIn();
+    await assetsReady;
     VA.$$('.screen').forEach(s => s.classList.remove('active'));
-    const scr = VA.$('#scr-' + id);
-    scr.classList.add('active');
+    next.classList.add('active');
     this.current = id;
-    // ambient canvas rides along inside the active screen's art container
-    const art = scr.querySelector('.scene-art');
-    const amb = VA.$('#ambient');
-    if (art && amb.parentElement !== art.parentElement) {} // (canvas stays global; effects are stage-space)
-    if (fade) await VA.Fx.fadeIn(170);
-    return scr;
+    await VA.Fx.afterNextPaint();
+    await VA.Fx.wipeOut();
+    VA.$('#stage').classList.remove('is-transitioning');
+    return next;
+  },
+
+  async _crossfadeTo(next, previous, id) {
+    if (!previous) {
+      next.classList.add('active');
+      this.current = id;
+      return next;
+    }
+    VA.$('#stage').classList.add('is-transitioning');
+    next.classList.add('active');
+    next.style.opacity = '0';
+    next.style.zIndex = '2';
+    previous.style.opacity = '1';
+    previous.style.zIndex = '1';
+    previous.style.transition = 'opacity 360ms ease-in-out';
+    next.style.transition = 'opacity 360ms ease-in-out';
+    await VA.Fx.afterNextPaint();
+    previous.style.opacity = '0';
+    next.style.opacity = '1';
+    await VA.wait(380);
+    VA.$$('.screen').forEach(s => {
+      if (s !== next) s.classList.remove('active');
+      s.style.opacity = '';
+      s.style.zIndex = '';
+      s.style.transition = '';
+    });
+    VA.$('#stage').classList.remove('is-transitioning');
+    this.current = id;
+    return next;
   },
 };
 
 /* ---------- one-off visual FX ---------- */
 VA.Fx = {
+  afterNextPaint() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  },
+  async wipeIn(ms = 200) {
+    const wipe = VA.$('#scene-wipe');
+    wipe.style.transition = 'none';
+    wipe.style.transform = 'translateX(-100%)';
+    void wipe.offsetWidth;
+    wipe.style.transition = `transform ${ms}ms cubic-bezier(.45,0,.25,1)`;
+    wipe.style.transform = 'translateX(0)';
+    await VA.wait(ms + 20);
+  },
+  async wipeOut(ms = 200) {
+    const wipe = VA.$('#scene-wipe');
+    wipe.style.transform = 'translateX(100%)';
+    await VA.wait(ms + 20);
+    wipe.style.transition = 'none';
+    wipe.style.transform = 'translateX(-100%)';
+  },
   fadeOut(ms = 300) {
     const f = VA.$('#fade');
     f.style.transitionDuration = ms + 'ms';

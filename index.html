@@ -9,7 +9,7 @@
 </head>
 <body>
 <div id="app">
-  <div id="stage">
+  <div id="stage" class="is-booting">
 
     <!-- ======== SCREENS ======== -->
     <div class="screen" id="scr-title">
@@ -57,6 +57,12 @@
       <div id="cine-world">
         <div class="scene-art"></div>
         <div class="actor-layer"></div>
+      </div>
+      <div id="cine-loading" role="status" aria-live="polite" hidden>
+        <div class="cine-loading-card">
+          <span class="cine-loading-spinner" aria-hidden="true"></span>
+          <span>Loading scene…</span>
+        </div>
       </div>
       <div id="tap-game" style="display:none">
         <button id="tap-btn">TAP!</button>
@@ -142,6 +148,11 @@
     <div id="toast" style="display:none"></div>
     <div id="flash"></div>
     <div id="fade"></div>
+    <div id="scene-wipe" aria-hidden="true"></div>
+    <div id="boot-loading" role="status" aria-live="polite">
+      <span class="boot-loading-spinner" aria-hidden="true"></span>
+      <span>Preparing your adventure…</span>
+    </div>
   </div>
 </div>
 
