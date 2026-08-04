@@ -116,7 +116,7 @@ VA.Data.PLAYER_LOOKS = {
     voice: { rate: 0.95, pitch: 1.35 },
   },
   girl: {
-    file: 'player_girl-alpha.png',
+    file: 'player_girl.png',
     colors: { skin: '#ffd9b3', hair: '#6b4423', top: '#7ec9a8', bottom: '#4a6b8a' },
     hairStyle: 'pigtails',
     voice: { rate: 0.95, pitch: 1.5 },
