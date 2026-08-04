@@ -219,7 +219,7 @@ VA.Cine = {
         continue;
       }
 
-      if (st.reward) { await this._showItemReward(st.reward); continue; }
+      if (st.reward) { await this.showItemReward(st.reward); continue; }
 
       if (st.show) {
         const el = this._target(st.show);
@@ -262,9 +262,11 @@ VA.Cine = {
   /* A reusable JRPG-like vocabulary moment for food and future collectible
      items.  The world prop is only used for a tiny handoff, then hidden; the
      reward overlay renders a separate, full-resolution image instead. */
-  async _showItemReward(cfg = {}) {
-    const item = this._target(cfg.itemId);
-    const screen = VA.$('#scr-cine');
+  async showItemReward(cfg = {}) {
+    const item = cfg.itemId ? this._target(cfg.itemId) : null;
+    // Food rewards originate in a cinematic, while souvenirs are received on
+    // the destination screen. Both use this same full-size presentation.
+    const screen = VA.$('#scr-' + (cfg.screen || 'cine'));
     const overlay = VA.$('#item-reward');
     const art = VA.$('#item-reward-art');
     const word = VA.$('#item-reward-word');
@@ -273,7 +275,7 @@ VA.Cine = {
 
     // Short, deliberate pause: CSS pauses bobbing/idle effects and the overlay
     // captures input while the cinematic engine waits here.
-    screen.classList.add('item-reward-paused');
+    if (screen) screen.classList.add('item-reward-paused');
     overlay.hidden = false;
     overlay.classList.remove('is-visible');
     await VA.wait(200);
@@ -294,7 +296,7 @@ VA.Cine = {
 
     // Only darken and blur once the tiny world sprite is gone, so the clean
     // reward art replaces it rather than looking like an enlarged blurry prop.
-    screen.classList.add('item-reward-active');
+    if (screen) screen.classList.add('item-reward-active');
     particles.replaceChildren();
     art.src = 'assets/objects/' + cfg.illustration;
     art.alt = cfg.word || 'Item received';
@@ -330,7 +332,7 @@ VA.Cine = {
       overlay.addEventListener('pointerdown', close);
       const timeout = setTimeout(close, cfg.duration || 1850);
     });
-    screen.classList.remove('item-reward-active', 'item-reward-paused');
+    if (screen) screen.classList.remove('item-reward-active', 'item-reward-paused');
   },
 
   /* --------- the little "TAP!" play mini-game --------- */

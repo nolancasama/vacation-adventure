@@ -235,8 +235,15 @@ VA.Flows = {
       VA.State.addCoins(-3);
       VA.State.setSouvenir(souv);
       await D.say(vendorId, 'Here you are.', { jp: 'はい、どうぞ。' });
-      VA.Fx.toast(souv.icon + ' ' + souv.label + ' — for Grandma!', 2400);
-      VA.Audio.sfx('pop');
+      // Use the same full-resolution reward moment as food, rather than a
+      // small toast, so the whole souvenir is visible when it is received.
+      await VA.Art.preloadAndWait(['assets/objects/' + souv.file]);
+      await VA.Cine.showItemReward({
+        illustration: souv.file,
+        word: souv.label,
+        pronunciation: souv.label,
+        screen: 'explore',
+      });
       await D.say(vendorId, 'Goodbye!', { jp: 'さようなら！' });
       D.hide();
     }

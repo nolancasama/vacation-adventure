@@ -103,7 +103,9 @@ VA.UI = {
     // below (and vice versa), so the connection between the two is obvious
     const pinsByDest = {};
     VA.Data.DESTS.forEach(d => {
-      const pin = VA.el('div', 'map-pin', '📍');
+      const pin = VA.el('button', 'map-pin', '📍');
+      pin.type = 'button';
+      pin.setAttribute('aria-label', `Travel to ${d.name}`);
       pin.dataset.dest = d.id;
       pin.style.left = d.mapPin.x + 'px';
       pin.style.top = d.mapPin.y + 'px';
@@ -143,6 +145,9 @@ VA.UI = {
       const off = () => { pin.classList.remove('pin-hover'); card.classList.remove('card-hover'); };
       pin.addEventListener('pointerenter', on); pin.addEventListener('pointerleave', off);
       card.addEventListener('pointerenter', on); card.addEventListener('pointerleave', off);
+      // A map pin is another, more direct way to choose its matching card.
+      // Calling the card keeps clicks and taps on either control on one path.
+      pin.addEventListener('click', () => card.click());
     });
   },
 

@@ -236,8 +236,10 @@ body {
   position:absolute; font-size:30px; transform:translate(-50%,-90%);
   animation:pinbounce 1.6s ease-in-out infinite; pointer-events:auto; cursor:pointer;
   transition:transform .15s ease; transform-origin:50% 90%;
+  border:0; background:transparent; padding:0; line-height:1;
 }
 .map-pin.pin-hover { transform:translate(-50%,-90%) scale(1.4); }
+.map-pin:focus-visible { outline:3px solid var(--paper); outline-offset:4px; border-radius:50%; }
 .dest-card.card-hover { transform:translateY(-8px) rotate(-1deg); }
 @keyframes pinbounce { 0%,100%{ margin-top:0 } 50%{ margin-top:-9px } }
 
@@ -651,7 +653,16 @@ body {
   filter:brightness(.62) blur(1.5px);
   transition:filter .2s ease;
 }
+#scr-explore.item-reward-active .scene-art,
+#scr-explore.item-reward-active .actor-layer,
+#scr-explore.item-reward-active #hotspots {
+  filter:brightness(.62) blur(1.5px);
+  transition:filter .2s ease;
+}
 #scr-cine.item-reward-paused #cine-world *,
+#scr-explore.item-reward-paused .scene-art *,
+#scr-explore.item-reward-paused .actor-layer *,
+#scr-explore.item-reward-paused #hotspots *,
 #scr-cine.item-reward-paused #ambient { animation-play-state:paused !important; }
 #item-reward {
   position:absolute; inset:0; z-index:100; overflow:hidden; isolation:isolate;

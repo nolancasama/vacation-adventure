@@ -158,7 +158,8 @@ VA.Data.DESTS = [
       {
         id: 'icecream', verb: 'ate',
         title: 'Ice Cream', titleJP: 'アイスクリーム', icon: '🍦', price: 3,
-        hotspot: { x: 350, y: 430 },
+        // Beside the beach umbrella / refreshment spot, clear of the player.
+        hotspot: { x: 800, y: 370 },
         backdrop: 'event_australia_icecream.png', painter: 'ev_au_icecream',
         photoFile: 'photo_australia_icecream.png', photoIcon: '🍦',
         caption: 'I ate ice cream.', captionJP: 'アイスクリームを食べたよ。',
@@ -195,7 +196,8 @@ VA.Data.DESTS = [
       {
         id: 'kangaroo', verb: 'saw',
         title: 'Kangaroo Park', titleJP: 'カンガルーパーク', icon: '🦘', price: 3,
-        hotspot: { x: 600, y: 300 },
+        // At the tree-lined edge of the beach, where the park begins.
+        hotspot: { x: 310, y: 315 },
         backdrop: 'event_australia_kangaroo.png', painter: 'ev_au_kangaroo',
         photoFile: 'photo_australia_kangaroo.png', photoIcon: '🦘',
         caption: 'I saw a kangaroo.', captionJP: 'カンガルーを見たよ。',
@@ -233,7 +235,8 @@ VA.Data.DESTS = [
         photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.
         keepCastOnStage: true,
-        hotspot: { x: 820, y: 430 },
+        // On the open stretch of sand used for play.
+        hotspot: { x: 565, y: 490 },
         backdrop: 'event_australia_volleyball.png', painter: 'ev_au_volleyball',
         photoFile: 'photo_australia_volleyball.png', photoIcon: '🏐',
         caption: 'I played volleyball.', captionJP: 'バレーボールをしたよ。',
@@ -291,7 +294,8 @@ VA.Data.DESTS = [
       {
         id: 'crepe', verb: 'ate',
         title: 'Crêpe Stand', titleJP: 'クレープやさん', icon: '🥞', price: 3,
-        hotspot: { x: 350, y: 430 },
+        // Next to the café awning that reads as the crêpe stand.
+        hotspot: { x: 845, y: 455 },
         backdrop: 'event_france_crepe.png', painter: 'ev_fr_crepe',
         photoFile: 'photo_france_crepe.png', photoIcon: '🥞',
         caption: 'I ate a crepe.', captionJP: 'クレープを食べたよ。',
@@ -327,7 +331,8 @@ VA.Data.DESTS = [
       {
         id: 'eiffel', verb: 'saw',
         title: 'Eiffel Tower', titleJP: 'エッフェル塔', icon: '🗼', price: 3,
-        hotspot: { x: 600, y: 300 },
+        // Beside the Eiffel Tower in the arrival background.
+        hotspot: { x: 390, y: 335 },
         backdrop: 'event_france_eiffel.png', painter: 'ev_fr_eiffel',
         photoFile: 'photo_france_eiffel.png', photoIcon: '🗼',
         caption: 'I saw the Eiffel Tower.', captionJP: 'エッフェル塔を見たよ。',
@@ -363,7 +368,8 @@ VA.Data.DESTS = [
         photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.
         keepCastOnStage: true,
-        hotspot: { x: 820, y: 430 },
+        // In the broad open square, leaving the player and landmarks clear.
+        hotspot: { x: 670, y: 500 },
         backdrop: 'event_france_park.png', painter: 'ev_fr_park',
         photoFile: 'photo_france_soccer.png', photoIcon: '⚽',
         caption: 'I played soccer.', captionJP: 'サッカーをしたよ。',
@@ -423,7 +429,8 @@ VA.Data.DESTS = [
       {
         id: 'kebab', verb: 'ate',
         title: 'Kebab Stall', titleJP: 'ケバブやさん', icon: '🍢', price: 3,
-        hotspot: { x: 350, y: 430 },
+        // Beside the left-hand market stalls, safely to the player's right.
+        hotspot: { x: 305, y: 465 },
         backdrop: 'event_egypt_kebab.png', painter: 'ev_eg_kebab',
         photoFile: 'photo_egypt_kebab.png', photoIcon: '🍢',
         caption: 'I ate a kebab.', captionJP: 'ケバブを食べたよ。',
@@ -458,7 +465,8 @@ VA.Data.DESTS = [
       {
         id: 'pyramids', verb: 'saw',
         title: 'The Pyramids', titleJP: 'ピラミッド', icon: '🔺', price: 3,
-        hotspot: { x: 600, y: 300 },
+        // Alongside the central pyramid.
+        hotspot: { x: 690, y: 285 },
         backdrop: 'event_egypt_pyramid.png', painter: 'ev_eg_pyramid',
         photoFile: 'photo_egypt_pyramids.png', photoIcon: '🐪',
         caption: 'I saw the pyramids.', captionJP: 'ピラミッドを見たよ。',
@@ -497,7 +505,8 @@ VA.Data.DESTS = [
         photoProps: ['pyr', 'flag'],
         // This shared activity keeps both children in the established layout.
         keepCastOnStage: true,
-        hotspot: { x: 820, y: 430 },
+        // In the clear sandy foreground on the right.
+        hotspot: { x: 755, y: 505 },
         backdrop: 'event_egypt_sand.png', painter: 'ev_eg_sand',
         photoFile: 'photo_egypt_sand.png', photoIcon: '🔺',
         caption: 'I played in the sand.', captionJP: 'すなあそびをしたよ。',
