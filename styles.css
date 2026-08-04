@@ -176,13 +176,13 @@ body {
   transform:translate(-50%,-50%); transition:opacity .18s ease, filter .18s ease, transform .18s ease;
 }
 .player-ground-shadow {
-  top:calc(100% - 4px); width:68%; height:13px; z-index:0;
+  top:calc(100% - var(--foot-pad, 0%) - 4px); width:68%; height:13px; z-index:0;
   background:rgba(29,31,35,.76); opacity:var(--shadow-opacity, .46);
   filter:blur(var(--shadow-blur, 6px));
   transform:translate(-50%,-50%) scaleX(calc(var(--shadow-scale, 1) * var(--shadow-width, 1))) scaleY(var(--shadow-scale, 1));
 }
 .player-contact-shadow {
-  top:calc(100% - 3px); width:29%; height:5px; z-index:0;
+  top:calc(100% - var(--foot-pad, 0%) - 3px); width:29%; height:5px; z-index:0;
   background:rgba(22,24,28,.72); opacity:var(--contact-opacity, 1);
   filter:blur(1.5px);
   transform:translate(-50%,-50%) scaleX(var(--shadow-scale, 1));

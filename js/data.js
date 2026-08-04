@@ -23,6 +23,10 @@ VA.Data.CHARS = {
     name: '{player}', file: 'player-alpha.png', color: '#ef6d3d',
     colors: { skin: '#ffd9b3', hair: '#5a3b2e', top: '#ff8a5c', bottom: '#4a6b8a' },
     voice: { rate: 0.95, pitch: 1.35 },
+    // % of the sprite's full (transparent) canvas height that sits empty
+    // below the character's feet — measured per art file so the ground
+    // shadow can sit at the feet instead of the bottom of the padded PNG.
+    footPad: 7.4,
   },
   grandma: {
     name: 'Grandma', file: 'grandma-clean.png', color: '#b06ab8',
@@ -114,12 +118,14 @@ VA.Data.PLAYER_LOOKS = {
     colors: { skin: '#ffd9b3', hair: '#5a3b2e', top: '#ff8a5c', bottom: '#4a6b8a' },
     hairStyle: undefined,
     voice: { rate: 0.95, pitch: 1.35 },
+    footPad: 7.4,
   },
   girl: {
     file: 'player_girl.png',
     colors: { skin: '#ffd9b3', hair: '#6b4423', top: '#7ec9a8', bottom: '#4a6b8a' },
     hairStyle: 'pigtails',
     voice: { rate: 0.95, pitch: 1.5 },
+    footPad: 7.9,
   },
 };
 
@@ -410,7 +416,7 @@ VA.Data.DESTS = [
 
     souvenirs: [
       { id: 'tower', label: 'Little Tower', icon: '🗼', file: 'souvenir_eiffel.png', line: 'The little tower, please.', jp: 'ミニエッフェル塔をください。', reactJP: 'エッフェル塔！', home: { slot: 'Bookshelf top', x: 150, y: 260, size: 48 }, memory: { event: 'france-memory', answer: 'I saw the Eiffel Tower.', answerJP: 'エッフェル塔を見たよ。' }, grandmaLine: 'Your little tower is beautiful.' },
-      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.png', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 488, y: 344, size: 44 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
+      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.png', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 460, y: 528, size: 44 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
     ],
   },
 
@@ -558,10 +564,8 @@ VA.Data.DESTS = [
 
 VA.Data.destById = id => VA.Data.DESTS.find(d => d.id === id);
 
-/* Keep the completed house-gift system in the build without showing it. Set
-   this to true later to restore the displays and optional memory reviews. */
 VA.Data.FEATURES = {
-  grandmaHomeSouvenirs: false,
+  grandmaHomeSouvenirs: true,
 };
 
 /* verbs asked by Grandma, in order, with her question lines */

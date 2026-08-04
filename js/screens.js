@@ -32,7 +32,9 @@ VA.UI = {
     const lay = scr.querySelector('.actor-layer');
     lay.innerHTML = '';
     this.renderHomeSouvenirs();
-    const grandma = VA.Art.actorEl('grandma', { x: 480, y: 555, scale: 1.18, bob: true });
+    // Keep Grandma on the right-side rug instead of the coffee table, leaving
+    // the sofa, shelves, and table gift positions visually unobstructed.
+    const grandma = VA.Art.actorEl('grandma', { x: 895, y: 600, scale: 1.45, bob: true });
     lay.appendChild(grandma);
 
     VA.$('#debrief-page').classList.remove('show');
