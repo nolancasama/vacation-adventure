@@ -35,7 +35,7 @@ body {
 #stage {
   position:relative;
   width:960px; height:600px;
-  background:#000;
+  background:#d9edf2;
   border-radius:14px;
   overflow:hidden;
   box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.06);
@@ -53,9 +53,7 @@ body {
    clouds and birds travel behind it, while the buttons remain readable above. */
 #scr-title .scene-art {
   z-index:0;
-  /* Keep the sky visible immediately, including while the scripted image layer
-     finishes decoding. */
-  background:url('assets/backgrounds/background_title.png') center / cover no-repeat;
+  background:#d9edf2;
 }
 #title-foreground { position:absolute; inset:0; z-index:21; pointer-events:none; }
 #scr-title .title-card { z-index:22; }
@@ -78,6 +76,24 @@ body {
 .asset-chip::before { content:"🖼 "; }
 .asset-chip.real::before { content:"✓ "; }
 #stage.no-labels .asset-chip { display:none; }
+
+/* Assemble the initial title scene behind this warm cover so its artwork and
+   controls cannot arrive in separate visible frames after a hard refresh. */
+#stage.is-booting .screen,
+#stage.is-booting #ambient { visibility:hidden; }
+#boot-loading {
+  position:absolute; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  color:#6f5947; font-weight:bold; font-size:18px;
+  background:#f8f3e8;
+  transition:opacity 180ms ease;
+}
+#stage:not(.is-booting) #boot-loading { opacity:0; pointer-events:none; }
+.boot-loading-spinner {
+  width:22px; height:22px; border:3px solid rgba(111,89,71,.2);
+  border-top-color:#b77d53; border-radius:50%; animation:boot-loading-spin .75s linear infinite;
+}
+@keyframes boot-loading-spin { to { transform:rotate(360deg); } }
 
 /* ---------- actors (characters on stage) ---------- */
 .actor-layer { position:absolute; inset:0; pointer-events:none; }

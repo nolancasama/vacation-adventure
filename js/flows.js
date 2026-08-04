@@ -333,7 +333,7 @@ VA.Flows = {
     VA.State.data.finaleDone = true;
     VA.State.save();
     VA.UI.home();
-    await VA.Screens.show('home');
+    await VA.Screens.show('home', { transition: 'home' });
     VA.Audio.music('theme_home');
     const D = VA.Dialogue;
     await D.say('grandma', 'Your scrapbook is full!', { jp: 'スクラップブックがいっぱいになったね！' });

@@ -9,7 +9,7 @@
 </head>
 <body>
 <div id="app">
-  <div id="stage">
+  <div id="stage" class="is-booting">
 
     <!-- ======== SCREENS ======== -->
     <div class="screen" id="scr-title">
@@ -149,6 +149,10 @@
     <div id="flash"></div>
     <div id="fade"></div>
     <div id="scene-wipe" aria-hidden="true"></div>
+    <div id="boot-loading" role="status" aria-live="polite">
+      <span class="boot-loading-spinner" aria-hidden="true"></span>
+      <span>Preparing your adventure…</span>
+    </div>
   </div>
 </div>
 
