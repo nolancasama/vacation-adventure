@@ -32,9 +32,9 @@ VA.UI = {
     const lay = scr.querySelector('.actor-layer');
     lay.innerHTML = '';
     this.renderHomeSouvenirs();
-    // Keep Grandma on the right-side rug instead of the coffee table, leaving
-    // the sofa, shelves, and table gift positions visually unobstructed.
-    const grandma = VA.Art.actorEl('grandma', { x: 895, y: 600, scale: 1.45, bob: true });
+    // Stand Grandma on the open rug in front of the table rather than beside
+    // it, so she reads as centered without covering the shelf/table gifts.
+    const grandma = VA.Art.actorEl('grandma', { x: 480, y: 600, scale: 1.3, bob: true });
     lay.appendChild(grandma);
 
     VA.$('#debrief-page').classList.remove('show');
