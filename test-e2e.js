@@ -120,8 +120,10 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
   await page.waitForTimeout(900);
   await page.screenshot({ path: SHOT('01-title') });
 
-  // start → name entry
+  // start → look picker → name entry
   await jsClick(page, '#btn-start');
+  await page.waitForTimeout(400);
+  await jsClick(page, '#look-boy');
   await page.waitForTimeout(400);
   await page.fill('#name-input', 'Mio');
   await page.screenshot({ path: SHOT('02-name') });

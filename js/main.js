@@ -7,6 +7,7 @@ VA.Main = {
 
   async boot() {
     VA.State.load();
+    VA.applyPlayerLook(VA.State.data.playerLook);
     VA.Stage.init();
     VA.Ambient.init();
     VA.Cine.init();
@@ -69,7 +70,7 @@ VA.Main = {
       VA.Audio.init();
       VA.Audio.sfx('click');
       if (hasSave) VA.State.reset();
-      this.askName();
+      this.pickLook();
     };
     VA.$('#btn-continue').onclick = () => {
       VA.Audio.init();
@@ -77,6 +78,27 @@ VA.Main = {
       VA.Audio.music('theme_title');
       VA.Flows.resume();
     };
+  },
+
+  pickLook() {
+    const modal = VA.$('#look-modal');
+    modal.style.display = 'flex';
+
+    ['boy', 'girl'].forEach(lookId => {
+      const btn = VA.$('#look-' + lookId);
+      btn.classList.remove('picked');
+      const slot = btn.querySelector('.look-portrait-slot');
+      slot.innerHTML = '';
+      slot.appendChild(VA.Art.lookPreviewEl(lookId, 150));
+      btn.onclick = () => {
+        VA.Audio.sfx('pop');
+        VA.State.data.playerLook = lookId;
+        VA.State.save();
+        VA.applyPlayerLook(lookId);
+        modal.style.display = 'none';
+        this.askName();
+      };
+    });
   },
 
   askName() {

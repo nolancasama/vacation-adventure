@@ -24,6 +24,14 @@ VA.rand  = (a, b) => a + Math.random() * (b - a);
 VA.randi = (a, b) => Math.floor(VA.rand(a, b + 1));
 VA.pick  = arr => arr[Math.floor(Math.random() * arr.length)];
 VA.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* apply a chosen player look ('boy'/'girl') onto the single shared
+   CHARS.player entry — every event script's `char: 'player'` reference
+   keeps working unchanged; only the appearance/voice underneath changes */
+VA.applyPlayerLook = lookId => {
+  const look = VA.Data.PLAYER_LOOKS[lookId] || VA.Data.PLAYER_LOOKS.boy;
+  Object.assign(VA.Data.CHARS.player, look);
+};
 VA.shuffle = arr => {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -42,6 +50,7 @@ VA.State = {
     return {
       v: 1,
       name: '',
+      playerLook: 'boy', // 'boy' | 'girl' — chosen once, before naming
       coins: 0,
       tripCount: 0,
       // current trip: { dest, done:[eventIds], souvenir:{...}|null, no }
@@ -224,6 +233,10 @@ VA.Screens = {
     // Country travel keeps its established fade-and-flight sequence exactly as
     // it was. Every other ordinary screen handoff uses the cream wipe below.
     if (transition === 'travel') {
+      await Promise.all([
+        VA.Art.waitForScreenAssets(next),
+        Promise.resolve(ready),
+      ]);
       await VA.Fx.fadeOut(170);
       VA.$$('.screen').forEach(s => s.classList.remove('active'));
       next.classList.add('active');

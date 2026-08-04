@@ -247,6 +247,20 @@ body {
   background:rgba(255,255,255,.94); color:var(--ink); font-size:30px; font-weight:bold;
   padding:10px 38px; border-radius:18px; box-shadow:var(--shadow); white-space:nowrap;
 }
+#travel-loading {
+  position:absolute; left:50%; top:50%; z-index:6;
+  transform:translate(-50%,-50%);
+  display:flex; align-items:center; gap:10px;
+  padding:13px 19px; border-radius:16px;
+  background:rgba(248,243,232,.92); color:#705846;
+  font-weight:bold; box-shadow:0 8px 24px rgba(44,29,23,.2);
+}
+#travel-loading[hidden] { display:none; }
+.travel-loading-spinner {
+  width:18px; height:18px; border:3px solid rgba(112,88,70,.22);
+  border-top-color:#bf8056; border-radius:50%; animation:travel-loading-spin .75s linear infinite;
+}
+@keyframes travel-loading-spin { to { transform:rotate(360deg); } }
 #travel-plane { position:absolute; top:250px; left:-220px; transition:left 3s cubic-bezier(.45,.1,.55,.9); }
 #travel-plane.flip svg, #travel-plane.flip img { transform:scaleX(-1); }
 
@@ -527,7 +541,7 @@ body {
 #debrief-page .dp-slot .dp-ico { font-size:26px; }
 
 /* ---------- modals ---------- */
-#modal, #name-modal {
+#modal, #name-modal, #look-modal {
   position:absolute; inset:0; z-index:80; background:rgba(18,12,8,.55);
   display:flex; align-items:center; justify-content:center;
 }
@@ -550,6 +564,20 @@ body {
 }
 #name-input:focus { border-color:var(--coral); }
 #btn-name-dice { font-size:26px; width:56px; border:none; border-radius:16px; cursor:pointer; background:var(--paper-2); box-shadow:0 3px 0 rgba(0,0,0,.12); }
+
+/* look picker ("who are you?") */
+.look-card { width:460px; }
+.look-row { display:flex; gap:18px; justify-content:center; margin:18px 0 6px; }
+.look-option {
+  font-family:var(--font); display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:180px; padding:14px 10px 12px; border:4px solid transparent; border-radius:20px;
+  background:var(--paper-2); cursor:pointer; box-shadow:var(--shadow);
+  transition:transform .12s ease, border-color .12s ease; font-size:19px; font-weight:bold; color:var(--ink);
+}
+.look-option:hover  { transform:translateY(-4px); border-color:var(--sun); }
+.look-option.picked { border-color:var(--leaf); }
+.look-portrait-slot { height:150px; display:flex; align-items:flex-end; justify-content:center; }
+.look-portrait-slot .look-preview { display:block; }
 
 /* album grid */
 .album-grid { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:6px; }

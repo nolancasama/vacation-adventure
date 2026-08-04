@@ -154,6 +154,7 @@ VA.UI = {
     VA.Art.layer(art, { painter: 'travelSky', file: 'background_travel_sky.png' });
 
     const plane = VA.$('#travel-plane');
+    VA.$('#travel-loading').hidden = true;
     plane.innerHTML = '';
     // Outbound flight travels left-to-right; the return flight goes right-to-left.
     plane.appendChild(VA.Art.planeEl(190, true, !homeward));

@@ -431,6 +431,7 @@ VA.Art = {
     const path = 'assets/characters/' + c.file;
     const cached = this._imgCache[path];
     const alreadyLoaded = !!(cached && cached.state === 'ok');
+    const assetFailed = !!(cached && cached.state === 'fail');
     const d = VA.el('div');
 
     const applyReal = img => {
@@ -440,8 +441,43 @@ VA.Art = {
     };
 
     if (alreadyLoaded) applyReal(cached.img);
+    else if (assetFailed) d.innerHTML = this.charSVG(c, mood, 200);
     else {
-      d.innerHTML = this.charSVG(c, mood, 200);
+      // Keep the real portrait source on screen while it decodes rather than
+      // briefly showing the generated SVG stand-in.
+      d.classList.add('portrait-real');
+      const pending = document.createElement('img');
+      pending.className = 'portrait-photo';
+      pending.src = path;
+      pending.alt = c.name === '{player}' ? 'Player' : c.name;
+      d.appendChild(pending);
+      this._loadImage(path, applyReal, () => { d.innerHTML = this.charSVG(c, mood, 200); });
+    }
+    return d;
+  },
+
+  /* full-body preview for the "who are you?" look picker — same real-art
+     auto-upgrade as everywhere else, so it just works once the matching
+     file lands in assets/characters/, no code changes needed then */
+  lookPreviewEl(lookId, hPx = 190) {
+    const look = VA.Data.PLAYER_LOOKS[lookId];
+    const spec = Object.assign({}, VA.Data.CHARS.player, look);
+    const path = 'assets/characters/' + look.file;
+    const cached = this._imgCache[path];
+    const alreadyLoaded = !!(cached && cached.state === 'ok');
+    const d = VA.el('div', 'look-preview');
+
+    const applyReal = img => {
+      d.innerHTML = '';
+      const clone = img.cloneNode();
+      clone.style.height = hPx + 'px';
+      clone.style.display = 'block';
+      d.appendChild(clone);
+    };
+
+    if (alreadyLoaded) applyReal(cached.img);
+    else {
+      d.innerHTML = this.charSVG(spec, 'happy', hPx);
       this._loadImage(path, applyReal);
     }
     return d;

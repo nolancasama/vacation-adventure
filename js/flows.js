@@ -89,15 +89,22 @@ VA.Flows = {
     VA.State.startTrip(destId);
     VA.State.checkpoint('explore');
 
-    await this._flight(`To ${dest.name}! ✈`, false);
-
-    // arrival: build the destination first (hotspots stay hidden until
-    // passport control is done — don't spoil the activities mid-interview),
-    // then run passport control, then reveal them
+    // Build the incoming scene before takeoff, then let its complete asset set
+    // decode while the existing country-flight animation is on screen.
     VA.UI.explore(dest);
     const hsLayer = VA.$('#hotspot-layer');
     hsLayer.style.visibility = 'hidden';
-    await VA.Screens.show('explore', { transition: 'travel' });
+    const arrival = { done: false, promise: null, destinationName: dest.name };
+    arrival.promise = VA.Art.waitForScreenAssets(VA.$('#scr-explore')).then(result => {
+      arrival.done = true;
+      return result;
+    });
+
+    await this._flight(`To ${dest.name}! ✈`, false);
+
+    // The destination is now fully preloaded; hotspots remain hidden until
+    // passport control finishes so activities are not spoiled mid-interview.
+    await VA.Screens.show('explore', { transition: 'travel', ready: arrival.promise });
     VA.HUD.show();
     VA.Audio.music(dest.music);
     VA.Audio.ambient(dest.ambientFiles);
@@ -116,7 +123,7 @@ VA.Flows = {
     VA.Fx.toast('Tap a place to visit! 　行きたい場所をタップ！', 3200);
   },
 
-  async _flight(bannerText, homeward) {
+  async _flight(bannerText, homeward, arrival = null) {
     VA.UI.travel(homeward);
     VA.$('#travel-banner').textContent = bannerText;
     await VA.Screens.show('travel', { transition: 'travel' });
@@ -129,6 +136,15 @@ VA.Flows = {
     await VA.wait(80);
     plane.style.left = homeward ? '-260px' : '1040px';
     await VA.wait(3100);
+    if (arrival) {
+      const loading = VA.$('#travel-loading');
+      if (!arrival.done) {
+        VA.$('#travel-loading-text').textContent = `Arriving in ${arrival.destinationName}…`;
+        loading.hidden = false;
+      }
+      await arrival.promise;
+      loading.hidden = true;
+    }
     VA.Ambient.stop();
   },
 
