@@ -124,7 +124,11 @@ VA.Data.PLAYER_LOOKS = {
 };
 
 /* random name suggestions for the 🎲 button */
-VA.Data.NAMES = ['Yuki', 'Hana', 'Ken', 'Mio', 'Sora', 'Riku', 'Emi', 'Taiga', 'Aoi', 'Ren'];
+VA.Data.NAMES = {
+  boy: ['Ken', 'Riku', 'Taiga', 'Daiki', 'Kaito', 'Sota'],
+  girl: ['Hana', 'Mio', 'Emi', 'Yui', 'Sakura', 'Rin'],
+  shared: ['Yuki', 'Sora', 'Aoi', 'Ren', 'Haru', 'Akira'],
+};
 
 /* ------------------------------------------------------------
    DESTINATIONS
