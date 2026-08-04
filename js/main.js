@@ -80,11 +80,14 @@ VA.Main = {
     };
   },
 
-  pickLook() {
+  async pickLook() {
     const modal = VA.$('#look-modal');
-    modal.style.display = 'flex';
+    const lookIds = ['boy', 'girl'];
+    await VA.Art.preloadAndWait(lookIds.map(lookId =>
+      'assets/characters/' + VA.Data.PLAYER_LOOKS[lookId].file,
+    ));
 
-    ['boy', 'girl'].forEach(lookId => {
+    lookIds.forEach(lookId => {
       const btn = VA.$('#look-' + lookId);
       btn.classList.remove('picked');
       const slot = btn.querySelector('.look-portrait-slot');
@@ -99,6 +102,7 @@ VA.Main = {
         this.askName();
       };
     });
+    modal.style.display = 'flex';
   },
 
   askName() {

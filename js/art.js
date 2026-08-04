@@ -465,6 +465,7 @@ VA.Art = {
     const path = 'assets/characters/' + look.file;
     const cached = this._imgCache[path];
     const alreadyLoaded = !!(cached && cached.state === 'ok');
+    const assetFailed = !!(cached && cached.state === 'fail');
     const d = VA.el('div', 'look-preview');
 
     const applyReal = img => {
@@ -476,10 +477,8 @@ VA.Art = {
     };
 
     if (alreadyLoaded) applyReal(cached.img);
-    else {
-      d.innerHTML = this.charSVG(spec, 'happy', hPx);
-      this._loadImage(path, applyReal);
-    }
+    else if (assetFailed) d.innerHTML = this.charSVG(spec, 'happy', hPx);
+    else this._loadImage(path, applyReal, () => { d.innerHTML = this.charSVG(spec, 'happy', hPx); });
     return d;
   },
 
