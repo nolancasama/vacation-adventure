@@ -81,6 +81,13 @@ VA.Flows = {
     VA.Audio.music('theme_map');
     VA.Audio.ambient(['wind']);
     VA.Ambient.set([{ type: 'clouds', band: [0.05, 0.85], n: 4 }]);
+
+    // The country picker is the natural lead-in to a flight. Decode the two
+    // travel-screen images now, without delaying the map or unrelated scenes.
+    VA.Art.preloadAndWait([
+      'assets/backgrounds/background_travel_sky.png',
+      'assets/objects/plane.png?v=20260802',
+    ]);
   },
 
   /* ---------- fly out + passport control ---------- */
