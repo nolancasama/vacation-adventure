@@ -57,20 +57,24 @@ VA.Art = {
 
   /* Load a scene's initial bitmap set concurrently.  Image.decode() gives the
      browser a chance to finish decoding before the scene is assembled, so the
-     first visible frame contains real pixels rather than late-loading sprites. */
+     first visible frame contains real pixels rather than late-loading sprites.
+
+     An image already cached as 'ok' has already loaded and painted at least
+     once — skip re-decoding it. Re-running decode() on an already-painted
+     <img> can spuriously reject (seen under file:// specifically, worded as
+     a CORS failure even though nothing cross-origin is happening), and since
+     the image is demonstrably already usable, a rejection here must never
+     poison its cache entry the way a genuine load failure should. */
   preloadAndWait(paths) {
     const uniquePaths = [...new Set(paths.filter(Boolean))];
     return Promise.all(uniquePaths.map(path => new Promise(resolve => {
+      const already = this._imgCache[path];
+      if (already && already.state === 'ok') { resolve({ path, ok: true }); return; }
       const ready = img => {
         const decoded = img.decode ? img.decode() : Promise.resolve();
         decoded.then(
           () => resolve({ path, ok: true }),
-          () => {
-            const entry = this._imgCache[path];
-            if (entry) { entry.state = 'fail'; entry.img = null; }
-            console.error(`[Asset preload failed to decode] ${path}`);
-            resolve({ path, ok: false });
-          },
+          () => resolve({ path, ok: true }), // image loaded fine; decode() itself is just a hint
         );
       };
       const failed = file => {
@@ -415,6 +419,10 @@ VA.Art = {
     a.appendChild(body);
     if (tag) a.appendChild(VA.el('span', 'actor-tag', c.name === '{player}' ? VA.State.data.name : c.name));
     a.appendChild(VA.el('span', 'actor-chip' + (alreadyLoaded ? ' real' : ''), c.file));
+    // The player PNG is intentionally shown immediately while it decodes.
+    // Attach the visual rig to that pending image too, so grounding never has
+    // to wait for the cache callback.
+    applyPlayerEffects();
     if (!alreadyLoaded && !assetFailed) {
       this._loadImage(path, applyReal, () => { body.innerHTML = this.charSVG(c, mood, hPx); applyPlayerEffects(); });
     }

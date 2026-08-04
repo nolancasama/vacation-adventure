@@ -11,8 +11,8 @@
 VA.PlayerFX = {
   DEV_PANEL_ENABLED: false,
   defaults: {
-    shadowOpacity: 0.34,
-    shadowBlur: 7,
+    shadowOpacity: 0.46,
+    shadowBlur: 1,
     shadowWidth: 1,
     brightness: 1,
     saturation: 1,
@@ -78,7 +78,7 @@ VA.PlayerFX = {
       rig.style.setProperty('--shadow-opacity', (profile.shadowOpacity * tune.shadowOpacity).toFixed(3));
       rig.style.setProperty('--shadow-scale', profile.shadowScale.toFixed(3));
       rig.style.setProperty('--shadow-width', tune.shadowWidth.toFixed(3));
-      rig.style.setProperty('--shadow-blur', (profile.shadowBlur * tune.shadowBlur).toFixed(1) + 'px');
+      rig.style.setProperty('--shadow-blur', (6 * profile.shadowBlur * tune.shadowBlur).toFixed(1) + 'px');
       rig.style.setProperty('--contact-opacity', profile.contactOpacity.toFixed(3));
       rig.style.setProperty('--sprite-brightness', (lighting.brightness * tune.brightness).toFixed(3));
       rig.style.setProperty('--sprite-saturation', (lighting.saturation * tune.saturation).toFixed(3));
