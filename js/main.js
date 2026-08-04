@@ -108,12 +108,18 @@ VA.Main = {
     input.value = '';
     setTimeout(() => input.focus(), 100);
 
+    const suggestedName = () => {
+      const pools = VA.Data.NAMES;
+      const selected = pools[VA.State.data.playerLook] || pools.boy;
+      return VA.pick([...selected, ...pools.shared]);
+    };
+
     VA.$('#btn-name-dice').onclick = () => {
       VA.Audio.sfx('pop');
-      input.value = VA.pick(VA.Data.NAMES);
+      input.value = suggestedName();
     };
     const go = () => {
-      const name = (input.value || '').trim() || VA.pick(VA.Data.NAMES);
+      const name = (input.value || '').trim() || suggestedName();
       VA.State.data.name = name.slice(0, 10);
       VA.State.save();
       VA.Audio.sfx('chime');
