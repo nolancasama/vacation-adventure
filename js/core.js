@@ -224,6 +224,10 @@ VA.Screens = {
     // Country travel keeps its established fade-and-flight sequence exactly as
     // it was. Every other ordinary screen handoff uses the cream wipe below.
     if (transition === 'travel') {
+      await Promise.all([
+        VA.Art.waitForScreenAssets(next),
+        Promise.resolve(ready),
+      ]);
       await VA.Fx.fadeOut(170);
       VA.$$('.screen').forEach(s => s.classList.remove('active'));
       next.classList.add('active');
