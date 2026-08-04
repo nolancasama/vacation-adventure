@@ -127,7 +127,9 @@ body {
 }
 .home-souvenir:hover .home-souvenir-label, .home-souvenir:focus-visible .home-souvenir-label { opacity:1; }
 .actor { position:absolute; transform:translate(-50%,-100%); text-align:center; }
-.actor.conversation-pose .actor-svg-wrap {
+/* Scales the sprite content only, not the wrap itself (which also holds the
+   ground-shadow rig) — otherwise the shadow would zoom with the close-up. */
+.actor.conversation-pose .actor-svg-wrap > :not(.player-vfx-rig) {
   transform:scale(var(--conversation-scale, 1));
   transform-origin:center bottom;
 }
@@ -170,10 +172,7 @@ body {
    These are independent DOM layers beneath/above the transparent PNG; no art
    is baked into the sprite. Shadow geometry is anchored to the sprite box, so
    it follows CSS movement and resizes with the character automatically. */
-/* width/height are set inline (VA.PlayerFX.attach) to match the sprite's own
-   rendered box — .actor also contains the name tag/asset chip below the
-   sprite, so inset:0 against .actor itself would stretch the rig too tall. */
-.player-vfx-rig { position:absolute; top:0; left:0; pointer-events:none; overflow:visible; }
+.player-vfx-rig { position:absolute; inset:0; pointer-events:none; overflow:visible; }
 .player-ground-shadow, .player-contact-shadow {
   position:absolute; left:50%; border-radius:50%; pointer-events:none;
   transform:translate(-50%,-50%); transition:opacity .18s ease, filter .18s ease, transform .18s ease;

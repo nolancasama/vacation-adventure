@@ -205,7 +205,10 @@ VA.Cine = {
       if (st.anim) {
         const el = this._target(st.anim.id);
         if (el) {
-          const node = el.classList.contains('prop') ? el : el.querySelector('.actor-svg-wrap');
+          // Target the sprite content itself, not the .actor-svg-wrap that
+          // also holds the ground-shadow rig — otherwise a hop/wiggle/cheer
+          // transform drags the shadow along with the character.
+          const node = el.classList.contains('prop') ? el : el.querySelector('.actor-svg-wrap > :not(.player-vfx-rig)');
           if (el.dataset.char === 'player' && VA.PlayerFX) {
             const state = st.anim.name === 'hop' ? 'jump' : (st.anim.name === 'cheer' ? 'celebrate' : 'fail');
             VA.PlayerFX.setState(state, { actor: el, height: state === 'jump' ? 80 : 0, levelLighting: ctx.dest });
