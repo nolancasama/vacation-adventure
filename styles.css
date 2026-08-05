@@ -306,6 +306,7 @@ body {
   position:absolute; top:36px; left:50%; transform:translateX(-50%) rotate(-1.5deg);
   background:rgba(255,255,255,.94); color:var(--ink); font-size:30px; font-weight:bold;
   padding:10px 38px; border-radius:18px; box-shadow:var(--shadow); white-space:nowrap;
+  z-index:4; /* stay above #travel-portrait as it slides/fades in */
 }
 #travel-loading {
   position:absolute; left:50%; top:50%; z-index:6;
