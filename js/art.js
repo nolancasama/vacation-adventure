@@ -670,7 +670,9 @@ VA.Art = {
 
     // subject emoji "in" the photo — only as a fallback when no real
     // character art was available to draw instead
-    if (!drewActor) {
+    // The Eiffel Polaroid is a landmark-only photo: use the real tower art
+    // without placing an emoji over it (including older saved photos).
+    if (!drewActor && photo.event !== 'eiffel' && photo.icon) {
       ctx.font = (pw * 0.3) + 'px "Segoe UI Emoji", sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(photo.icon, pw * 0.5, ph * 0.72);
