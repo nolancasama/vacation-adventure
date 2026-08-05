@@ -90,7 +90,8 @@ VA.Flows = {
   preloadTravelScreen() {
     VA.Art.preloadAndWait([
       'assets/backgrounds/background_travel_sky.png',
-      'assets/objects/plane.png?v=20260802',
+      VA.Art.travelPortraitPath(false),
+      VA.Art.travelPortraitPath(true),
     ]);
   },
 
@@ -141,12 +142,11 @@ VA.Flows = {
     VA.HUD.hide();
     VA.Audio.music('theme_travel');
     VA.Audio.ambient(['wind']);
-    VA.Ambient.set([{ type: 'clouds', band: [0.1, 0.85], n: 7 }, { type: 'birds', band: [0.1, 0.4], every: [2, 5] }]);
+    VA.Ambient.set([]); // plain sky — the traveler's own portrait carries the scene
     VA.Audio.sfx('plane');
-    const plane = VA.$('#travel-plane');
-    await VA.wait(80);
-    plane.style.left = homeward ? '-260px' : '1040px';
-    await VA.wait(3100);
+    await VA.wait(1500);
+    VA.$('#travel-portrait').classList.add('show');
+    await VA.wait(1700);
     if (arrival) {
       const loading = VA.$('#travel-loading');
       if (!arrival.done) {

@@ -321,8 +321,32 @@ body {
   border-top-color:#bf8056; border-radius:50%; animation:travel-loading-spin .75s linear infinite;
 }
 @keyframes travel-loading-spin { to { transform:rotate(360deg); } }
-#travel-plane { position:absolute; top:250px; left:-220px; transition:left 3s cubic-bezier(.45,.1,.55,.9); }
-#travel-plane.flip svg, #travel-plane.flip img { transform:scaleX(-1); }
+/* The traveler's own reaction shot pushes in from the side over the plain
+   sky, rather than a plane sprite flying across it. A soft inner-edge fade
+   (mask) keeps the rectangular photo from reading as a pasted-on sticker. */
+#travel-portrait {
+  position:absolute; top:0; bottom:0; width:52%;
+  display:flex; align-items:flex-end; justify-content:center;
+  pointer-events:none; opacity:0; z-index:3;
+}
+#travel-portrait img {
+  width:100%; height:92%; object-fit:cover; border-radius:10px;
+  box-shadow:0 14px 30px rgba(20,14,8,.4);
+}
+#travel-portrait.side-left {
+  left:0; transform:translateX(-100%);
+  -webkit-mask-image:linear-gradient(90deg, #000 68%, transparent 100%);
+  mask-image:linear-gradient(90deg, #000 68%, transparent 100%);
+}
+#travel-portrait.side-right {
+  right:0; transform:translateX(100%);
+  -webkit-mask-image:linear-gradient(270deg, #000 68%, transparent 100%);
+  mask-image:linear-gradient(270deg, #000 68%, transparent 100%);
+}
+#travel-portrait.show {
+  opacity:1; transform:translateX(0);
+  transition:transform 950ms cubic-bezier(.25,.8,.35,1), opacity 950ms ease;
+}
 
 /* ---------- explore ---------- */
 .hotspot-layer { position:absolute; inset:0; }

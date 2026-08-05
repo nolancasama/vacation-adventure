@@ -160,18 +160,17 @@ VA.UI = {
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
     VA.Art.layer(art, { painter: 'travelSky', file: 'background_travel_sky.png' });
-
-    const plane = VA.$('#travel-plane');
     VA.$('#travel-loading').hidden = true;
-    plane.innerHTML = '';
-    // Outbound flight travels left-to-right; the return flight goes right-to-left.
-    plane.appendChild(VA.Art.planeEl(190, true, !homeward));
-    plane.classList.remove('flip');
-    plane.style.transition = 'none';
-    plane.style.left = homeward ? '1040px' : '-260px';
-    plane.style.top = (220 + VA.rand(-30, 40)) + 'px';
-    void plane.offsetWidth;
-    plane.style.transition = 'left 3s cubic-bezier(.45,.1,.55,.9)';
+
+    // The traveler's own reaction shot pushes in partway through the flight
+    // (VA.Flows._flight adds the 'show' class) — outbound comes in from the
+    // left, the trip home comes in from the right.
+    const portrait = VA.$('#travel-portrait');
+    portrait.classList.remove('show');
+    portrait.classList.toggle('side-left', !homeward);
+    portrait.classList.toggle('side-right', homeward);
+    portrait.innerHTML = `<img src="${VA.Art.travelPortraitPath(homeward)}" alt="">`;
+    void portrait.offsetWidth;
   },
 
   /* ---------- destination hub with activity hotspots ---------- */

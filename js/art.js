@@ -708,45 +708,12 @@ VA.Art = {
     return s;
   },
 
-  planeSVG(wPx = 190) {
-    return `<svg width="${wPx}" height="${wPx * 0.42}" viewBox="0 0 190 80" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="88" cy="46" rx="72" ry="17" fill="#f4f7fb"/>
-      <path d="M150 46 Q170 42 182 30 L176 46 Z" fill="#e35f4f"/>
-      <path d="M18 46 L4 22 L26 34 Q20 40 18 46 Z" fill="#e35f4f"/>
-      <path d="M70 52 L46 76 L84 60 Z" fill="#d7dee8"/>
-      <path d="M78 34 L104 12 L118 16 L100 36 Z" fill="#e35f4f"/>
-      ${[0, 1, 2, 3, 4].map(i => `<circle cx="${58 + i * 20}" cy="42" r="4.6" fill="#7ec8e3"/>`).join('')}
-      <path d="M148 40 A60 60 0 0 0 152 52 L166 50 A70 70 0 0 0 162 40 Z" fill="#f4f7fb"/>
-    </svg>`;
-  },
-
-  /* the plane, with the same real-file auto-upgrade as actorEl/propEl
-     (planeSVG() alone is just markup — it never checks for a real asset) */
-  // The painted plane source faces left.  Set faceRight for any flight that
-  // travels left-to-right so its nose always leads the motion.
-  planeEl(wPx = 190, chip = false, faceRight = false) {
-    const wrap = VA.el('div', 'plane-wrap');
-    if (faceRight) wrap.style.transform = 'scaleX(-1)';
-    const path = 'assets/objects/plane.png?v=20260802';
-    const cached = this._imgCache[path];
-    const alreadyLoaded = !!(cached && cached.state === 'ok');
-
-    if (!alreadyLoaded) wrap.innerHTML = this.planeSVG(wPx);
-    if (chip) wrap.appendChild(VA.el('span', 'asset-chip' + (alreadyLoaded ? ' real' : ''), 'plane.png'));
-
-    const applyReal = img => {
-      const svg = wrap.querySelector('svg');
-      if (svg) svg.remove();
-      const clone = img.cloneNode();
-      clone.style.width = wPx + 'px';
-      clone.style.display = 'block';
-      wrap.insertBefore(clone, wrap.firstChild);
-      const c = wrap.querySelector('.asset-chip');
-      if (c) c.classList.add('real');
-    };
-    if (alreadyLoaded) applyReal(cached.img);
-    else this._loadImage(path, applyReal);
-    return wrap;
+  /* The traveler's reaction portrait shown mid-flight (see VA.UI.travel).
+     Real-art-only: these ship as finished photos, no SVG placeholder. */
+  travelPortraitPath(homeward) {
+    const lookId = VA.State.data.playerLook === 'girl' ? 'girl' : 'boy';
+    const mood = homeward ? 'sleepy' : 'excited';
+    return `assets/characters/travel_${lookId}_${mood}.png`;
   },
 };
 
