@@ -195,7 +195,7 @@ VA.Data.DESTS = [
           },
         ],
         props: [
-          { id: 'ice', icon: '🍦', file: 'icecream.png', x: 520, y: 415, size: 84, hidden: true },
+          { id: 'ice', icon: '🍦', file: 'icecream_scoop.png', x: 520, y: 415, size: 84, hidden: true },
         ],
         amb: [],
         steps: [
@@ -207,7 +207,7 @@ VA.Data.DESTS = [
           { show: 'ice' }, { sfx: 'pop' },
           { say: ['au_vendor', 'Here you are.', 'はい、どうぞ。'] },
           { auto: ['player', 'Thank you!', 'ありがとう！'] },
-          { reward: { itemId: 'ice', illustration: 'icecream.png', word: 'Ice Cream', pronunciation: 'Ice cream' } },
+          { reward: { itemId: 'ice', illustration: 'icecream_scoop.png', word: 'Ice Cream', pronunciation: 'Ice cream' } },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Yummy!', 'おいしい！'] },
           { wait: 350 },
