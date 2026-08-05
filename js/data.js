@@ -567,7 +567,7 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.png', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Bookshelf shelf', x: 845, y: 158, size: 78 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
+      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.png', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Bookshelf shelf', x: 845, y: 112, size: 68 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
       { id: 'camel', label: 'Camel Toy', icon: '🐪', file: 'souvenir_camel.png', line: 'The camel toy, please.', jp: 'ラクダのおもちゃをください。', reactJP: 'ラクダ！', home: { slot: 'Bookshelf shelf', x: 178, y: 330, size: 100 }, memory: { event: 'egypt-memory', answer: 'I saw a camel.', answerJP: 'ラクダを見たよ。' }, grandmaLine: 'Your camel toy makes me smile.' },
     ],
   },

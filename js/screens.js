@@ -47,7 +47,7 @@ VA.UI = {
     const layer = VA.$('#home-souvenirs');
     layer.innerHTML = '';
     if (!VA.Data.FEATURES.grandmaHomeSouvenirs) return;
-    const gifts = VA.State.homeSouvenirs();
+    const gifts = VA.State.data.settings.labels ? VA.State.allHomeSouvenirsPreview() : VA.State.homeSouvenirs();
 
     gifts.forEach(gift => {
       const item = VA.el('button', 'home-souvenir');

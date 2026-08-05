@@ -63,7 +63,7 @@ VA.State = {
       stamps: [],
       checkpoint: 'title',
       finaleDone: false,
-      settings: { music: true, sfx: true, voice: true, jp: true, labels: true },
+      settings: { music: true, sfx: true, voice: true, jp: true, labels: false },
     };
   },
 
@@ -161,6 +161,36 @@ VA.State = {
 
   homeSouvenirs() {
     return Object.values(this.data.homeGifts || {}).filter(g => g.unlocked);
+  },
+
+  /* Dev-mode preview (labels setting on): every possible home gift laid
+     out at once, regardless of whether it's actually been earned yet, so
+     shelf placement can be checked without playing through the whole game. */
+  allHomeSouvenirsPreview() {
+    const out = [];
+    VA.Data.DESTS.forEach(dest => {
+      (dest.souvenirs || []).forEach(source => {
+        if (!source.home) return;
+        const home = source.home;
+        out.push({
+          id: `${dest.id}_${source.id}`,
+          souvenirId: source.id,
+          destination: dest.id,
+          destinationName: dest.name,
+          label: source.label,
+          icon: source.icon,
+          file: source.file,
+          displayLocation: home.slot,
+          displayPosition: { x: home.x, y: home.y, size: home.size, rot: home.rot || 0 },
+          unlocked: true,
+          relatedMemoryEvent: source.memory && source.memory.event,
+          relatedGrammarAnswer: source.memory && source.memory.answer,
+          relatedGrammarJP: source.memory && source.memory.answerJP,
+          grandmaDialogue: source.grandmaLine || `I like this ${source.label.toLowerCase()}.`,
+        });
+      });
+    });
+    return out;
   },
 
   /* Existing save files already know which completed trip had which souvenir.
