@@ -32,6 +32,16 @@ VA.applyPlayerLook = lookId => {
   const look = VA.Data.PLAYER_LOOKS[lookId] || VA.Data.PLAYER_LOOKS.boy;
   Object.assign(VA.Data.CHARS.player, look);
 };
+/* Dev mode: asset-filename chips + the full home-souvenir preview (see
+   VA.State.allHomeSouvenirsPreview). Toggled from Settings or Ctrl+Shift+D. */
+VA.toggleDevLabels = force => {
+  const s = VA.State.data.settings;
+  s.labels = force != null ? force : !s.labels;
+  VA.State.save();
+  VA.$('#stage').classList.toggle('no-labels', !s.labels);
+  if (VA.Screens.current === 'home') VA.UI.home();
+  return s.labels;
+};
 VA.shuffle = arr => {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {

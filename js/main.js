@@ -16,6 +16,13 @@ VA.Main = {
     VA.Voice.init();
 
     VA.$('#stage').classList.toggle('no-labels', !VA.State.data.settings.labels);
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyD') {
+        e.preventDefault();
+        VA.toggleDevLabels();
+        VA.Audio.sfx('click');
+      }
+    });
 
     // audio can only start after a user gesture
     const kick = () => {

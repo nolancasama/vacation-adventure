@@ -403,11 +403,11 @@ VA.UI = {
       row.innerHTML = `<span>${label}<small>${jp}</small></span>`;
       const t = VA.el('button', 'toggle' + (s[key] ? ' on' : ''));
       t.addEventListener('click', () => {
+        VA.Audio.sfx('click');
+        if (key === 'labels') { t.classList.toggle('on', VA.toggleDevLabels()); return; }
         s[key] = !s[key];
         t.classList.toggle('on', s[key]);
         VA.State.save();
-        VA.Audio.sfx('click');
-        if (key === 'labels') VA.$('#stage').classList.toggle('no-labels', !s.labels);
         if (key === 'music' || key === 'sfx') VA.Audio.applySettings();
         if (key === 'voice' && !s.voice) VA.Voice.stop();
       });
