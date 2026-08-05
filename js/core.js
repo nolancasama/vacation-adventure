@@ -159,7 +159,7 @@ VA.State = {
       icon: source.icon,
       file: source.file,
       displayLocation: home.slot,
-      displayPosition: { x: home.x, y: home.y, size: home.size, rot: home.rot || 0 },
+      displayPosition: { x: home.x, y: home.y, w: home.w || home.size, h: home.h || home.size, rot: home.rot || 0 },
       unlocked: true,
       relatedMemoryEvent: source.memory && source.memory.event,
       relatedGrammarAnswer: source.memory && source.memory.answer,
@@ -171,6 +171,22 @@ VA.State = {
 
   homeSouvenirs() {
     return Object.values(this.data.homeGifts || {}).filter(g => g.unlocked);
+  },
+
+  /* Current slot definitions take precedence over positions stored by an
+     older save, so home-layout refinements immediately fix existing gifts. */
+  homePlacement(gift) {
+    const dest = VA.Data.destById(gift.destination);
+    const source = dest && (dest.souvenirs || []).find(item => item.id === gift.souvenirId);
+    const home = source && source.home;
+    const saved = gift.displayPosition || {};
+    return {
+      x: home ? home.x : saved.x,
+      y: home ? home.y : saved.y,
+      w: (home && (home.w || home.size)) || saved.w || saved.size,
+      h: (home && (home.h || home.size)) || saved.h || saved.size,
+      rot: (home && home.rot) || 0,
+    };
   },
 
   /* Dev-mode preview (labels setting on): every possible home gift laid
@@ -191,7 +207,7 @@ VA.State = {
           icon: source.icon,
           file: source.file,
           displayLocation: home.slot,
-          displayPosition: { x: home.x, y: home.y, size: home.size, rot: home.rot || 0 },
+          displayPosition: { x: home.x, y: home.y, w: home.w || home.size, h: home.h || home.size, rot: home.rot || 0 },
           unlocked: true,
           relatedMemoryEvent: source.memory && source.memory.event,
           relatedGrammarAnswer: source.memory && source.memory.answer,

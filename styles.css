@@ -108,13 +108,13 @@ body {
    does not capture pointer events. */
 #home-souvenirs { position:absolute; inset:0; z-index:1; pointer-events:none; }
 .home-souvenir {
-  position:absolute; width:var(--gift-size); height:var(--gift-size);
+  position:absolute; width:var(--gift-w); height:var(--gift-h);
   transform:translate(-50%,-50%) rotate(var(--gift-rot, 0deg)); border:0; padding:0; background:transparent;
   cursor:pointer; pointer-events:auto; filter:drop-shadow(0 3px 2px rgba(50,30,15,.26));
   transition:transform .16s ease, filter .16s ease;
 }
-.home-souvenir img { display:block; width:100%; height:100%; object-fit:contain; }
-.home-souvenir-fallback { display:block; font-size:calc(var(--gift-size) * .82); line-height:1; }
+.home-souvenir img { display:block; width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; }
+.home-souvenir-fallback { display:grid; width:100%; height:100%; place-items:center; font-size:min(var(--gift-w), var(--gift-h)); line-height:1; }
 .home-souvenir:hover, .home-souvenir:focus-visible {
   transform:translate(-50%,-55%) scale(1.14) rotate(var(--gift-rot, 0deg));
   filter:drop-shadow(0 5px 4px rgba(50,30,15,.35)); outline:none;

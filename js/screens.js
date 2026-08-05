@@ -52,10 +52,12 @@ VA.UI = {
     gifts.forEach(gift => {
       const item = VA.el('button', 'home-souvenir');
       item.type = 'button';
-      item.style.left = gift.displayPosition.x + 'px';
-      item.style.top = gift.displayPosition.y + 'px';
-      item.style.setProperty('--gift-size', gift.displayPosition.size + 'px');
-      item.style.setProperty('--gift-rot', (gift.displayPosition.rot || 0) + 'deg');
+      const placement = VA.State.homePlacement(gift);
+      item.style.left = placement.x + 'px';
+      item.style.top = placement.y + 'px';
+      item.style.setProperty('--gift-w', placement.w + 'px');
+      item.style.setProperty('--gift-h', placement.h + 'px');
+      item.style.setProperty('--gift-rot', placement.rot + 'deg');
       item.title = `${gift.label} — tap to remember ${gift.destinationName}`;
       item.setAttribute('aria-label', `${gift.label} from ${gift.destinationName}. Review this memory.`);
 
