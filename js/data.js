@@ -286,8 +286,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.png', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Sofa', x: 329, y: 327, size: 162 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
-      { id: 'shell', label: 'Seashell', icon: '🐚', file: 'souvenir_shell.png', line: 'The seashell, please.', jp: '貝がらをください。', reactJP: '貝がら！', home: { slot: 'Cabinet top', x: 135, y: 385, size: 90, rot: -10 }, memory: { event: 'australia-memory', answer: 'I found a seashell.', answerJP: '貝がらを見つけたよ。' }, grandmaLine: 'This seashell makes me happy.' },
+      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.png', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Floor by cabinet', x: 141, y: 518, size: 96 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
+      { id: 'shell', label: 'Seashell', icon: '🐚', file: 'souvenir_shell.png', line: 'The seashell, please.', jp: '貝がらをください。', reactJP: '貝がら！', home: { slot: 'Bookshelf shelf', x: 870, y: 145, size: 78, rot: -8 }, memory: { event: 'australia-memory', answer: 'I found a seashell.', answerJP: '貝がらを見つけたよ。' }, grandmaLine: 'This seashell makes me happy.' },
     ],
   },
 
@@ -426,8 +426,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'tower', label: 'Little Tower', icon: '🗼', file: 'souvenir_eiffel.png', line: 'The little tower, please.', jp: 'ミニエッフェル塔をください。', reactJP: 'エッフェル塔！', home: { slot: 'Bookshelf shelf', x: 103, y: 190, size: 82 }, memory: { event: 'france-memory', answer: 'I saw the Eiffel Tower.', answerJP: 'エッフェル塔を見たよ。' }, grandmaLine: 'Your little tower is beautiful.' },
-      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.png', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 603, y: 498, size: 132 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
+      { id: 'tower', label: 'Little Tower', icon: '🗼', file: 'souvenir_eiffel.png', line: 'The little tower, please.', jp: 'ミニエッフェル塔をください。', reactJP: 'エッフェル塔！', home: { slot: 'Bookshelf shelf', x: 132, y: 152, size: 76 }, memory: { event: 'france-memory', answer: 'I saw the Eiffel Tower.', answerJP: 'エッフェル塔を見たよ。' }, grandmaLine: 'Your little tower is beautiful.' },
+      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.png', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 829, y: 525, size: 100 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
     ],
   },
 
@@ -567,8 +567,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.png', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Bookshelf shelf', x: 845, y: 112, size: 68 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
-      { id: 'camel', label: 'Camel Toy', icon: '🐪', file: 'souvenir_camel.png', line: 'The camel toy, please.', jp: 'ラクダのおもちゃをください。', reactJP: 'ラクダ！', home: { slot: 'Bookshelf shelf', x: 178, y: 330, size: 100 }, memory: { event: 'egypt-memory', answer: 'I saw a camel.', answerJP: 'ラクダを見たよ。' }, grandmaLine: 'Your camel toy makes me smile.' },
+      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.png', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Bookshelf shelf', x: 870, y: 80, size: 64 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
+      { id: 'camel', label: 'Camel Toy', icon: '🐪', file: 'souvenir_camel.png', line: 'The camel toy, please.', jp: 'ラクダのおもちゃをください。', reactJP: 'ラクダ！', home: { slot: 'Bookshelf shelf', x: 132, y: 252, size: 96 }, memory: { event: 'egypt-memory', answer: 'I saw a camel.', answerJP: 'ラクダを見たよ。' }, grandmaLine: 'Your camel toy makes me smile.' },
     ],
   },
 ];
