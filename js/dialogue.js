@@ -15,6 +15,8 @@ VA.Dialogue = {
   _resolveTap: null, // pending "advance" resolver
   _lastLine: null,
   _lastProf: null,
+  _lastWho: null,
+  _lastVoiceKey: null,
 
   init() {
     const dlg = VA.$('#dialogue');
@@ -31,7 +33,7 @@ VA.Dialogue = {
     VA.$('#btn-say-again').addEventListener('click', e => {
       e.stopPropagation();
       VA.Audio.sfx('click');
-      if (this._lastLine) VA.Voice.speak(this._lastLine, this._lastProf);
+      if (this._lastLine) VA.Voice.speak(this._lastLine, this._lastProf, this._lastWho, this._lastVoiceKey);
     });
   },
 
@@ -70,7 +72,9 @@ VA.Dialogue = {
 
     this._lastLine = text;
     this._lastProf = c.voice;
-    VA.Voice.speak(text, c.voice);
+    this._lastWho = whoId;
+    this._lastVoiceKey = opts.voiceKey || '';
+    VA.Voice.speak(text, c.voice, whoId, opts.voiceKey || '');
 
     // typewriter reveal
     const txtEl = VA.$('#dlg-text');
@@ -118,7 +122,7 @@ VA.Dialogue = {
           wrap.querySelectorAll('button').forEach(x => x.disabled = true);
           b.style.borderColor = 'var(--leaf)';
           // the player "says" their chosen line out loud
-          VA.Voice.speak(it.text, VA.Data.CHARS.player.voice);
+          VA.Voice.speak(it.text, VA.Data.CHARS.player.voice, 'player', it.voiceKey || '');
           // Do not cut a longer player answer off with the next speaker. The
           // estimate is deliberately a little generous because browser voices
           // vary, and callers can still override it for a special beat.

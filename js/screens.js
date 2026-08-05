@@ -90,7 +90,7 @@ VA.UI = {
       if (picked !== answer) {
         await D.say('grandma', `Look at your ${gift.label.toLowerCase()}.`, { jp: 'プレゼントを見てごらん。' });
       }
-      await D.say('player', answer, { jp: gift.relatedGrammarJP || '' });
+      await D.say('player', answer, { jp: gift.relatedGrammarJP || '', voiceKey: answer === 'I saw the Eiffel Tower.' ? 'player-review-eiffel' : '' });
       await D.say('grandma', gift.grandmaDialogue, { jp: '旅行の思い出は大切ね。' });
     } finally {
       D.hide();
@@ -255,7 +255,7 @@ VA.UI = {
     const inner = VA.el('div');
     if (type === 'photo' && data) {
       inner.appendChild(VA.Art.polaroid(data, 240));
-      VA.Voice.speak(data.caption, VA.Data.CHARS.player.voice);
+      VA.Voice.speak(data.caption, VA.Data.CHARS.player.voice, 'player');
     } else if (type === 'stamp' && data) {
       const wrap = VA.el('div');
       wrap.style.cssText = 'background:#fff;padding:26px 34px;border-radius:18px;text-align:center;';

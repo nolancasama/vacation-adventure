@@ -296,11 +296,119 @@ VA.Audio = {
 };
 
 /* ============================================================
-   VA.Voice — text-to-speech placeholder for character voice acting.
-   Real voice files (assets/audio/voice/*.wav) can replace this later.
+   VA.Voice — browser speech with optional recorded character dialogue.
    ============================================================ */
 VA.Voice = {
   _voice: null,
+  _recording: null,
+
+  // The Grandma recordings arrived as timestamp-only files.  They are kept in
+  // the chronological dialogue order in which they were supplied.  Grandma
+  // deliberately has no TTS fallback: an unrecorded future line stays silent
+  // until a matching recording is added here.
+  _grandmaRecording(text, key = '') {
+    const exact = {
+      'Summer vacation is here!': 2,
+      'I have a present for you.': 3,
+      'Here is some money.': 4,
+      'Please go on a trip!': 5,
+      'And take many photos!': 6,
+      'Have fun!': 7,
+      'Do you want another trip?': 8,
+      'Did you have fun?': 10,
+      'Great!': 11,
+      'Where did you go?': 12,
+      'What did you eat?': 13,
+      'What did you see?': 14,
+      'What did you play?': 15,
+      'Hmm? Really?': 16,
+      'Look at your passport!': 17,
+      'Look at your photo!': 18,
+      'Wow! Australia!': 19,
+      'Wow! France!': 20,
+      'Wow! Egypt!': 21,
+      'Yum!': 22,
+      'Wow! Really?': 23,
+      'That sounds fun!': 24,
+      'Oh! A koala toy!': 25,
+      'Oh! A seashell!': 26,
+      'Oh! A little tower!': 27,
+      'Oh! A beret!': 28,
+      'Oh! A gold pyramid!': 29,
+      'Oh! A camel toy!': 30,
+      'Thank you!': 31,
+      'I love it!': 32,
+      'What a wonderful trip!': 33,
+      'Your scrapbook is full!': 34,
+      'You saw the world!': 35,
+      'You are a super traveler!': 36,
+      'Where next, I wonder?': 37,
+      'I like my little koala.': 38,
+      'This seashell makes me happy.': 39,
+      'Your little tower is beautiful.': 40,
+      'This beret reminds me of Paris.': 41,
+      // Files 41 and 42 are byte-for-byte duplicates; skip the extra copy.
+      'I like my little pyramid.': 43,
+      'Your camel toy makes me smile.': 44,
+    };
+    let number = exact[text];
+    if (!number && /^Good morning, .+!$/.test(text)) number = 1;
+    if (!number && /^Welcome home, .+!$/.test(text)) number = 9;
+    return number ? `assets/audio/voice/grandma/grandma-${String(number).padStart(2, '0')}.mp3` : null;
+  },
+
+  _playerRecording(text, key = '') {
+    const exact = {
+      'Thank you, Grandma!': 'anna-thank-you-grandma.mp3',
+      'Yay! A trip!': 'anna-yay-a-trip.mp3',
+      'Yes!': 'anna-yes.mp3',
+      'Yes, please!': 'anna-yes-please.mp3',
+      'Yes, I did!': 'anna-yes-i-did.mp3',
+      'Here you are.': 'anna-here-you-are.mp3',
+      'Thank you!': 'anna-thank-you.mp3',
+      'Yummy!': 'anna-yummy.mp3',
+      'Wow!': 'anna-wow.mp3',
+      'A kangaroo!': 'anna-a-kangaroo.mp3',
+      'OK!': 'anna-okay.mp3',
+      "Yes! Let's play!": 'anna-yes-let-s-play.mp3',
+      'So beautiful!': 'anna-so-beautiful.mp3',
+      'Yay!': 'anna-yay.mp3',
+      'So big!': 'anna-so-big.mp3',
+      'Hello, Coco!': 'anna-hello-coco.mp3',
+      'Grandma, this is for you!': 'anna-grandma-this-is-for-you.mp3',
+      'I went to Australia.': 'anna-i-went-to-australia.mp3',
+      'I went to France.': 'anna-i-went-to-france.mp3',
+      'I went to Egypt.': 'anna-i-went-to-egypt.mp3',
+      'I ate ice cream.': 'anna-i-ate-ice-cream.mp3',
+      'I ate a crepe.': 'anna-i-ate-a-crepe.mp3',
+      'I ate a kebab.': 'anna-i-ate-a-kebab.mp3',
+      'I saw a kangaroo.': 'anna-i-saw-a-kangaroo.mp3',
+      'I saw the Eiffel Tower.': 'anna-i-saw-the-eiffel-tower.mp3',
+      'I saw the pyramids.': 'anna-i-saw-the-pyramids.mp3',
+      'I played volleyball.': 'anna-i-played-volleyball.mp3',
+      'I played soccer.': 'anna-i-played-soccer.mp3',
+      'I played in the sand.': 'anna-i-played-in-the-sand.mp3',
+      'I saw a koala.': 'anna-i-saw-a-koala.mp3',
+      'I found a seashell.': 'anna-i-found-a-seashell.mp3',
+      'I bought a beret.': 'anna-i-bought-a-beret.mp3',
+      'I saw a pyramid.': 'anna-i-saw-a-pyramid.mp3',
+      'I saw a camel.': 'anna-i-saw-a-camel.mp3',
+      'I saw the moon.': 'anna-i-saw-the-moon.mp3',
+      'The koala, please.': 'anna-the-koala-please.mp3',
+      'The seashell, please.': 'anna-the-seashell-please.mp3',
+      'The little tower, please.': 'anna-the-little-tower-please.mp3',
+      'The beret, please.': 'anna-the-beret-please.mp3',
+      'The gold pyramid, please.': 'anna-the-gold-pyramid-please.mp3',
+      'The camel toy, please.': 'anna-the-camel-toy-please.mp3',
+      'Ice Cream': 'anna-ice-cream.mp3',
+      'Crepe': 'anna-crepe.mp3',
+      'Kebab': 'anna-kebab.mp3',
+    };
+    const file = key === 'player-review-eiffel'
+      ? 'anna-i-saw-the-eiffel-tower-2.mp3'
+      : exact[text];
+    return file ? `assets/audio/voice/player/${file}` : null;
+  },
 
   get on() { return VA.State.data ? VA.State.data.settings.voice : true; },
 
@@ -317,9 +425,28 @@ VA.Voice = {
     speechSynthesis.addEventListener('voiceschanged', pickVoice);
   },
 
-  speak(text, prof = {}) {
-    if (!this.on || !window.speechSynthesis || !text) return;
+  speak(text, prof = {}, whoId = '', voiceKey = '') {
+    if (!this.on || !text) return;
+    const recording = whoId === 'grandma' ? this._grandmaRecording(text, voiceKey)
+      : whoId === 'player' ? this._playerRecording(text, voiceKey) : null;
+    if (recording) {
+      this.stop();
+      const clip = new Audio(recording);
+      clip.volume = 0.95;
+      clip.addEventListener('ended', () => { if (this._recording === clip) this._recording = null; }, { once: true });
+      this._recording = clip;
+      clip.play().catch(() => {});
+      return;
+    }
+    // Grandma and the Player use recordings only, so browser speech can never
+    // reappear for a line that does not yet have an associated file.
+    if (whoId === 'grandma' || whoId === 'player' || !window.speechSynthesis) return;
     try {
+      if (this._recording) {
+        this._recording.pause();
+        this._recording.currentTime = 0;
+        this._recording = null;
+      }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[✈🪙📷]/g, ''));
       if (this._voice) u.voice = this._voice;
@@ -332,6 +459,11 @@ VA.Voice = {
   },
 
   stop() {
+    if (this._recording) {
+      this._recording.pause();
+      this._recording.currentTime = 0;
+      this._recording = null;
+    }
     try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
   },
 };

@@ -55,22 +55,32 @@ VA.Main = {
     const scr = VA.$('#scr-title');
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
-    // The title screen has the real artwork as its CSS background from the
-    // first paint.  Do not cover it with the procedural fallback while the
-    // image layer finishes decoding.
-    VA.Art.layer(art, { painter: 'title', file: 'background_title.png?v=20260802', fallback: false });
+    // The long painted sky repeats inside one moving strip.  Its duplicate makes
+    // the slow horizontal drift loop without a visible reset.
+    const cloudTrack = VA.el('div', 'title-cloud-track');
+    const cloudPath = 'assets/backgrounds/intro_cloud_long.png?v=20260805';
+    cloudTrack.dataset.assetPath = cloudPath;
+    for (let i = 0; i < 2; i++) {
+      const cloud = document.createElement('img');
+      cloud.src = cloudPath;
+      cloud.alt = '';
+      cloud.setAttribute('aria-hidden', 'true');
+      cloudTrack.appendChild(cloud);
+    }
+    art.appendChild(cloudTrack);
 
-    // This layer sits above the global clouds and birds but below title controls.
+    // The transparent palm-and-beach painting is the foreground, above the
+    // moving sky but below the title controls.
     const foreground = VA.$('#title-foreground');
     foreground.innerHTML = '';
-    VA.Art.layer(foreground, { file: 'foreground_title.png?v=20260803', chip: false, fallback: false });
+    VA.Art.layer(foreground, { file: 'intro_paradise_1.png?v=20260805', chip: false, fallback: false });
 
     scr.classList.add('active');
     VA.Screens.current = 'title';
+    // Keep the painted sky as the only cloud layer; a few distant birds add
+    // life without crossing in front of the beach artwork.
     VA.Ambient.set([
-      { type: 'clouds', band: [0.06, 0.3], n: 5 },
       { type: 'birds', band: [0.1, 0.35], every: [4, 9] },
-      { type: 'shimmer', rect: [0, 0.73, 1, 0.12], n: 18 },
     ]);
 
     const hasSave = VA.State.hasSave();

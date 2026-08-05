@@ -49,11 +49,32 @@ body {
 .scene-art { position:absolute; inset:0; overflow:hidden; }
 /* idle scene drift removed per user preference — backgrounds stay still */
 
-/* On the title screen the painted beach border is a true foreground: ambient
-   clouds and birds travel behind it, while the buttons remain readable above. */
+/* The title is composed from a scrolling painted sky and a transparent beach
+   foreground.  Keeping the sky in its own track lets it loop independently. */
 #scr-title .scene-art {
   z-index:0;
-  background:#d9edf2;
+  background:#80cbe2;
+}
+.title-cloud-track {
+  position:absolute;
+  top:0;
+  left:0;
+  height:100%;
+  display:flex;
+  width:max-content;
+  will-change:transform;
+  animation:title-cloud-drift 440s linear infinite;
+}
+.title-cloud-track img {
+  display:block;
+  height:100%;
+  width:auto;
+  max-width:none;
+  flex:0 0 auto;
+}
+@keyframes title-cloud-drift { to { transform:translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .title-cloud-track { animation:none; }
 }
 #title-foreground { position:absolute; inset:0; z-index:21; pointer-events:none; }
 #scr-title .title-card { z-index:22; }

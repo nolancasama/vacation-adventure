@@ -324,7 +324,7 @@ VA.Cine = {
       particles.appendChild(particle);
     }
     VA.Audio.sfx('obtain');
-    VA.Voice.speak(cfg.pronunciation || cfg.word || '', VA.Data.CHARS.player.voice);
+    VA.Voice.speak(cfg.pronunciation || cfg.word || '', VA.Data.CHARS.player.voice, 'player');
 
     await new Promise(resolve => {
       let closed = false;
@@ -595,7 +595,7 @@ VA.Cine = {
       '📷 ' + evt.caption + (VA.State.data.settings.jp && evt.captionJP ? `<span class="jp-inline">${evt.captionJP}</span>` : '');
     toast.style.display = 'flex';
     VA.Audio.sfx('chime');
-    VA.Voice.speak(evt.caption, VA.Data.CHARS.player.voice);
+    VA.Voice.speak(evt.caption, VA.Data.CHARS.player.voice, 'player');
     await VA.wait(2600);
     toast.style.display = 'none';
 
