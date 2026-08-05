@@ -16,8 +16,11 @@ VA.Main = {
     VA.Voice.init();
 
     VA.$('#stage').classList.toggle('no-labels', !VA.State.data.settings.labels);
+    // Ctrl+Shift+D is Chrome/Edge's own "bookmark all tabs" shortcut — the
+    // browser swallows it before page JS ever sees the keydown, so it can
+    // never be overridden. Ctrl+Alt+D isn't claimed by any mainstream browser.
     window.addEventListener('keydown', e => {
-      if (e.ctrlKey && e.shiftKey && e.code === 'KeyD') {
+      if (e.ctrlKey && e.altKey && e.code === 'KeyD') {
         e.preventDefault();
         VA.toggleDevLabels();
         VA.Audio.sfx('click');

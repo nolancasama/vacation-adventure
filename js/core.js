@@ -33,7 +33,7 @@ VA.applyPlayerLook = lookId => {
   Object.assign(VA.Data.CHARS.player, look);
 };
 /* Dev mode: asset-filename chips + the full home-souvenir preview (see
-   VA.State.allHomeSouvenirsPreview). Toggled from Settings or Ctrl+Shift+D. */
+   VA.State.allHomeSouvenirsPreview). Toggled from Settings or Ctrl+Alt+D. */
 VA.toggleDevLabels = force => {
   const s = VA.State.data.settings;
   s.labels = force != null ? force : !s.labels;
