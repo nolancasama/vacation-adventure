@@ -109,14 +109,14 @@ body {
 #home-souvenirs { position:absolute; inset:0; z-index:1; pointer-events:none; }
 .home-souvenir {
   position:absolute; width:var(--gift-size); height:var(--gift-size);
-  transform:translate(-50%,-50%); border:0; padding:0; background:transparent;
+  transform:translate(-50%,-50%) rotate(var(--gift-rot, 0deg)); border:0; padding:0; background:transparent;
   cursor:pointer; pointer-events:auto; filter:drop-shadow(0 3px 2px rgba(50,30,15,.26));
   transition:transform .16s ease, filter .16s ease;
 }
 .home-souvenir img { display:block; width:100%; height:100%; object-fit:contain; }
 .home-souvenir-fallback { display:block; font-size:calc(var(--gift-size) * .82); line-height:1; }
 .home-souvenir:hover, .home-souvenir:focus-visible {
-  transform:translate(-50%,-55%) scale(1.14);
+  transform:translate(-50%,-55%) scale(1.14) rotate(var(--gift-rot, 0deg));
   filter:drop-shadow(0 5px 4px rgba(50,30,15,.35)); outline:none;
 }
 .home-souvenir:focus-visible { box-shadow:0 0 0 3px rgba(255,255,255,.9); border-radius:12px; }

@@ -55,6 +55,7 @@ VA.UI = {
       item.style.left = gift.displayPosition.x + 'px';
       item.style.top = gift.displayPosition.y + 'px';
       item.style.setProperty('--gift-size', gift.displayPosition.size + 'px');
+      item.style.setProperty('--gift-rot', (gift.displayPosition.rot || 0) + 'deg');
       item.title = `${gift.label} — tap to remember ${gift.destinationName}`;
       item.setAttribute('aria-label', `${gift.label} from ${gift.destinationName}. Review this memory.`);
 

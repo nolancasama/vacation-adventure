@@ -149,7 +149,7 @@ VA.State = {
       icon: source.icon,
       file: source.file,
       displayLocation: home.slot,
-      displayPosition: { x: home.x, y: home.y, size: home.size },
+      displayPosition: { x: home.x, y: home.y, size: home.size, rot: home.rot || 0 },
       unlocked: true,
       relatedMemoryEvent: source.memory && source.memory.event,
       relatedGrammarAnswer: source.memory && source.memory.answer,
