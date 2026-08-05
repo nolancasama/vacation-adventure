@@ -286,7 +286,7 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.png', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Floor by cabinet', x: 150, y: 510, w: 150, h: 62 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
+      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.png', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Floor by cabinet', x: 150, y: 510, w: 150, h: 62, scale: 2 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
       { id: 'shell', label: 'Seashell', icon: '🐚', file: 'souvenir_shell.png', line: 'The seashell, please.', jp: '貝がらをください。', reactJP: '貝がら！', home: { slot: 'Right bookshelf middle', x: 870, y: 180, w: 126, h: 76 }, memory: { event: 'australia-memory', answer: 'I found a seashell.', answerJP: '貝がらを見つけたよ。' }, grandmaLine: 'This seashell makes me happy.' },
     ],
   },

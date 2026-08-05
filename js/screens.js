@@ -57,6 +57,7 @@ VA.UI = {
       item.style.top = placement.y + 'px';
       item.style.setProperty('--gift-w', placement.w + 'px');
       item.style.setProperty('--gift-h', placement.h + 'px');
+      item.style.setProperty('--gift-scale', placement.scale);
       item.style.setProperty('--gift-rot', placement.rot + 'deg');
       item.title = `${gift.label} — tap to remember ${gift.destinationName}`;
       item.setAttribute('aria-label', `${gift.label} from ${gift.destinationName}. Review this memory.`);
@@ -161,6 +162,7 @@ VA.UI = {
     const scr = VA.$('#scr-travel');
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
+    art.classList.toggle('travel-homeward', homeward);
     VA.Art.layer(art, { painter: 'travelSky', file: 'background_travel_sky.png' });
     VA.$('#travel-loading').hidden = true;
 
