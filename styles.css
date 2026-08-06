@@ -800,6 +800,27 @@ body {
 @keyframes itemRewardHalo { 0%{opacity:0; transform:scale(.72)} 28%{opacity:1; transform:scale(1.05)} 100%{opacity:.7; transform:scale(1)} }
 @keyframes itemRewardSpark { 0%{opacity:0; transform:translate(0,0) scale(.3)} 24%{opacity:1} 100%{opacity:0; transform:translate(var(--x),var(--y)) scale(1.05)} }
 
+/* A quick comic-panel reaction: a hard cut in, a tiny camera-like punch, and
+   a short fade away before the next spoken line. */
+#kebab-feast-reaction {
+  position:absolute; inset:0; z-index:101; overflow:hidden; pointer-events:auto;
+  background:#18080a; opacity:0; transition:opacity .07s linear;
+}
+#kebab-feast-reaction[hidden] { display:none; }
+#kebab-feast-reaction.is-visible { opacity:1; }
+#kebab-feast-reaction.is-leaving { opacity:0; transition:opacity .16s ease-in; }
+#kebab-feast-reaction-art {
+  display:block; width:100%; height:100%; object-fit:cover; object-position:50% 43%;
+  filter:saturate(1.12) contrast(1.06);
+}
+#kebab-feast-reaction.is-visible #kebab-feast-reaction-art { animation:kebabFeastSmash 1s cubic-bezier(.14,.8,.22,1) both; }
+@keyframes kebabFeastSmash {
+  0% { opacity:0; transform:scale(1.22) rotate(-1deg); }
+  8% { opacity:1; transform:scale(1.03) rotate(.35deg); }
+  20% { transform:scale(1.07) rotate(-.15deg); }
+  100% { opacity:1; transform:scale(1.02); }
+}
+
 .fly-polaroid { position:absolute; z-index:76; transition: all .8s cubic-bezier(.5,-.2,.4,1); }
 
 .stamp-slam { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); animation:stampslam .5s cubic-bezier(.3,1.6,.5,1) backwards; }

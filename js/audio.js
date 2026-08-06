@@ -122,6 +122,13 @@ VA.Audio = {
     bounce() { this._tone({ f0: 340, f1: 150, dur: 0.13, gain: 0.35 }); },
     kick()   { this._tone({ f0: 260, f1: 110, dur: 0.1, gain: 0.4 }); this._noise({ dur: 0.06, freq: 1500, gain: 0.2 }); },
     bite()   { this._noise({ dur: 0.08, freq: 2400, gain: 0.4 }); this._noise({ dur: 0.07, freq: 1600, gain: 0.3, at: 0.1 }); },
+    // A brief, playful burst for the exaggerated kebab-feast cutaway: crunchy
+    // bites plus a tiny comic sting, rather than a loud real-world effect.
+    feast()  { [0, .12, .24, .36].forEach((at, i) => {
+                 this._noise({ dur: .075, freq: 1900 - i * 130, gain: .38, at, type: 'bandpass', q: .9 });
+                 this._tone({ f0: 150 + i * 18, f1: 105 + i * 12, dur: .11, type: 'square', gain: .12, at: at + .02 });
+               });
+               this._tone({ f0: 420, f1: 680, dur: .2, type: 'triangle', gain: .16, at: .47 }); },
     sizzle() { this._noise({ dur: 0.9, freq: 5200, gain: 0.18, type: 'highpass' }); },
     stamp()  { this._tone({ f0: 150, f1: 60, dur: 0.18, gain: 0.6 }); this._noise({ dur: 0.09, freq: 700, gain: 0.3 }); },
     page()   { this._noise({ dur: 0.25, freq: 2600, gain: 0.2, type: 'bandpass', q: 0.6 }); },

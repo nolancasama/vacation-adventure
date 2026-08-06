@@ -486,6 +486,7 @@ VA.Data.DESTS = [
           { say: ['eg_vendor', 'Here you are.', 'はい、どうぞ。'] },
           { auto: ['player', 'Thank you!', 'ありがとう！'] },
           { reward: { itemId: 'keb', illustration: 'kebab.png', word: 'Kebab' } },
+          { reaction: { kind: 'kebab-feast', duration: 1000 } },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Yummy!', 'おいしい！'] },
           { photo: true },
