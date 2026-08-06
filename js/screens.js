@@ -375,7 +375,13 @@ VA.UI = {
     const idCard = VA.el('div', 'passport-id');
     idCard.innerHTML = `<div class="pp-title">✈ PASSPORT ✈</div>`;
     const face = VA.el('div', 'pp-face');
-    face.innerHTML = VA.Art.charSVG(VA.Data.CHARS.player, 'happy', 84);
+    // Use the chosen player's real portrait art rather than the old generated
+    // placeholder face. The passport crop is deliberately head-and-shoulders.
+    const portrait = document.createElement('img');
+    portrait.className = 'pp-face-photo';
+    portrait.src = 'assets/characters/' + VA.Data.CHARS.player.file;
+    portrait.alt = 'Passport photo of ' + (VA.State.data.name || 'the player');
+    face.appendChild(portrait);
     idCard.appendChild(face);
     idCard.appendChild(VA.el('div', 'pp-name', VA.State.data.name || '—'));
     idCard.appendChild(VA.el('div', '', `<small style="opacity:.75">Trips: ${VA.State.data.tripCount}</small>`));

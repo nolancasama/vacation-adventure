@@ -30,7 +30,10 @@ VA.Main = {
     // audio can only start after a user gesture
     const kick = () => {
       VA.Audio.init();
-      if (VA.Screens.current === 'title') VA.Audio.music('theme_title');
+      if (VA.Screens.current === 'title') {
+        VA.Audio.music('theme_title');
+        VA.Audio.ambient(['waves']);
+      }
     };
     window.addEventListener('pointerdown', kick, { once: true });
 

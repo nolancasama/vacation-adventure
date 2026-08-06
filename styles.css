@@ -72,7 +72,7 @@ body {
   max-width:none;
   flex:0 0 auto;
 }
-@keyframes title-cloud-drift { to { transform:translateX(-50%); } }
+@keyframes title-cloud-drift { from { transform:translateX(-50%); } to { transform:translateX(0); } }
 @media (prefers-reduced-motion: reduce) {
   .title-cloud-track { animation:none; }
 }
@@ -699,7 +699,8 @@ body {
   padding:18px 22px; width:220px; text-align:center;
 }
 .passport-id .pp-title { font-size:13px; letter-spacing:3px; opacity:.85; }
-.passport-id .pp-face { margin:12px auto; width:92px; height:92px; border-radius:12px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; }
+.passport-id .pp-face { position:relative; margin:12px auto; width:92px; height:92px; border-radius:12px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.passport-id .pp-face-photo { position:absolute; top:-4%; left:50%; width:156px; max-width:none; transform:translateX(-50%); filter:drop-shadow(0 3px 3px rgba(12,22,42,.32)); }
 .passport-id .pp-name { font-size:23px; font-weight:bold; }
 .passport-stamps { flex:1; display:flex; gap:14px; align-items:center; flex-wrap:wrap; min-width:300px; }
 .stamp {

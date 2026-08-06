@@ -400,6 +400,12 @@ VA.Voice = {
       'The beret, please.': 'anna-the-beret-please.mp3',
       'The gold pyramid, please.': 'anna-the-gold-pyramid-please.mp3',
       'The camel toy, please.': 'anna-the-camel-toy-please.mp3',
+      'Koala Toy': 'anna-koala-toy.mp3',
+      'Seashell': 'anna-seashell.mp3',
+      'Little Tower': 'anna-little-tower.mp3',
+      'Beret': 'anna-beret.mp3',
+      'Gold Pyramid': 'anna-gold-pyramid.mp3',
+      'Camel Toy': 'anna-camel-toy.mp3',
       'Ice Cream': 'anna-ice-cream.mp3',
       'Crepe': 'anna-crepe.mp3',
       'Kebab': 'anna-kebab.mp3',
@@ -408,6 +414,82 @@ VA.Voice = {
       ? 'anna-i-saw-the-eiffel-tower-2.mp3'
       : exact[text];
     return file ? `assets/audio/voice/player/${file}` : null;
+  },
+
+  _officerRecording(text) {
+    const files = {
+      'Hello!': 'officer-hello.mp3',
+      'Passport, please.': 'officer-passport-please.mp3',
+      'Welcome to Australia!': 'officer-welcome-australia.mp3',
+      'Welcome to France!': 'officer-welcome-france.mp3',
+      'Welcome to Egypt!': 'officer-welcome-egypt.mp3',
+    };
+    return files[text] ? `assets/audio/voice/officer/${files[text]}` : null;
+  },
+
+  _iceCreamManRecording(text) {
+    const files = {
+      'Hello!': 'icecream-man-hello.mp3',
+      'One ice cream?': 'icecream-man-one-ice-cream.mp3',
+      'Here you are.': 'icecream-man-here-you-are.mp3',
+      'Wait! One moment!': 'icecream-man-wait-one-moment.mp3',
+      'A gift for Grandma?': 'icecream-man-gift-for-grandma.mp3',
+      'Goodbye!': 'icecream-man-goodbye.mp3',
+    };
+    return files[text] ? `assets/audio/voice/icecream-man/${files[text]}` : null;
+  },
+
+  _rangerRecording(text) {
+    const files = {
+      'Hello! Welcome!': 'ranger-hello-welcome.mp3',
+      'Ticket, please.': 'ranger-ticket-please.mp3',
+      'Thank you!': 'ranger-thank-you.mp3',
+      'Look over there!': 'ranger-look-over-there.mp3',
+      'It jumps very high!': 'ranger-jumps-high.mp3',
+    };
+    return files[text] ? `assets/audio/voice/ranger/${files[text]}` : null;
+  },
+
+  _beachKidRecording(text) {
+    const files = {
+      'Hi!': 'beach-kid-hi.mp3',
+      "Let's play!": 'beach-kid-lets-play.mp3',
+      'You are good!': 'beach-kid-you-are-good.mp3',
+    };
+    return files[text] ? `assets/audio/voice/beach-kid/${files[text]}` : null;
+  },
+
+  _crepeChefRecording(text) {
+    const files = {
+      'Bonjour!': 'crepe-chef-bonjour.mp3',
+      'It means "hello"!': 'crepe-chef-means-hello.mp3',
+      'One crepe?': 'crepe-chef-one-crepe.mp3',
+      'Here you are.': 'crepe-chef-here-you-are.mp3',
+      'Wait! One moment!': 'crepe-chef-wait-one-moment.mp3',
+      'A gift for Grandma?': 'crepe-chef-gift-for-grandma.mp3',
+      'Goodbye!': 'crepe-chef-goodbye.mp3',
+    };
+    return files[text] ? `assets/audio/voice/crepe-chef/${files[text]}` : null;
+  },
+
+  _marieRecording(text) {
+    const files = {
+      'Good evening!': 'marie-good-evening.mp3',
+      'Ticket, please.': 'marie-ticket-please.mp3',
+      'Thank you!': 'marie-thank-you.mp3',
+      'Look up!': 'marie-look-up.mp3',
+      'It sparkles at night!': 'marie-sparkles-at-night.mp3',
+    };
+    return files[text] ? `assets/audio/voice/marie/${files[text]}` : null;
+  },
+
+  _louisRecording(text) {
+    const files = {
+      'Bonjour!': 'louis-bonjour.mp3',
+      "Let's play soccer!": 'louis-lets-play-soccer.mp3',
+      'Goal! Great!': 'louis-goal-great.mp3',
+    };
+    return files[text] ? `assets/audio/voice/louis/${files[text]}` : null;
   },
 
   get on() { return VA.State.data ? VA.State.data.settings.voice : true; },
@@ -428,7 +510,14 @@ VA.Voice = {
   speak(text, prof = {}, whoId = '', voiceKey = '') {
     if (!this.on || !text) return;
     const recording = whoId === 'grandma' ? this._grandmaRecording(text, voiceKey)
-      : whoId === 'player' ? this._playerRecording(text, voiceKey) : null;
+      : whoId === 'player' ? this._playerRecording(text, voiceKey)
+      : whoId === 'officer' ? this._officerRecording(text)
+      : whoId === 'au_vendor' ? this._iceCreamManRecording(text)
+      : whoId === 'au_ranger' ? this._rangerRecording(text)
+      : whoId === 'au_kid' ? this._beachKidRecording(text)
+      : whoId === 'fr_vendor' ? this._crepeChefRecording(text)
+      : whoId === 'fr_guide' ? this._marieRecording(text)
+      : whoId === 'fr_kid' ? this._louisRecording(text) : null;
     if (recording) {
       this.stop();
       const clip = new Audio(recording);
@@ -438,9 +527,8 @@ VA.Voice = {
       clip.play().catch(() => {});
       return;
     }
-    // Grandma and the Player use recordings only, so browser speech can never
-    // reappear for a line that does not yet have an associated file.
-    if (whoId === 'grandma' || whoId === 'player' || !window.speechSynthesis) return;
+    // Characters with recorded voice packs never fall back to browser speech.
+    if (whoId === 'grandma' || whoId === 'player' || whoId === 'officer' || whoId === 'au_vendor' || whoId === 'au_ranger' || whoId === 'au_kid' || whoId === 'fr_vendor' || whoId === 'fr_guide' || whoId === 'fr_kid' || !window.speechSynthesis) return;
     try {
       if (this._recording) {
         this._recording.pause();

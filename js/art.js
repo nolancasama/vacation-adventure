@@ -685,11 +685,6 @@ VA.Art = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(photo.caption, wPx / 2, py + ph + (hPx - py - ph) * 0.42);
 
-    // asset filename chip
-    ctx.fillStyle = 'rgba(74,55,40,.45)';
-    ctx.font = (wPx * 0.043) + 'px Consolas, monospace';
-    ctx.fillText('🖼 ' + photo.file, wPx / 2, hPx - 10);
-
     // washi tape
     ctx.fillStyle = 'rgba(126,200,227,.8)';
     ctx.save();
