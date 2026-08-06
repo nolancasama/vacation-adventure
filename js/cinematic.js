@@ -21,7 +21,7 @@
      {sfx:'bite'}            play a sound effect
      {coins:-3}              spend coins (with animation)
       {caption:'GOAL!'}       big cheer text
-      {reaction:{kind:'kebab-feast'}} quick full-screen story reaction
+      {reaction:{kind:'food-feast'}} quick full-screen story reaction
       {game:{n:3,label:'TAP!',propId:'ball',anim:'volley',fromId:'player',toId:'au_kid',sfx:'bounce'}}
      {photo:true}            flash → polaroid saved → flies to album
    ============================================================ */
@@ -123,9 +123,9 @@ VA.Cine = {
       ctx.props[pr.id] = el;
     });
     this.ctx = ctx;
-    // This image is shown later in the kebab scene, but warm it while the
+    // These images are shown later in food scenes, but warm them while the
     // player is talking so its smash-cut never waits for a download/decode.
-    if ((evt.steps || []).some(step => step.reaction && step.reaction.kind === 'kebab-feast')) {
+    if ((evt.steps || []).some(step => step.reaction && step.reaction.kind === 'food-feast')) {
       VA.Art.preload([
         'assets/objects/kebab_reaction_boy.png',
         'assets/objects/kebab_reaction_girl.png',
@@ -356,17 +356,17 @@ VA.Cine = {
     if (screen) screen.classList.remove('item-reward-active', 'item-reward-paused');
   },
 
-  /* A one-second comic cutaway after receiving the kebab. It deliberately
-     occupies the whole stage, then clears before the existing "Yummy!" line. */
+  /* A one-second comic cutaway after receiving food. It deliberately occupies
+     the whole stage, then clears before the existing "Yummy!" line. */
   async showReaction(cfg = {}) {
-    if (cfg.kind !== 'kebab-feast') return;
-    const overlay = VA.$('#kebab-feast-reaction');
-    const art = VA.$('#kebab-feast-reaction-art');
+    if (cfg.kind !== 'food-feast') return;
+    const overlay = VA.$('#food-feast-reaction');
+    const art = VA.$('#food-feast-reaction-art');
     if (!overlay || !art) return;
 
     const isGirl = VA.State.data && VA.State.data.playerLook === 'girl';
     art.src = 'assets/objects/kebab_reaction_' + (isGirl ? 'girl' : 'boy') + '.png';
-    art.alt = 'A joyful kebab feast';
+    art.alt = 'A joyful food feast';
     overlay.hidden = false;
     overlay.classList.remove('is-visible', 'is-leaving');
     void overlay.offsetWidth; // restart the smash-cut animation on repeat visits
