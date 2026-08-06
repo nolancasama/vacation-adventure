@@ -492,6 +492,39 @@ VA.Voice = {
     return files[text] ? `assets/audio/voice/louis/${files[text]}` : null;
   },
 
+  _kebabManRecording(text) {
+    const files = {
+      'Hello, hello!': 'kebab-man-hello.mp3',
+      'Try this kebab!': 'kebab-man-try-this-kebab.mp3',
+      'Here you are.': 'kebab-man-here-you-are.mp3',
+      'Wait! One moment!': 'kebab-man-wait-one-moment.mp3',
+      'A gift for Grandma?': 'kebab-man-gift-for-grandma.mp3',
+      'Goodbye!': 'kebab-man-goodbye.mp3',
+    };
+    return files[text] ? `assets/audio/voice/kebab-man/${files[text]}` : null;
+  },
+
+  _amiraRecording(text) {
+    const files = {
+      'Hello! Welcome!': 'amira-hello-welcome.mp3',
+      'Ticket, please.': 'amira-ticket-please.mp3',
+      'Thank you!': 'amira-thank-you.mp3',
+      'Look! The pyramids!': 'amira-look-pyramids.mp3',
+      'It is 4,500 years old!': 'amira-pyramids-age.mp3',
+      'This is my camel, Coco!': 'amira-camel-coco.mp3',
+    };
+    return files[text] ? `assets/audio/voice/amira/${files[text]}` : null;
+  },
+
+  _omarRecording(text) {
+    const files = {
+      'Hi!': 'omar-hi.mp3',
+      "Let's make a sand pyramid!": 'omar-sand-pyramid.mp3',
+      'A great pyramid!': 'omar-great-pyramid.mp3',
+    };
+    return files[text] ? `assets/audio/voice/omar/${files[text]}` : null;
+  },
+
   get on() { return VA.State.data ? VA.State.data.settings.voice : true; },
 
   init() {
@@ -517,7 +550,10 @@ VA.Voice = {
       : whoId === 'au_kid' ? this._beachKidRecording(text)
       : whoId === 'fr_vendor' ? this._crepeChefRecording(text)
       : whoId === 'fr_guide' ? this._marieRecording(text)
-      : whoId === 'fr_kid' ? this._louisRecording(text) : null;
+      : whoId === 'fr_kid' ? this._louisRecording(text)
+      : whoId === 'eg_vendor' ? this._kebabManRecording(text)
+      : whoId === 'eg_guide' ? this._amiraRecording(text)
+      : whoId === 'eg_kid' ? this._omarRecording(text) : null;
     if (recording) {
       this.stop();
       const clip = new Audio(recording);
@@ -528,7 +564,7 @@ VA.Voice = {
       return;
     }
     // Characters with recorded voice packs never fall back to browser speech.
-    if (whoId === 'grandma' || whoId === 'player' || whoId === 'officer' || whoId === 'au_vendor' || whoId === 'au_ranger' || whoId === 'au_kid' || whoId === 'fr_vendor' || whoId === 'fr_guide' || whoId === 'fr_kid' || !window.speechSynthesis) return;
+    if (whoId === 'grandma' || whoId === 'player' || whoId === 'officer' || whoId === 'au_vendor' || whoId === 'au_ranger' || whoId === 'au_kid' || whoId === 'fr_vendor' || whoId === 'fr_guide' || whoId === 'fr_kid' || whoId === 'eg_vendor' || whoId === 'eg_guide' || whoId === 'eg_kid' || !window.speechSynthesis) return;
     try {
       if (this._recording) {
         this._recording.pause();

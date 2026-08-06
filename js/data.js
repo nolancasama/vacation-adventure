@@ -108,7 +108,7 @@ VA.Data.CHARS = {
     footPad: 2.4, shadowWidth: 78.2, shadowCenterX: 48.7,
   },
   eg_kid: {
-    name: 'Layla', file: 'kids_egypt.png', color: '#3fa9a0',
+    name: 'Omar', file: 'kids_egypt.png', color: '#3fa9a0',
     colors: { skin: '#e0ab77', hair: '#1e1e1e', top: '#3fa9a0', bottom: '#e8d3a8' },
     hairStyle: 'long',
     voice: { rate: 1.0, pitch: 1.45 },
