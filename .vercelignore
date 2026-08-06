@@ -1,0 +1,7 @@
+# Dev-only files — not part of the playable game
+debug.log
+test-e2e.js
+.shots/
+.github/
+ASSETS.md
+DESIGN.md
