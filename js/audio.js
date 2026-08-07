@@ -565,7 +565,32 @@ VA.Voice = {
       this.stop();
       const clip = new Audio(recording);
       clip.volume = 0.95;
-      clip.addEventListener('ended', () => { if (this._recording === clip) this._recording = null; }, { once: true });
+      // Some recorded packs need a small, character-specific lift.  An HTML
+      // audio element itself cannot exceed volume 1, so route only those clips
+      // through a Web Audio gain node; all other voices keep their original mix.
+      // Two Kebab Man clips arrived quieter than the rest of his pack.  Keep
+      // this lift line-specific so his other recordings retain their mix.
+      const lineGain = whoId === 'eg_vendor' && (
+        text === 'Wait! One moment!' || text === 'A gift for Grandma?'
+      ) ? 1.45 : 1;
+      const recordingGain = Math.max(1, Math.min(2, Number(prof.recordingGain) || 1, lineGain));
+      if (recordingGain > 1 && VA.Audio && VA.Audio.ctx) {
+        try {
+          const source = VA.Audio.ctx.createMediaElementSource(clip);
+          const gain = VA.Audio.ctx.createGain();
+          gain.gain.value = recordingGain;
+          source.connect(gain);
+          gain.connect(VA.Audio.ctx.destination);
+          clip._voiceGainNodes = [source, gain];
+        } catch (e) {
+          // If a browser refuses the media-element route, keep the normal
+          // playback path rather than silencing the recording.
+        }
+      }
+      clip.addEventListener('ended', () => {
+        (clip._voiceGainNodes || []).forEach(node => { try { node.disconnect(); } catch (e) {} });
+        if (this._recording === clip) this._recording = null;
+      }, { once: true });
       this._recording = clip;
       clip.play().catch(() => {});
       return;
@@ -593,6 +618,7 @@ VA.Voice = {
     if (this._recording) {
       this._recording.pause();
       this._recording.currentTime = 0;
+      (this._recording._voiceGainNodes || []).forEach(node => { try { node.disconnect(); } catch (e) {} });
       this._recording = null;
     }
     try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {}

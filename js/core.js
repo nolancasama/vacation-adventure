@@ -480,7 +480,9 @@ VA.Fx = {
 VA.Stage = {
   fit() {
     const stage = VA.$('#stage');
-    const s = Math.min(window.innerWidth / (VA.W + 24), window.innerHeight / (VA.H + 24));
+    // Fill the available viewport. The former 12px safety margin exposed the
+    // dark page background as two distracting vertical strips beside the intro.
+    const s = Math.min(window.innerWidth / VA.W, window.innerHeight / VA.H);
     stage.style.transform = 'scale(' + Math.min(s, 1.6) + ')';
   },
   init() {

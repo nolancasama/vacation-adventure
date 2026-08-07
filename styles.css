@@ -633,7 +633,7 @@ body {
 
 /* debrief side page */
 #debrief-page {
-  position:absolute; right:16px; top:64px; width:206px; display:none;
+  position:absolute; right:16px; top:64px; z-index:50; width:206px; display:none;
   background:var(--paper); border-radius:16px; box-shadow:var(--shadow);
   padding:12px 10px; text-align:center; transform:rotate(1.6deg);
 }

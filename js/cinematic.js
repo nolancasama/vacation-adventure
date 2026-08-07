@@ -12,7 +12,7 @@
      {towerPan:{from,to,dur}} pan a tall background from its base to its top
      {wait:ms}               hold the moment
      {say:['vendor','One ice cream?','アイスはいかが？']}   tap to continue
-     {auto:['player','Yummy!','おいしい！']}                auto-advances
+     {auto:['player','Yummy!','おいしい！',2200]}           auto-advances (optional hold ms)
      {choice:{items:[...]}}  player speaks by choosing a line
      {mood:['player','wow']} change a face
      {move:{id,x,y,dur}}     walk/slide an actor
@@ -186,7 +186,7 @@ VA.Cine = {
       if (st.towerPan){ await this.towerPan(st.towerPan); continue; }
       if (st.wait)    { await VA.wait(st.wait); continue; }
       if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3] }); continue; }
-      if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2] }); continue; }
+      if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2], dur: st.auto[3] }); continue; }
       if (st.choice)  { ctx.choice = await VA.Dialogue.choice(st.choice.items, st.choice); continue; }
       if (st.mood)    { const el = ctx.actors[st.mood[0]]; if (el) VA.Art.setMood(el, st.mood[1]); continue; }
       if (st.sfx)     { VA.Audio.sfx(st.sfx); continue; }

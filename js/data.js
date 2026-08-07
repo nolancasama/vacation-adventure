@@ -111,7 +111,9 @@ VA.Data.CHARS = {
     name: 'Omar', file: 'kids_egypt.png', color: '#3fa9a0',
     colors: { skin: '#e0ab77', hair: '#1e1e1e', top: '#3fa9a0', bottom: '#e8d3a8' },
     hairStyle: 'long',
-    voice: { rate: 1.0, pitch: 1.45 },
+    // Omar's recorded clips were mastered noticeably quieter than the other
+    // character packs, so raise only this character during playback.
+    voice: { rate: 1.0, pitch: 1.45, recordingGain: 1.45 },
     footPad: 1.9, shadowWidth: 79.8, shadowCenterX: 49.7,
   },
   camel: { name: 'Coco', file: 'camel.png', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 }, footPad: 7.1, shadowWidth: 90, shadowCenterX: 59.6 },
@@ -527,7 +529,7 @@ VA.Data.DESTS = [
           { sfx: 'camel' },
           { anim: { id: 'coco', name: 'wiggle' } },
           { say: ['eg_guide', 'This is my camel, Coco!', 'ラクダのココだよ！'] },
-          { auto: ['player', 'Hello, Coco!', 'こんにちは、ココ！'] },
+          { auto: ['player', 'Hello, Coco!', 'こんにちは、ココ！', 2200] },
           { photo: true },
         ],
       },
