@@ -407,10 +407,23 @@ VA.Cine = {
 
   _volleyballFinaleShot(kind) {
     const shot = VA.el('div', 'volleyball-finale-shot volleyball-finale-' + kind);
-    const court = kind === 'spiked'
-      ? 'assets/backgrounds/volleyball_finale_spiked_court.png'
-      : 'assets/backgrounds/volleyball_finale_court.png';
-    shot.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
+    if (kind !== 'spike') {
+      const court = kind === 'spiked'
+        ? 'assets/backgrounds/volleyball_finale_spiked_court.png'
+        : 'assets/backgrounds/volleyball_finale_court.png';
+      shot.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
+    }
+
+    if (kind === 'scared') {
+      const camera = VA.el('div', 'volleyball-scared-camera');
+      camera.appendChild(this._volleyballFinaleImage(
+        'volleyball-final-girl',
+        'assets/objects/volleyball_finale_girl_scared.png',
+        'Scared beach volleyball player',
+      ));
+      shot.appendChild(camera);
+      return shot;
+    }
 
     if (kind === 'spike') {
       const camera = VA.el('div', 'volleyball-spike-camera');
@@ -422,11 +435,8 @@ VA.Cine = {
       return shot;
     }
 
-    const girl = kind === 'scared'
-      ? 'assets/objects/volleyball_finale_girl_scared.png'
-      : 'assets/objects/volleyball_finale_girl_cowering.png';
     shot.append(
-      this._volleyballFinaleImage('volleyball-final-girl', girl, 'Beach volleyball player'),
+      this._volleyballFinaleImage('volleyball-final-girl', 'assets/objects/volleyball_finale_girl_cowering.png', 'Cowering beach volleyball player'),
       this._volleyballFinaleImage('volleyball-final-net', 'assets/objects/volleyball_finale_net.png', 'Volleyball net'),
     );
     return shot;
@@ -452,8 +462,8 @@ VA.Cine = {
       await VA.wait(180);
     };
 
-    await playShot('scared', 1200);
-    await playShot('spike', 1500, 'kick');
+    await playShot('scared', 3500);
+    await playShot('spike', 2800, 'kick');
     await playShot('spiked', 1200, 'stamp');
     overlay.hidden = true;
     overlay.replaceChildren();
