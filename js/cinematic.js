@@ -36,7 +36,7 @@ VA.Cine = {
     'assets/objects/volleyball_finale_girl_scared.png',
     'assets/objects/volleyball_finale_girl_cowering.png',
     'assets/objects/volleyball_finale_spiker.png',
-    'assets/objects/volleyball_finale_net.png',
+    'assets/objects/volleyball_finale_spiker_girl.png',
     'assets/objects/volleyball_finale_ball.png',
   ],
 
@@ -427,18 +427,23 @@ VA.Cine = {
 
     if (kind === 'spike') {
       const camera = VA.el('div', 'volleyball-spike-camera');
+      const isGirlPlayer = VA.State.data && VA.State.data.playerLook === 'girl';
+      const spiker = isGirlPlayer
+        ? 'assets/objects/volleyball_finale_spiker_girl.png'
+        : 'assets/objects/volleyball_finale_spiker.png';
       camera.append(
-        this._volleyballFinaleImage('volleyball-final-spiker', 'assets/objects/volleyball_finale_spiker.png', 'Player ready to spike'),
+        this._volleyballFinaleImage('volleyball-final-spiker', spiker, 'Player ready to spike'),
         this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.png', 'Volleyball'),
       );
       shot.appendChild(camera);
       return shot;
     }
 
-    shot.append(
-      this._volleyballFinaleImage('volleyball-final-girl', 'assets/objects/volleyball_finale_girl_cowering.png', 'Cowering beach volleyball player'),
-      this._volleyballFinaleImage('volleyball-final-net', 'assets/objects/volleyball_finale_net.png', 'Volleyball net'),
-    );
+    shot.appendChild(this._volleyballFinaleImage(
+      'volleyball-final-girl',
+      'assets/objects/volleyball_finale_girl_cowering.png',
+      'Cowering beach volleyball player',
+    ));
     return shot;
   },
 
