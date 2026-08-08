@@ -319,7 +319,9 @@ VA.Flows = {
     /* the souvenir */
     if (trip.souvenir) {
       const s = trip.souvenir;
-      await D.choice([{ text: 'Grandma, this is for you!', jp: 'おばあちゃん、これどうぞ！' }]);
+      // This recorded player line is longer than the normal text-length
+      // estimate, so keep the choice beat open until it can finish.
+      await D.choice([{ text: 'Grandma, this is for you!', jp: 'おばあちゃん、これどうぞ！' }], { speakDelay: 3600 });
       VA.Audio.sfx('pop');
       VA.Fx.sparkles(VA.$('#scr-home'), 480, 240);
       await D.say('grandma', `Oh! A ${s.label.toLowerCase()}!`, { jp: `まあ！${s.reactJP}` });

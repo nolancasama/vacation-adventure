@@ -278,7 +278,7 @@ VA.Data.DESTS = [
           { say: ['au_kid', "Let's play!", 'いっしょに遊ぼう！'] },
           { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
           { caption: 'TAP the ball!' },
-          { game: { n: 3, label: 'TAP! 🏐', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'au_kid', sfx: 'bounce' } },
+          { game: { n: 3, label: 'TAP! 🏐', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'au_kid', sfx: 'bounce', finale: 'volleyball' } },
           { caption: 'Nice!' },
           { anim: { id: 'au_kid', name: 'cheer', wait: false } },
           { say: ['au_kid', 'You are good!', 'じょうずだね！'] },

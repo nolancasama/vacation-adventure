@@ -30,6 +30,15 @@
 VA.Cine = {
   world: null,
   ctx: null, // current run context {event, dest, actors:{}, props:{}}
+  VOLLEY_FINALE_ASSETS: [
+    'assets/backgrounds/volleyball_finale_court.png',
+    'assets/backgrounds/volleyball_finale_spiked_court.png',
+    'assets/objects/volleyball_finale_girl_scared.png',
+    'assets/objects/volleyball_finale_girl_cowering.png',
+    'assets/objects/volleyball_finale_spiker.png',
+    'assets/objects/volleyball_finale_net.png',
+    'assets/objects/volleyball_finale_ball.png',
+  ],
 
   init() {
     this.world = VA.$('#cine-world');
@@ -88,6 +97,12 @@ VA.Cine = {
     VA.Art.layer(art, { painter: evt.painter, file: evt.backdrop, kind: 'backgrounds' });
 
     const ctx = { event: evt, dest, actors: {}, props: {} };
+    // Start decoding the volleyball payoff while the player is still talking.
+    // showVolleyballFinale waits on this promise only if three very quick taps
+    // beat the local image decoder.
+    if ((evt.steps || []).some(step => step.game && step.game.finale === 'volleyball')) {
+      ctx.volleyballFinaleReady = VA.Art.preloadAndWait(this.VOLLEY_FINALE_ASSETS);
+    }
     (evt.actors || []).forEach(a => {
       // Some scenes use a closer conversation pose, but keep the base pose
       // saved so the final photo can return to its composed arrangement.
@@ -382,6 +397,69 @@ VA.Cine = {
     overlay.classList.remove('is-visible', 'is-leaving');
   },
 
+  _volleyballFinaleImage(className, src, alt) {
+    const image = document.createElement('img');
+    image.className = className;
+    image.src = src;
+    image.alt = alt;
+    return image;
+  },
+
+  _volleyballFinaleShot(kind) {
+    const shot = VA.el('div', 'volleyball-finale-shot volleyball-finale-' + kind);
+    const court = kind === 'spiked'
+      ? 'assets/backgrounds/volleyball_finale_spiked_court.png'
+      : 'assets/backgrounds/volleyball_finale_court.png';
+    shot.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
+
+    if (kind === 'spike') {
+      const camera = VA.el('div', 'volleyball-spike-camera');
+      camera.append(
+        this._volleyballFinaleImage('volleyball-final-spiker', 'assets/objects/volleyball_finale_spiker.png', 'Player ready to spike'),
+        this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.png', 'Volleyball'),
+      );
+      shot.appendChild(camera);
+      return shot;
+    }
+
+    const girl = kind === 'scared'
+      ? 'assets/objects/volleyball_finale_girl_scared.png'
+      : 'assets/objects/volleyball_finale_girl_cowering.png';
+    shot.append(
+      this._volleyballFinaleImage('volleyball-final-girl', girl, 'Beach volleyball player'),
+      this._volleyballFinaleImage('volleyball-final-net', 'assets/objects/volleyball_finale_net.png', 'Volleyball net'),
+    );
+    return shot;
+  },
+
+  /* Three brisk storybook panels after the final volley: the startled player
+     behind the net, a bottom-to-top spike camera move, then the spiked court. */
+  async showVolleyballFinale() {
+    const overlay = VA.$('#volleyball-finale');
+    if (!overlay) return;
+    if (this.ctx && this.ctx.volleyballFinaleReady) await this.ctx.volleyballFinaleReady;
+
+    overlay.hidden = false;
+    overlay.classList.remove('is-visible', 'is-leaving');
+    const playShot = async (kind, duration, sound) => {
+      overlay.replaceChildren(this._volleyballFinaleShot(kind));
+      void overlay.offsetWidth;
+      overlay.classList.remove('is-leaving');
+      overlay.classList.add('is-visible');
+      if (sound) VA.Audio.sfx(sound);
+      await VA.wait(duration);
+      overlay.classList.add('is-leaving');
+      await VA.wait(180);
+    };
+
+    await playShot('scared', 1200);
+    await playShot('spike', 1500, 'kick');
+    await playShot('spiked', 1200, 'stamp');
+    overlay.hidden = true;
+    overlay.replaceChildren();
+    overlay.classList.remove('is-visible', 'is-leaving');
+  },
+
   /* --------- the little "TAP!" play mini-game --------- */
   _tapGame(cfg) {
     const wrap = VA.$('#tap-game');
@@ -453,6 +531,7 @@ VA.Cine = {
         if (count >= (cfg.n || 3)) {
           btn.removeEventListener('click', onTap);
           if (cfg.goal && el) await this._goalShot(el, cfg.goal);
+          if (cfg.finale === 'volleyball') await this.showVolleyballFinale();
           inFlight = false;
           setTimeout(() => { wrap.style.display = 'none'; res(); }, 800);
         } else {

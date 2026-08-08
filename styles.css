@@ -821,6 +821,47 @@ body {
   100% { opacity:1; transform:scale(1.02); }
 }
 
+/* ---------- beach volleyball three-shot finale ---------- */
+#volleyball-finale {
+  position:absolute; inset:0; z-index:102; overflow:hidden; pointer-events:auto;
+  opacity:0; transition:opacity .18s ease-out;
+}
+#volleyball-finale[hidden] { display:none; }
+#volleyball-finale.is-visible { opacity:1; }
+#volleyball-finale.is-leaving { opacity:0; transition:opacity .18s ease-in; }
+.volleyball-finale-shot { position:absolute; inset:0; overflow:hidden; isolation:isolate; background:#35a9df; }
+.volleyball-finale-bg { position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:cover; }
+.volleyball-final-girl {
+  position:absolute; z-index:1; left:70%; bottom:-3%; height:88%; width:auto; max-width:none;
+  transform:translateX(-50%); filter:drop-shadow(0 8px 8px rgba(38,24,12,.32));
+}
+.volleyball-finale-spiked .volleyball-final-girl { left:71%; height:82%; bottom:-5%; }
+.volleyball-final-net {
+  position:absolute; z-index:2; left:-4%; top:2%; width:108%; height:auto; max-width:none;
+  filter:drop-shadow(0 4px 4px rgba(24,35,45,.28));
+}
+.volleyball-spike-camera {
+  position:absolute; inset:-180px 0 -160px; z-index:1;
+  animation:volleyballSpikePan 1.5s cubic-bezier(.3,.76,.3,1) both;
+}
+.volleyball-final-spiker {
+  position:absolute; left:50%; top:50%; height:940px; width:auto; max-width:none;
+  transform:translate(-50%,-50%); filter:drop-shadow(0 10px 10px rgba(34,22,12,.34));
+}
+.volleyball-final-ball {
+  position:absolute; z-index:2; left:63%; top:188px; width:265px; height:265px; object-fit:contain;
+  transform:translate(-50%,-50%); filter:drop-shadow(0 8px 8px rgba(30,28,13,.34));
+  animation:volleyballFinalBall .42s cubic-bezier(.2,1.35,.4,1) both;
+}
+@keyframes volleyballSpikePan {
+  from { transform:translateY(-145px) scale(1.1); }
+  to { transform:translateY(140px) scale(1.1); }
+}
+@keyframes volleyballFinalBall {
+  from { opacity:0; transform:translate(-50%,-50%) scale(.55); }
+  to { opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
+
 .fly-polaroid { position:absolute; z-index:76; transition: all .8s cubic-bezier(.5,-.2,.4,1); }
 
 .stamp-slam { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); animation:stampslam .5s cubic-bezier(.3,1.6,.5,1) backwards; }
