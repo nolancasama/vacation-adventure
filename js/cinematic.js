@@ -112,7 +112,7 @@ VA.Cine = {
     // Start decoding the volleyball payoff while the player is still talking.
     // showVolleyballFinale waits on this promise only if three very quick taps
     // beat the local image decoder.
-    if ((evt.steps || []).some(step => step.game && step.game.finale === 'volleyball')) {
+    if ((evt.steps || []).some(step => step.game && step.game.finale === 'volleyball' && step.game.finaleEnabled !== false)) {
       ctx.volleyballFinaleReady = VA.Art.preloadAndWait(this.VOLLEY_FINALE_ASSETS);
     }
     (evt.actors || []).forEach(a => {
@@ -612,7 +612,7 @@ VA.Cine = {
         if (count >= (cfg.n || 3)) {
           btn.removeEventListener('click', onTap);
           if (cfg.goal && el) await this._goalShot(el, cfg.goal);
-          if (cfg.finale === 'volleyball') await this.showVolleyballFinale();
+          if (cfg.finale === 'volleyball' && cfg.finaleEnabled !== false) await this.showVolleyballFinale();
           inFlight = false;
           setTimeout(() => { wrap.style.display = 'none'; res(); }, 800);
         } else {

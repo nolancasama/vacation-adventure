@@ -255,9 +255,6 @@ VA.Data.DESTS = [
       },
       {
         id: 'volleyball', verb: 'played',
-        // Temporarily unavailable: retain the complete scene and finale so it
-        // can be restored later by changing this flag to true.
-        enabled: false,
         title: 'Beach Volleyball', titleJP: 'ビーチバレー', icon: '🏐', price: 0,
         photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.
@@ -281,7 +278,9 @@ VA.Data.DESTS = [
           { say: ['au_kid', "Let's play!", 'いっしょに遊ぼう！'] },
           { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
           { caption: 'TAP the ball!' },
-          { game: { n: 3, label: 'TAP! 🏐', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'au_kid', sfx: 'bounce', finale: 'volleyball' } },
+          // The regular volleyball activity is active. Keep its dramatic
+          // three-shot finale in the project but do not play it for now.
+          { game: { n: 3, label: 'TAP! 🏐', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'au_kid', sfx: 'bounce', finale: 'volleyball', finaleEnabled: false } },
           { caption: 'Nice!' },
           { anim: { id: 'au_kid', name: 'cheer', wait: false } },
           { say: ['au_kid', 'You are good!', 'じょうずだね！'] },
