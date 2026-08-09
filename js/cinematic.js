@@ -39,6 +39,18 @@ VA.Cine = {
     'assets/objects/volleyball_finale_spiker_girl.png',
     'assets/objects/volleyball_finale_ball.png',
   ],
+  // Kept in one place so the comic timing can be tuned without touching the
+  // sequence below.  The five power-shot beats add up to 2.8 seconds.
+  VOLLEY_FINALE_TIMING: {
+    scared: 3400,
+    powerUp: 500,
+    rise: 1000,
+    freeze: 300,
+    spike: 400,
+    aftermath: 600,
+    impact: 1650,
+    cut: 120,
+  },
 
   init() {
     this.world = VA.$('#cine-world');
@@ -431,45 +443,99 @@ VA.Cine = {
       const spiker = isGirlPlayer
         ? 'assets/objects/volleyball_finale_spiker_girl.png'
         : 'assets/objects/volleyball_finale_spiker.png';
+      const aura = VA.el('div', 'volleyball-power-aura');
+      const particles = VA.el('div', 'volleyball-energy-particles');
+      for (let i = 0; i < 14; i++) {
+        const particle = VA.el('i', 'volleyball-energy-particle');
+        particle.style.setProperty('--x', ((i * 37) % 92) + 4 + '%');
+        particle.style.setProperty('--y', ((i * 61) % 86) + 7 + '%');
+        particle.style.setProperty('--delay', (i % 5) * -0.12 + 's');
+        particles.appendChild(particle);
+      }
       camera.append(
         this._volleyballFinaleImage('volleyball-final-spiker', spiker, 'Player ready to spike'),
         this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.png', 'Volleyball'),
+        VA.el('span', 'volleyball-ball-glint'),
       );
-      shot.appendChild(camera);
+      shot.append(aura, particles, camera, VA.el('div', 'volleyball-shockwave'), VA.el('div', 'volleyball-impact-flash'));
       return shot;
     }
 
+    const dust = VA.el('div', 'volleyball-dust');
+    for (let i = 0; i < 12; i++) {
+      const puff = VA.el('i', 'volleyball-dust-puff');
+      puff.style.setProperty('--x', ((i * 29) % 86) + 7 + '%');
+      puff.style.setProperty('--delay', (i % 4) * -0.1 + 's');
+      dust.appendChild(puff);
+    }
     shot.appendChild(this._volleyballFinaleImage(
       'volleyball-final-girl',
       'assets/objects/volleyball_finale_girl_cowering.png',
       'Cowering beach volleyball player',
     ));
+    shot.appendChild(dust);
     return shot;
   },
 
-  /* Three brisk storybook panels after the final volley: the startled player
-     behind the net, a bottom-to-top spike camera move, then the spiked court. */
+  /* A deliberately over-serious sports-anime coda to the friendly volleyball
+     game.  CSS owns the animation; this function only advances its beats. */
   async showVolleyballFinale() {
     const overlay = VA.$('#volleyball-finale');
     if (!overlay) return;
     if (this.ctx && this.ctx.volleyballFinaleReady) await this.ctx.volleyballFinaleReady;
+    const t = this.VOLLEY_FINALE_TIMING;
 
     overlay.hidden = false;
     overlay.classList.remove('is-visible', 'is-leaving');
-    const playShot = async (kind, duration, sound) => {
-      overlay.replaceChildren(this._volleyballFinaleShot(kind));
+    const mountShot = kind => {
+      const shot = this._volleyballFinaleShot(kind);
+      overlay.replaceChildren(shot);
       void overlay.offsetWidth;
       overlay.classList.remove('is-leaving');
       overlay.classList.add('is-visible');
-      if (sound) VA.Audio.sfx(sound);
-      await VA.wait(duration);
+      return shot;
+    };
+    const cut = async () => {
       overlay.classList.add('is-leaving');
-      await VA.wait(180);
+      await VA.wait(t.cut);
     };
 
-    await playShot('scared', 3500);
-    await playShot('spike', 2800, 'kick');
-    await playShot('spiked', 1200, 'stamp');
+    // Leave only a little surf under the uneasy close-up, then restore the
+    // whole friendly beach soundscape after the crater reveal.
+    VA.Audio.ambient(['waves']);
+    mountShot('scared');
+    VA.Audio.sfx('tension');
+    await VA.wait(t.scared);
+    await cut();
+
+    const spike = mountShot('spike');
+    VA.Audio.sfx('thump');
+    await VA.wait(t.powerUp);
+    spike.classList.add('spike-rising');
+    VA.Audio.sfx('whoosh');
+    setTimeout(() => VA.Audio.sfx('whoosh'), 320);
+    setTimeout(() => VA.Audio.sfx('whoosh'), 710);
+    await VA.wait(t.rise);
+    spike.classList.add('spike-freeze');
+    VA.Audio.sfx('ting');
+    await VA.wait(t.freeze);
+    spike.classList.add('spike-hit');
+    VA.Audio.sfx('spike');
+    await VA.wait(t.spike);
+    spike.classList.add('spike-aftershock');
+    VA.Audio.sfx('boom');
+    await VA.wait(t.aftermath);
+    await cut();
+
+    const impact = mountShot('spiked');
+    impact.classList.add('impact-rumble');
+    VA.Audio.sfx('rumble');
+    setTimeout(() => VA.Audio.sfx('debris'), 280);
+    await VA.wait(800);
+    impact.classList.add('impact-settled');
+    VA.Audio.ambient(['waves', 'wind', 'seagulls']);
+    await VA.wait(t.impact - 800);
+    await cut();
     overlay.hidden = true;
     overlay.replaceChildren();
     overlay.classList.remove('is-visible', 'is-leaving');

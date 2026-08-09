@@ -34,7 +34,9 @@ VA.UI = {
     this.renderHomeSouvenirs();
     // Stand Grandma on the open rug in front of the table rather than beside
     // it, so she reads as centered without covering the shelf/table gifts.
-    const grandma = VA.Art.actorEl('grandma', { x: 480, y: 600, scale: 1.3, bob: true });
+    // Give the centered Grandma a little more presence without moving her
+    // baseline or changing the souvenir display positions.
+    const grandma = VA.Art.actorEl('grandma', { x: 480, y: 600, scale: 1.56, bob: true });
     lay.appendChild(grandma);
 
     VA.$('#debrief-page').classList.remove('show');
