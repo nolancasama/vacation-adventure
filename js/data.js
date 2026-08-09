@@ -255,6 +255,9 @@ VA.Data.DESTS = [
       },
       {
         id: 'volleyball', verb: 'played',
+        // Temporarily unavailable: retain the complete scene and finale so it
+        // can be restored later by changing this flag to true.
+        enabled: false,
         title: 'Beach Volleyball', titleJP: 'ビーチバレー', icon: '🏐', price: 0,
         photoProps: ['ball'],
         // The two players stay in their photo composition for the whole game.

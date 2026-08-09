@@ -178,7 +178,7 @@ VA.Flows = {
     const trip = VA.State.data.trip;
     const dest = VA.Data.destById(trip.dest);
     const evt = dest.events.find(e => e.id === evtId);
-    if (!evt || trip.done.includes(evtId)) return;
+    if (!evt || evt.enabled === false || trip.done.includes(evtId)) return;
     this._eventBusy = true;
     try {
       await this._runEventInner(evt, dest);
@@ -202,7 +202,8 @@ VA.Flows = {
     // back to the hub
     await this.exploreScreen(false);
     const t = VA.State.data.trip;
-    if (t && t.done.length >= dest.events.length) {
+    const availableEvents = dest.events.filter(e => e.enabled !== false);
+    if (t && availableEvents.every(e => t.done.includes(e.id))) {
       VA.Fx.toast('All photos taken! 　ぜんぶ撮ったね！', 2600);
       VA.Audio.sfx('chime');
     }
@@ -277,6 +278,9 @@ VA.Flows = {
 
     /* the four questions */
     for (const Q of VA.Data.DEBRIEF_QUESTIONS) {
+      // A temporarily disabled activity has no photo to review, so omit its
+      // associated grammar question while preserving all of its data.
+      if (Q.verb !== 'went' && !dest.events.some(e => e.verb === Q.verb && e.enabled !== false)) continue;
       const correctText = Q.verb === 'went'
         ? dest.sentences.went.en
         : (photos[this._eventForVerb(dest, Q.verb)] || {}).caption;

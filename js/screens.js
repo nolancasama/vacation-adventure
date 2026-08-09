@@ -193,7 +193,8 @@ VA.UI = {
     const trip = VA.State.data.trip || { done: [] };
     const hsLayer = VA.$('#hotspot-layer');
     hsLayer.innerHTML = '';
-    dest.events.forEach(evt => {
+    const availableEvents = dest.events.filter(evt => evt.enabled !== false);
+    availableEvents.forEach(evt => {
       const done = trip.done.includes(evt.id);
       const b = VA.el('button', 'hotspot' + (done ? ' done' : ''));
       b.id = 'hs-' + evt.id;
@@ -213,7 +214,7 @@ VA.UI = {
       hsLayer.appendChild(b);
     });
 
-    const allDone = dest.events.every(e => trip.done.includes(e.id));
+    const allDone = availableEvents.every(e => trip.done.includes(e.id));
     VA.$('#btn-depart').style.display = allDone ? 'block' : 'none';
     VA.$('#explore-hint').textContent = allDone ? '' : '';
   },
