@@ -121,6 +121,20 @@ VA.UI = {
       pinsByDest[d.id] = pin;
     });
 
+    // A small map easter egg: it looks like the travel pins, but is not a
+    // destination and deliberately has no card or travel flow.
+    const matsubaraPin = VA.el('button', 'map-pin', '📍');
+    matsubaraPin.type = 'button';
+    matsubaraPin.setAttribute('aria-label', 'Matsubara');
+    matsubaraPin.style.left = '850px';
+    matsubaraPin.style.top = '180px';
+    const highlightMatsubara = () => matsubaraPin.classList.add('pin-hover');
+    const unhighlightMatsubara = () => matsubaraPin.classList.remove('pin-hover');
+    matsubaraPin.addEventListener('pointerenter', highlightMatsubara);
+    matsubaraPin.addEventListener('pointerleave', unhighlightMatsubara);
+    matsubaraPin.addEventListener('click', () => VA.Fx.toast('Matsubara', 2200));
+    art.appendChild(matsubaraPin);
+
     // big destination cards
     const cards = VA.$('#dest-cards');
     cards.innerHTML = '';
