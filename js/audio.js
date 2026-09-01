@@ -46,6 +46,10 @@ VA.Audio = {
   /* ---------- real-file probing (drop-in asset upgrade) ---------- */
   _file(path, onReady) {
     let f = this._files[path];
+    if (!f && VA.AudioFiles && !VA.AudioFiles.has(path)) {
+      f = this._files[path] = { state: 'fail', el: null, cbs: [] };
+      return f;
+    }
     if (!f) {
       f = this._files[path] = { state: 'pending', el: null, cbs: [] };
       const a = new Audio();

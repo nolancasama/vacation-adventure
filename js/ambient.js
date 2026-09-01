@@ -16,11 +16,25 @@ VA.Ambient = {
   shots: [],       // one-shot bursts (confetti)
   _raf: null,
   _last: 0,
+  _frameMs: 1000 / 30,
+  _paused: false,
+  renderScale: 1,
 
   init() {
     this.canvas = VA.$('#ambient');
     this.ctx = this.canvas.getContext('2d');
-    this.ctx.scale(2, 2); // canvas is 1920×1200 for crispness
+    const memory = navigator.deviceMemory || 0;
+    const cores = navigator.hardwareConcurrency || 0;
+    const lowPower = navigator.connection?.saveData ||
+      (memory && memory <= 4) || (cores && cores <= 4);
+    this.renderScale = lowPower ? 1 : Math.min(1.25, Math.max(1, window.devicePixelRatio || 1));
+    this.canvas.width = Math.round(VA.W * this.renderScale);
+    this.canvas.height = Math.round(VA.H * this.renderScale);
+    this.ctx.setTransform(this.renderScale, 0, 0, this.renderScale, 0, 0);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this._cancelLoop();
+      else this._ensureLoop();
+    });
   },
 
   /* build a scene's effect set (replaces the previous set) */
@@ -38,16 +52,37 @@ VA.Ambient = {
 
   stop() { this.set(null); },
 
+  pause() {
+    this._paused = true;
+    this._cancelLoop();
+  },
+
+  resume() {
+    this._paused = false;
+    this._ensureLoop();
+  },
+
   burst(type, opts = {}) {
     if (type === 'confetti') this.shots.push(this._confetti(opts));
     this._ensureLoop();
   },
 
   _ensureLoop() {
-    if (this._raf) return;
+    if (this._raf || this._paused || document.hidden) return;
     this._last = performance.now();
     const tick = t => {
-      const dt = Math.min(0.05, (t - this._last) / 1000);
+      if (this._paused || document.hidden) {
+        this._raf = null;
+        return;
+      }
+      const elapsed = t - this._last;
+      // A small tolerance avoids 16.6ms display rounding turning an intended
+      // every-other-frame update into every-third-frame (~20 FPS).
+      if (elapsed < this._frameMs - 2) {
+        this._raf = requestAnimationFrame(tick);
+        return;
+      }
+      const dt = Math.min(0.05, elapsed / 1000);
       this._last = t;
       this.ctx.clearRect(0, 0, VA.W, VA.H);
       for (const f of this.fx) f.step(dt, this.ctx);
@@ -62,6 +97,11 @@ VA.Ambient = {
     this._raf = requestAnimationFrame(tick);
   },
 
+  _cancelLoop() {
+    if (this._raf) cancelAnimationFrame(this._raf);
+    this._raf = null;
+  },
+
   /* ---------- effect factories ---------- */
   _makers: {
 
@@ -72,8 +112,8 @@ VA.Ambient = {
       // real painted cloud sprites, drawn once loaded; the procedural puff
       // cluster below stays as the fallback until they're cached (or if
       // they're never dropped into assets/objects/)
-      const cloudPaths = ['cloud_1.png', 'cloud_2.png', 'cloud_3.png'].map(f => 'assets/objects/' + f);
-      cloudPaths.forEach(p => VA.Art._loadImage(p));
+      const cloudPaths = ['cloud_1.webp', 'cloud_2.webp', 'cloud_3.webp'].map(f => 'assets/objects/' + f);
+      VA.Art.preloadIdle(cloudPaths);
       const cs = Array.from({ length: n }, () => ({
         x: Math.random() * 1.3 - 0.15,
         y: VA.rand(band[0], band[1]),

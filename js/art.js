@@ -29,14 +29,20 @@ VA.Art = {
   _loadImage(path, onReady, onError) {
     let entry = this._imgCache[path];
     if (!entry) {
-      entry = this._imgCache[path] = { state: 'pending', img: null, cbs: [], errorCbs: [] };
+      entry = this._imgCache[path] = {
+        state: 'pending', img: null, cbs: [], errorCbs: [],
+        decoded: false, decodePromise: null, ready: null, resolveReady: null,
+      };
+      entry.ready = new Promise(resolve => { entry.resolveReady = resolve; });
       const img = new Image();
       img.onload = () => {
         entry.state = 'ok'; entry.img = img;
+        entry.resolveReady(img);
         entry.cbs.forEach(cb => cb(img)); entry.cbs = [];
       };
       img.onerror = () => {
         entry.state = 'fail'; entry.cbs = [];
+        entry.resolveReady(null);
         entry.errorCbs.forEach(cb => cb(path)); entry.errorCbs = [];
       };
       img.src = path;
@@ -48,11 +54,45 @@ VA.Art = {
     return entry;
   },
 
+  _decodeEntry(entry) {
+    if (!entry) return Promise.resolve(null);
+    if (entry.decoded) return Promise.resolve(entry.img);
+    if (entry.decodePromise) return entry.decodePromise;
+    entry.decodePromise = entry.ready.then(async img => {
+      if (!img) return null;
+      if (img.decode) await img.decode().catch(() => {});
+      entry.decoded = true;
+      return img;
+    });
+    return entry.decodePromise;
+  },
+
   /* Start decoding screen art while another screen is visible.  This lets the
      first visit use the real bitmap directly instead of briefly showing its
      procedural fallback. */
   preload(paths) {
-    paths.forEach(path => this._loadImage(path));
+    [...new Set(paths.filter(Boolean))].forEach(path => {
+      this._decodeEntry(this._loadImage(path));
+    });
+  },
+
+  /* Warm optional assets one at a time during browser idle periods. This
+     avoids a burst of competing downloads on shared classroom Wi-Fi. */
+  preloadIdle(paths) {
+    const queue = [...new Set(paths.filter(Boolean))];
+    const schedule = callback => {
+      if ('requestIdleCallback' in window) requestIdleCallback(callback, { timeout: 1500 });
+      else setTimeout(callback, 180);
+    };
+    const next = () => {
+      const path = queue.shift();
+      if (!path) return;
+      const entry = this._loadImage(path);
+      this._decodeEntry(entry).finally(() => {
+        if (queue.length) schedule(next);
+      });
+    };
+    if (queue.length) schedule(next);
   },
 
   /* Load a scene's initial bitmap set concurrently.  Image.decode() gives the
@@ -67,22 +107,16 @@ VA.Art = {
      poison its cache entry the way a genuine load failure should. */
   preloadAndWait(paths) {
     const uniquePaths = [...new Set(paths.filter(Boolean))];
-    return Promise.all(uniquePaths.map(path => new Promise(resolve => {
-      const already = this._imgCache[path];
-      if (already && already.state === 'ok') { resolve({ path, ok: true }); return; }
-      const ready = img => {
-        const decoded = img.decode ? img.decode() : Promise.resolve();
-        decoded.then(
-          () => resolve({ path, ok: true }),
-          () => resolve({ path, ok: true }), // image loaded fine; decode() itself is just a hint
-        );
-      };
-      const failed = file => {
-        console.error(`[Asset preload failed] ${file}`);
-        resolve({ path: file, ok: false });
-      };
-      this._loadImage(path, ready, failed);
-    })));
+    return Promise.all(uniquePaths.map(async path => {
+      const entry = this._loadImage(path);
+      const img = await entry.ready;
+      if (!img) {
+        console.error(`[Asset preload failed] ${path}`);
+        return { path, ok: false };
+      }
+      await this._decodeEntry(entry);
+      return { path, ok: true };
+    }));
   },
 
   /* Every scene layer and sprite registers its source path.  The screen
@@ -137,6 +171,10 @@ VA.Art = {
         const chipEl = lay.querySelector('.asset-chip');
         if (chipEl) lay.insertBefore(clone, chipEl); else lay.appendChild(clone);
         if (chipEl) chipEl.classList.add('real');
+        // The CSS background prevents a first-visit flash only while loading.
+        // Once the decoded image is present, stop painting the same pixels twice.
+        lay.style.background = 'none';
+        lay.querySelector('canvas')?.remove();
       }, renderFallback);
     }
     if (parent) parent.appendChild(lay);
@@ -601,7 +639,7 @@ VA.Art = {
       const scale = Math.max(pw / img.naturalWidth, ph / img.naturalHeight);
       const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
       // matches the live scene's CSS object-position crop for this same asset
-      const posY = photo.backdrop === 'event_france_eiffel.png' ? 0.9 : 0.5;
+      const posY = photo.backdrop === 'event_france_eiffel.webp' ? 0.9 : 0.5;
       ctx.drawImage(img, (pw - dw) / 2, (ph - dh) * posY, dw, dh);
     } else {
       const fn = VA.Art.painters[photo.painter];
@@ -710,7 +748,7 @@ VA.Art = {
   travelPortraitPath(homeward) {
     const lookId = VA.State.data.playerLook === 'girl' ? 'girl' : 'boy';
     const mood = homeward ? 'sleepy' : 'excited';
-    return `assets/characters/travel_${lookId}_${mood}.png`;
+    return `assets/characters/travel_${lookId}_${mood}.webp`;
   },
 };
 

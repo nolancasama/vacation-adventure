@@ -84,7 +84,7 @@ body {
 
 /* The Eiffel source is a tall tower image. Start at the base; cinematic.js
    then animates its object-position all the way up to the tip. */
-.art-layer img[src$="event_france_eiffel.png"] { object-position: 50% 100%; }
+.art-layer img[src$="event_france_eiffel.webp"] { object-position: 50% 100%; }
 
 /* placeholder asset chips */
 .asset-chip {

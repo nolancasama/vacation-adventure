@@ -27,7 +27,7 @@ VA.UI = {
     const scr = VA.$('#scr-home');
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
-    VA.Art.layer(art, { painter: 'home', file: 'background_home_livingroom.png' });
+    VA.Art.layer(art, { painter: 'home', file: 'background_home_livingroom.webp' });
 
     const lay = scr.querySelector('.actor-layer');
     lay.innerHTML = '';
@@ -105,7 +105,7 @@ VA.UI = {
     const scr = VA.$('#scr-map');
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
-    VA.Art.layer(art, { painter: 'map', file: 'background_map_world.png' });
+    VA.Art.layer(art, { painter: 'map', file: 'background_map_world.webp' });
 
     // bouncing pins on the map itself — hovering a pin highlights its card
     // below (and vice versa), so the connection between the two is obvious
@@ -144,7 +144,7 @@ VA.UI = {
       const card = VA.el('button', 'dest-card');
       card.dataset.dest = d.id;
       const artBox = VA.el('div', 'dc-art');
-      VA.Art.layer(artBox, { painter: d.painter, file: 'card_' + d.id + '.png', kind: 'backgrounds', w: 460, h: 184, chip: false });
+      VA.Art.layer(artBox, { painter: d.painter, file: 'card_' + d.id + '.webp', kind: 'backgrounds', w: 460, h: 184, chip: false });
       card.appendChild(artBox);
       card.appendChild(VA.el('div', 'dc-name', d.name));
       card.appendChild(VA.el('div', 'dc-jp', d.jp));
@@ -179,7 +179,7 @@ VA.UI = {
     const art = scr.querySelector('.scene-art');
     art.innerHTML = '';
     art.classList.toggle('travel-homeward', homeward);
-    VA.Art.layer(art, { painter: 'travelSky', file: 'background_travel_sky.png' });
+    VA.Art.layer(art, { painter: 'travelSky', file: 'background_travel_sky.webp' });
     VA.$('#travel-loading').hidden = true;
 
     // The traveler's own reaction shot pushes in partway through the flight

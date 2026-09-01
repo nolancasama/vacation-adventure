@@ -20,7 +20,7 @@ VA.Data = {};
    ------------------------------------------------------------ */
 VA.Data.CHARS = {
   player: {
-    name: '{player}', file: 'player-alpha.png', color: '#ef6d3d',
+    name: '{player}', file: 'player-alpha.webp', color: '#ef6d3d',
     colors: { skin: '#ffd9b3', hair: '#5a3b2e', top: '#ff8a5c', bottom: '#4a6b8a' },
     voice: { rate: 0.95, pitch: 1.35 },
     // % of the sprite's full (transparent) canvas height that sits empty
@@ -29,86 +29,86 @@ VA.Data.CHARS = {
     footPad: 7.4, shadowWidth: 68, shadowCenterX: 49.5,
   },
   grandma: {
-    name: 'Grandma', file: 'grandma-clean.png', color: '#b06ab8',
+    name: 'Grandma', file: 'grandma-clean.webp', color: '#b06ab8',
     colors: { skin: '#ffe3c4', hair: '#e8e6e3', top: '#c47ab8', bottom: '#8a7f96' },
     hairStyle: 'bun', glasses: true,
     voice: { rate: 0.82, pitch: 1.02 },
     footPad: 3.8, shadowWidth: 39, shadowCenterX: 48,
   },
   officer: {
-    name: 'Officer', file: 'officer.png', color: '#3d6b8f',
+    name: 'Officer', file: 'officer.webp', color: '#3d6b8f',
     colors: { skin: '#e8c49c', hair: '#3a3a3a', top: '#3d5f8f', bottom: '#2c4668', hat: '#2c4668' },
     hat: 'cap',
     voice: { rate: 0.88, pitch: 0.9 },
     footPad: 3.7, shadowWidth: 61.6, shadowCenterX: 49.4,
   },
-  sign: { name: 'Guide Book', file: 'ui_guidebook.png', color: '#8a705c', noPortrait: true, voice: { rate: 0.9, pitch: 1 } },
+  sign: { name: 'Guide Book', file: 'ui_guidebook.webp', color: '#8a705c', noPortrait: true, voice: { rate: 0.9, pitch: 1 } },
 
   /* --- Australia --- */
   au_vendor: {
-    name: 'Ice Cream Man', file: 'vendor_icecream-alpha.png', color: '#3fa9d6',
+    name: 'Ice Cream Man', file: 'vendor_icecream-alpha.webp', color: '#3fa9d6',
     colors: { skin: '#f2c9a0', hair: '#7a4a2c', top: '#67bde0', hat: '#e35f4f' },
     hat: 'cap', apron: true,
     voice: { rate: 0.92, pitch: 1.15 },
     footPad: 2.9, shadowWidth: 62, shadowCenterX: 48,
   },
   au_ranger: {
-    name: 'Ranger', file: 'ranger_australia-alpha.png', color: '#79b851',
+    name: 'Ranger', file: 'ranger_australia-alpha.webp', color: '#79b851',
     colors: { skin: '#e8b988', hair: '#4a3220', top: '#a8925c', bottom: '#6b5a3c' },
     hat: 'ranger',
     voice: { rate: 0.9, pitch: 1.0 },
     footPad: 1.1, shadowWidth: 71.6, shadowCenterX: 47.9,
   },
   au_kid: {
-    name: 'Beach Kid', file: 'kids_australia-alpha.png', color: '#ffb35c',
+    name: 'Beach Kid', file: 'kids_australia-alpha.webp', color: '#ffb35c',
     colors: { skin: '#ffd9b3', hair: '#f2d16b', top: '#ffd166', bottom: '#e35f4f' },
     hairStyle: 'pigtails',
     voice: { rate: 1.0, pitch: 1.4 },
     footPad: 2.5, shadowWidth: 56.5, shadowCenterX: 49.3,
   },
-  kangaroo: { name: 'Kangaroo', file: 'kangaroo.png', color: '#b5875a', animal: 'kangaroo', voice: { rate: 1, pitch: 1.6 }, footPad: 16.0, shadowWidth: 60.7, shadowCenterX: 52.4 },
+  kangaroo: { name: 'Kangaroo', file: 'kangaroo.webp', color: '#b5875a', animal: 'kangaroo', voice: { rate: 1, pitch: 1.6 }, footPad: 16.0, shadowWidth: 60.7, shadowCenterX: 52.4 },
 
   /* --- France --- */
   fr_vendor: {
-    name: 'Crêpe Chef', file: 'vendor_crepe-clean.png', color: '#3d8fb8',
+    name: 'Crêpe Chef', file: 'vendor_crepe-clean.webp', color: '#3d8fb8',
     colors: { skin: '#f2c9a0', hair: '#2c2c2c', top: '#5c7fa8', hat: '#c94f43' },
     hat: 'beret', apron: true,
     voice: { rate: 0.88, pitch: 1.05 },
     footPad: 2.3, shadowWidth: 45.3, shadowCenterX: 49.7,
   },
   fr_guide: {
-    name: 'Marie', file: 'guide_paris.png', color: '#c47ab8',
+    name: 'Marie', file: 'guide_paris.webp', color: '#c47ab8',
     colors: { skin: '#ffe3c4', hair: '#8a5a34', top: '#b088c9', bottom: '#6d5a96' },
     hairStyle: 'long',
     voice: { rate: 0.9, pitch: 1.25 },
     footPad: 1.7, shadowWidth: 24.2, shadowCenterX: 49,
   },
   fr_kid: {
-    name: 'Louis', file: 'kids_paris.png', color: '#79b851',
+    name: 'Louis', file: 'kids_paris.webp', color: '#79b851',
     colors: { skin: '#f2c9a0', hair: '#3a2c1e', top: '#79b851', bottom: '#4a6b8a', hat: '#3d5f8f' },
     hat: 'cap',
     voice: { rate: 1.0, pitch: 1.4 },
     footPad: 5.1, shadowWidth: 70.7, shadowCenterX: 46.3,
   },
-  pigeon: { name: 'Pigeon', file: 'pigeon.png', color: '#8493a6', animal: 'pigeon', size: 0.45, voice: { rate: 1, pitch: 1.8 }, footPad: 16.3, shadowWidth: 51.8, shadowCenterX: 45.7 },
+  pigeon: { name: 'Pigeon', file: 'pigeon.webp', color: '#8493a6', animal: 'pigeon', size: 0.45, voice: { rate: 1, pitch: 1.8 }, footPad: 16.3, shadowWidth: 51.8, shadowCenterX: 45.7 },
 
   /* --- Egypt --- */
   eg_vendor: {
-    name: 'Kebab Man', file: 'vendor_kebab.png', color: '#c94f43',
+    name: 'Kebab Man', file: 'vendor_kebab.webp', color: '#c94f43',
     colors: { skin: '#d9a06b', hair: '#2c2c2c', top: '#c9704a', hat: '#e8b96f' },
     hat: 'scarf', apron: true,
     voice: { rate: 0.9, pitch: 1.0 },
     footPad: 2.0, shadowWidth: 83.3, shadowCenterX: 47.4,
   },
   eg_guide: {
-    name: 'Amira', file: 'guide_egypt.png', color: '#c9913c',
+    name: 'Amira', file: 'guide_egypt.webp', color: '#c9913c',
     colors: { skin: '#d9a06b', hair: '#1e1e1e', top: '#e8d3a8', bottom: '#a8763c', hat: '#fff' },
     hat: 'scarf',
     voice: { rate: 0.88, pitch: 0.95 },
     footPad: 2.4, shadowWidth: 78.2, shadowCenterX: 48.7,
   },
   eg_kid: {
-    name: 'Omar', file: 'kids_egypt.png', color: '#3fa9a0',
+    name: 'Omar', file: 'kids_egypt.webp', color: '#3fa9a0',
     colors: { skin: '#e0ab77', hair: '#1e1e1e', top: '#3fa9a0', bottom: '#e8d3a8' },
     hairStyle: 'long',
     // Omar's recorded clips were mastered noticeably quieter than the other
@@ -116,7 +116,7 @@ VA.Data.CHARS = {
     voice: { rate: 1.0, pitch: 1.45, recordingGain: 1.45 },
     footPad: 1.9, shadowWidth: 79.8, shadowCenterX: 49.7,
   },
-  camel: { name: 'Coco', file: 'camel.png', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 }, footPad: 7.1, shadowWidth: 90, shadowCenterX: 59.6 },
+  camel: { name: 'Coco', file: 'camel.webp', color: '#c9995f', animal: 'camel', voice: { rate: 0.8, pitch: 0.8 }, footPad: 7.1, shadowWidth: 90, shadowCenterX: 59.6 },
 };
 
 /* ------------------------------------------------------------
@@ -127,14 +127,14 @@ VA.Data.CHARS = {
    ------------------------------------------------------------ */
 VA.Data.PLAYER_LOOKS = {
   boy: {
-    file: 'player-alpha.png',
+    file: 'player-alpha.webp',
     colors: { skin: '#ffd9b3', hair: '#5a3b2e', top: '#ff8a5c', bottom: '#4a6b8a' },
     hairStyle: undefined,
     voice: { rate: 0.95, pitch: 1.35 },
     footPad: 7.4, shadowWidth: 68, shadowCenterX: 49.5,
   },
   girl: {
-    file: 'player_girl.png',
+    file: 'player_girl.webp',
     colors: { skin: '#ffd9b3', hair: '#6b4423', top: '#7ec9a8', bottom: '#4a6b8a' },
     hairStyle: 'pigtails',
     voice: { rate: 0.95, pitch: 1.5 },
@@ -159,7 +159,7 @@ VA.Data.DESTS = [
     id: 'australia',
     name: 'Australia', jp: 'オーストラリア',
     flag: '🇦🇺', stampIcon: '🦘', color: '#e8873c',
-    bg: 'background_australia_beach.png', painter: 'australiaBeach',
+    bg: 'background_australia_beach.webp', painter: 'australiaBeach',
     lighting: { brightness: 0.99, saturation: 0.96, temperature: 'warm', tintColor: 'rgba(255,229,170,.10)' },
     lightDirection: 'left',
     rimLight: { enabled: true, direction: 'left', color: 'rgba(255,238,190,.30)', strength: 0.16 },
@@ -183,8 +183,8 @@ VA.Data.DESTS = [
         title: 'Ice Cream', titleJP: 'アイスクリーム', icon: '🍦', price: 3,
         // Beside the beach umbrella / refreshment spot, clear of the player.
         hotspot: { x: 800, y: 370 },
-        backdrop: 'event_australia_icecream.png', painter: 'ev_au_icecream',
-        photoFile: 'photo_australia_icecream.png', photoIcon: '🍦',
+        backdrop: 'event_australia_icecream.webp', painter: 'ev_au_icecream',
+        photoFile: 'photo_australia_icecream.webp', photoIcon: '🍦',
         caption: 'I ate ice cream.', captionJP: 'アイスクリームを食べたよ。',
         photoPlayerPose: { x: 110, y: 600 },
         actors: [
@@ -197,7 +197,7 @@ VA.Data.DESTS = [
           },
         ],
         props: [
-          { id: 'ice', icon: '🍦', file: 'icecream.png', x: 520, y: 415, size: 84, hidden: true },
+          { id: 'ice', icon: '🍦', file: 'icecream.webp', x: 520, y: 415, size: 84, hidden: true },
         ],
         amb: [],
         steps: [
@@ -209,7 +209,7 @@ VA.Data.DESTS = [
           { show: 'ice' }, { sfx: 'pop' },
           { say: ['au_vendor', 'Here you are.', 'はい、どうぞ。'] },
           { auto: ['player', 'Thank you!', 'ありがとう！'] },
-          { reward: { itemId: 'ice', illustration: 'icecream.png', word: 'Ice Cream', pronunciation: 'Ice cream' } },
+          { reward: { itemId: 'ice', illustration: 'icecream.webp', word: 'Ice Cream', pronunciation: 'Ice cream' } },
           { reaction: { kind: 'food-feast', duration: 1000 } },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Yummy!', 'おいしい！'] },
@@ -222,8 +222,8 @@ VA.Data.DESTS = [
         title: 'Kangaroo Park', titleJP: 'カンガルーパーク', icon: '🦘', price: 3,
         // At the tree-lined edge of the beach, where the park begins.
         hotspot: { x: 310, y: 315 },
-        backdrop: 'event_australia_kangaroo.png', painter: 'ev_au_kangaroo',
-        photoFile: 'photo_australia_kangaroo.png', photoIcon: '🦘',
+        backdrop: 'event_australia_kangaroo.webp', painter: 'ev_au_kangaroo',
+        photoFile: 'photo_australia_kangaroo.webp', photoIcon: '🦘',
         caption: 'I saw a kangaroo.', captionJP: 'カンガルーを見たよ。',
         photoPlayerPose: { x: 270, y: 555 },
         actors: [
@@ -261,15 +261,15 @@ VA.Data.DESTS = [
         keepCastOnStage: true,
         // On the open stretch of sand used for play.
         hotspot: { x: 565, y: 490 },
-        backdrop: 'event_australia_volleyball.png', painter: 'ev_au_volleyball',
-        photoFile: 'photo_australia_volleyball.png', photoIcon: '🏐',
+        backdrop: 'event_australia_volleyball.webp', painter: 'ev_au_volleyball',
+        photoFile: 'photo_australia_volleyball.webp', photoIcon: '🏐',
         caption: 'I played volleyball.', captionJP: 'バレーボールをしたよ。',
         actors: [
           { id: 'au_kid', char: 'au_kid', x: 700, y: 520, scale: 1 },
           { id: 'player', char: 'player', x: 250, y: 555, scale: 1.05 },
         ],
         props: [
-          { id: 'ball', icon: '🏐', file: 'volleyball.png', x: 480, y: 400, size: 96 },
+          { id: 'ball', icon: '🏐', file: 'volleyball.webp', x: 480, y: 400, size: 96 },
         ],
         amb: [{ type: 'birds', band: [0.04, 0.18], every: [6, 12] }],
         steps: [
@@ -291,8 +291,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.png', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Floor by cabinet', x: 150, y: 510, w: 150, h: 62, scale: 2 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
-      { id: 'shell', label: 'Seashell', icon: '🐚', file: 'souvenir_shell.png', line: 'The seashell, please.', jp: '貝がらをください。', reactJP: '貝がら！', home: { slot: 'Right bookshelf middle', x: 870, y: 180, w: 126, h: 76 }, memory: { event: 'australia-memory', answer: 'I found a seashell.', answerJP: '貝がらを見つけたよ。' }, grandmaLine: 'This seashell makes me happy.' },
+      { id: 'koala', label: 'Koala Toy', icon: '🐨', file: 'souvenir_koala.webp', line: 'The koala, please.', jp: 'コアラをください。', reactJP: 'コアラ！', home: { slot: 'Floor by cabinet', x: 150, y: 510, w: 150, h: 62, scale: 2 }, memory: { event: 'australia-memory', answer: 'I saw a koala.', answerJP: 'コアラを見たよ。' }, grandmaLine: 'I like my little koala.' },
+      { id: 'shell', label: 'Seashell', icon: '🐚', file: 'souvenir_shell.webp', line: 'The seashell, please.', jp: '貝がらをください。', reactJP: '貝がら！', home: { slot: 'Right bookshelf middle', x: 870, y: 180, w: 126, h: 76 }, memory: { event: 'australia-memory', answer: 'I found a seashell.', answerJP: '貝がらを見つけたよ。' }, grandmaLine: 'This seashell makes me happy.' },
     ],
   },
 
@@ -301,7 +301,7 @@ VA.Data.DESTS = [
     id: 'france',
     name: 'France', jp: 'フランス',
     flag: '🇫🇷', stampIcon: '🗼', color: '#7a6aa8',
-    bg: 'background_paris_evening.png', painter: 'parisEvening',
+    bg: 'background_paris_evening.webp', painter: 'parisEvening',
     lighting: { brightness: 0.93, saturation: 0.95, temperature: 'night', tintColor: 'rgba(98,116,198,.10)' },
     lightDirection: 'left',
     rimLight: { enabled: true, direction: 'left', color: 'rgba(255,201,142,.24)', strength: 0.14 },
@@ -326,8 +326,8 @@ VA.Data.DESTS = [
         title: 'Crêpe Stand', titleJP: 'クレープやさん', icon: '🥞', price: 3,
         // Next to the café awning that reads as the crêpe stand.
         hotspot: { x: 845, y: 455 },
-        backdrop: 'event_france_crepe.png', painter: 'ev_fr_crepe',
-        photoFile: 'photo_france_crepe.png', photoIcon: '🥞',
+        backdrop: 'event_france_crepe.webp', painter: 'ev_fr_crepe',
+        photoFile: 'photo_france_crepe.webp', photoIcon: '🥞',
         caption: 'I ate a crepe.', captionJP: 'クレープを食べたよ。',
         photoPlayerPose: { x: 260, y: 555, scale: 1.18 },
         actors: [
@@ -336,7 +336,7 @@ VA.Data.DESTS = [
         ],
         props: [
           // Serve the crêpe from the center of the pan in the backdrop.
-          { id: 'crepe', icon: '🥞', file: 'crepe.png', x: 645, y: 305, size: 80, hidden: true },
+          { id: 'crepe', icon: '🥞', file: 'crepe.webp', x: 645, y: 305, size: 80, hidden: true },
         ],
         amb: [{ type: 'fireflies', band: [0.55, 0.8], n: 4 }],
         steps: [
@@ -352,7 +352,7 @@ VA.Data.DESTS = [
           { show: 'crepe' }, { sfx: 'pop' },
           { say: ['fr_vendor', 'Here you are.', 'はい、どうぞ。'] },
           { auto: ['player', 'Thank you!', 'ありがとう！'] },
-          { reward: { itemId: 'crepe', illustration: 'crepe.png', word: 'Crepe' } },
+          { reward: { itemId: 'crepe', illustration: 'crepe.webp', word: 'Crepe' } },
           { reaction: { kind: 'food-feast', duration: 1000 } },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Yummy!', 'おいしい！'] },
@@ -364,8 +364,8 @@ VA.Data.DESTS = [
         title: 'Eiffel Tower', titleJP: 'エッフェル塔', icon: '🗼', price: 3,
         // Beside the Eiffel Tower in the arrival background.
         hotspot: { x: 390, y: 335 },
-        backdrop: 'event_france_eiffel.png', painter: 'ev_fr_eiffel',
-        photoFile: 'photo_france_eiffel.png', photoIcon: '',
+        backdrop: 'event_france_eiffel.webp', painter: 'ev_fr_eiffel',
+        photoFile: 'photo_france_eiffel.webp', photoIcon: '',
         caption: 'I saw the Eiffel Tower.', captionJP: 'エッフェル塔を見たよ。',
         // Keep the foreground clear: this tall landmark shot starts at the
         // Eiffel Tower's base, then pans all the way up to its tip.
@@ -401,8 +401,8 @@ VA.Data.DESTS = [
         keepCastOnStage: true,
         // In the broad open square, leaving the player and landmarks clear.
         hotspot: { x: 670, y: 500 },
-        backdrop: 'event_france_park.png', painter: 'ev_fr_park',
-        photoFile: 'photo_france_soccer.png', photoIcon: '⚽',
+        backdrop: 'event_france_park.webp', painter: 'ev_fr_park',
+        photoFile: 'photo_france_soccer.webp', photoIcon: '⚽',
         caption: 'I played soccer.', captionJP: 'サッカーをしたよ。',
         actors: [
           { id: 'fr_kid', char: 'fr_kid', x: 700, y: 530, scale: 1 },
@@ -410,7 +410,7 @@ VA.Data.DESTS = [
           { id: 'pige', char: 'pigeon', x: 130, y: 570, scale: 1 },
         ],
         props: [
-          { id: 'ball', icon: '⚽', file: 'soccerball.png', x: 480, y: 520, size: 68 },
+          { id: 'ball', icon: '⚽', file: 'soccerball.webp', x: 480, y: 520, size: 68 },
         ],
         amb: [{ type: 'particles', kind: 'leaf', n: 7 }],
         steps: [
@@ -432,8 +432,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'tower', label: 'Little Tower', icon: '🗼', file: 'souvenir_eiffel.png', line: 'The little tower, please.', jp: 'ミニエッフェル塔をください。', reactJP: 'エッフェル塔！', home: { slot: 'Left bookshelf top', x: 120, y: 173, w: 126, h: 76 }, memory: { event: 'france-memory', answer: 'I saw the Eiffel Tower.', answerJP: 'エッフェル塔を見たよ。' }, grandmaLine: 'Your little tower is beautiful.' },
-      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.png', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 855, y: 528, w: 166, h: 64 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
+      { id: 'tower', label: 'Little Tower', icon: '🗼', file: 'souvenir_eiffel.webp', line: 'The little tower, please.', jp: 'ミニエッフェル塔をください。', reactJP: 'エッフェル塔！', home: { slot: 'Left bookshelf top', x: 120, y: 173, w: 126, h: 76 }, memory: { event: 'france-memory', answer: 'I saw the Eiffel Tower.', answerJP: 'エッフェル塔を見たよ。' }, grandmaLine: 'Your little tower is beautiful.' },
+      { id: 'beret', label: 'Beret', icon: '👒', file: 'souvenir_beret.webp', line: 'The beret, please.', jp: 'ベレーぼうをください。', reactJP: 'ベレーぼう！', home: { slot: 'Coffee table', x: 855, y: 528, w: 166, h: 64 }, memory: { event: 'france-memory', answer: 'I bought a beret.', answerJP: 'ベレーぼうを買ったよ。' }, grandmaLine: 'This beret reminds me of Paris.' },
     ],
   },
 
@@ -442,7 +442,7 @@ VA.Data.DESTS = [
     id: 'egypt',
     name: 'Egypt', jp: 'エジプト',
     flag: '🇪🇬', stampIcon: '🐪', color: '#c9913c',
-    bg: 'background_egypt_desert.png', painter: 'egyptDesert',
+    bg: 'background_egypt_desert.webp', painter: 'egyptDesert',
     lighting: { brightness: 0.98, saturation: 0.95, temperature: 'warm', tintColor: 'rgba(255,191,92,.11)' },
     lightDirection: 'left',
     rimLight: { enabled: false },
@@ -466,8 +466,8 @@ VA.Data.DESTS = [
         title: 'Kebab Stall', titleJP: 'ケバブやさん', icon: '🍢', price: 3,
         // Beside the left-hand market stalls, safely to the player's right.
         hotspot: { x: 305, y: 465 },
-        backdrop: 'event_egypt_kebab.png', painter: 'ev_eg_kebab',
-        photoFile: 'photo_egypt_kebab.png', photoIcon: '🍢',
+        backdrop: 'event_egypt_kebab.webp', painter: 'ev_eg_kebab',
+        photoFile: 'photo_egypt_kebab.webp', photoIcon: '🍢',
         caption: 'I ate a kebab.', captionJP: 'ケバブを食べたよ。',
         photoPlayerPose: { x: 260, y: 555 },
         actors: [
@@ -476,7 +476,7 @@ VA.Data.DESTS = [
         ],
         props: [
           // Serve the kebab directly from the grill in the backdrop.
-          { id: 'keb', icon: '🍢', file: 'kebab.png', x: 390, y: 280, size: 80, hidden: true },
+          { id: 'keb', icon: '🍢', file: 'kebab.webp', x: 390, y: 280, size: 80, hidden: true },
         ],
         amb: [{ type: 'particles', kind: 'sand', n: 6 }],
         steps: [
@@ -491,7 +491,7 @@ VA.Data.DESTS = [
           { show: 'keb' }, { sfx: 'pop' },
           { say: ['eg_vendor', 'Here you are.', 'はい、どうぞ。'] },
           { auto: ['player', 'Thank you!', 'ありがとう！'] },
-          { reward: { itemId: 'keb', illustration: 'kebab.png', word: 'Kebab' } },
+          { reward: { itemId: 'keb', illustration: 'kebab.webp', word: 'Kebab' } },
           { reaction: { kind: 'food-feast', duration: 1000 } },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Yummy!', 'おいしい！'] },
@@ -503,8 +503,8 @@ VA.Data.DESTS = [
         title: 'The Pyramids', titleJP: 'ピラミッド', icon: '🔺', price: 3,
         // Alongside the central pyramid.
         hotspot: { x: 690, y: 285 },
-        backdrop: 'event_egypt_pyramid.png', painter: 'ev_eg_pyramid',
-        photoFile: 'photo_egypt_pyramids.png', photoIcon: '🐪',
+        backdrop: 'event_egypt_pyramid.webp', painter: 'ev_eg_pyramid',
+        photoFile: 'photo_egypt_pyramids.webp', photoIcon: '🐪',
         caption: 'I saw the pyramids.', captionJP: 'ピラミッドを見たよ。',
         photoPlayerPose: { x: 300, y: 610, scale: 1.18 },
         actors: [
@@ -543,16 +543,16 @@ VA.Data.DESTS = [
         keepCastOnStage: true,
         // In the clear sandy foreground on the right.
         hotspot: { x: 755, y: 505 },
-        backdrop: 'event_egypt_sand.png', painter: 'ev_eg_sand',
-        photoFile: 'photo_egypt_sand.png', photoIcon: '🔺',
+        backdrop: 'event_egypt_sand.webp', painter: 'ev_eg_sand',
+        photoFile: 'photo_egypt_sand.webp', photoIcon: '🔺',
         caption: 'I played in the sand.', captionJP: 'すなあそびをしたよ。',
         actors: [
           { id: 'eg_kid', char: 'eg_kid', x: 805, y: 540, scale: 1 },
           { id: 'player', char: 'player', x: 300, y: 555, scale: 1.05 },
         ],
         props: [
-          { id: 'pyr', icon: '🔺', file: 'sand_pyramid.png', x: 480, y: 520, size: 52, hidden: true, anchor: 'bottom', chip: false },
-          { id: 'flag', icon: '🚩', file: 'flag_small.png', x: 480, y: 415, size: 60, hidden: true, anchor: 'bottom', chip: false },
+          { id: 'pyr', icon: '🔺', file: 'sand_pyramid.webp', x: 480, y: 520, size: 52, hidden: true, anchor: 'bottom', chip: false },
+          { id: 'flag', icon: '🚩', file: 'flag_small.webp', x: 480, y: 415, size: 60, hidden: true, anchor: 'bottom', chip: false },
         ],
         amb: [{ type: 'particles', kind: 'sand', n: 8 }],
         steps: [
@@ -574,8 +574,8 @@ VA.Data.DESTS = [
     ],
 
     souvenirs: [
-      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.png', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Right bookshelf top', x: 870, y: 80, w: 126, h: 76 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
-      { id: 'camel', label: 'Camel Toy', icon: '🐪', file: 'souvenir_camel.png', line: 'The camel toy, please.', jp: 'ラクダのおもちゃをください。', reactJP: 'ラクダ！', home: { slot: 'Left bookshelf middle', x: 120, y: 277, w: 126, h: 76 }, memory: { event: 'egypt-memory', answer: 'I saw a camel.', answerJP: 'ラクダを見たよ。' }, grandmaLine: 'Your camel toy makes me smile.' },
+      { id: 'goldpyr', label: 'Gold Pyramid', icon: '🔺', file: 'souvenir_pyramid.webp', line: 'The gold pyramid, please.', jp: '金のピラミッドをください。', reactJP: '金のピラミッド！', home: { slot: 'Right bookshelf top', x: 870, y: 80, w: 126, h: 76 }, memory: { event: 'egypt-memory', answer: 'I saw a pyramid.', answerJP: 'ピラミッドを見たよ。' }, grandmaLine: 'I like my little pyramid.' },
+      { id: 'camel', label: 'Camel Toy', icon: '🐪', file: 'souvenir_camel.webp', line: 'The camel toy, please.', jp: 'ラクダのおもちゃをください。', reactJP: 'ラクダ！', home: { slot: 'Left bookshelf middle', x: 120, y: 277, w: 126, h: 76 }, memory: { event: 'egypt-memory', answer: 'I saw a camel.', answerJP: 'ラクダを見たよ。' }, grandmaLine: 'Your camel toy makes me smile.' },
     ],
   },
 ];

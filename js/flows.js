@@ -82,16 +82,15 @@ VA.Flows = {
     VA.Audio.ambient(['wind']);
     VA.Ambient.set([{ type: 'clouds', band: [0.05, 0.85], n: 4 }]);
 
-    this.preloadTravelScreen();
+    this.preloadTravelScreen(false);
   },
 
-  // Both the country picker and the souvenir purchase lead directly into the
-  // established airplane screen. Keep that small, shared asset set warm.
-  preloadTravelScreen() {
-    VA.Art.preloadAndWait([
-      'assets/backgrounds/background_travel_sky.png',
-      VA.Art.travelPortraitPath(false),
-      VA.Art.travelPortraitPath(true),
+  // Warm only the travel direction that is actually next. The other portrait
+  // can wait until departure instead of competing on the map.
+  preloadTravelScreen(homeward) {
+    VA.Art.preloadIdle([
+      'assets/backgrounds/background_travel_sky.webp',
+      VA.Art.travelPortraitPath(!!homeward),
     ]);
   },
 
@@ -231,7 +230,7 @@ VA.Flows = {
       const items = dest.souvenirs.map(s => ({ text: s.line, jp: s.jp, value: s.id }));
       const chosen = await D.choice(items);
       const souv = dest.souvenirs.find(s => s.id === chosen);
-      this.preloadTravelScreen();
+      this.preloadTravelScreen(true);
       VA.Audio.sfx('coins');
       VA.State.addCoins(-3);
       VA.State.setSouvenir(souv);

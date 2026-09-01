@@ -5,3 +5,5 @@ test-e2e.js
 .github/
 ASSETS.md
 DESIGN.md
+PERFORMANCE_REPORT.md
+scripts/

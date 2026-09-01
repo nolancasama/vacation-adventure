@@ -31,13 +31,13 @@ VA.Cine = {
   world: null,
   ctx: null, // current run context {event, dest, actors:{}, props:{}}
   VOLLEY_FINALE_ASSETS: [
-    'assets/backgrounds/volleyball_finale_court.png',
-    'assets/backgrounds/volleyball_finale_spiked_court.png',
-    'assets/objects/volleyball_finale_girl_scared.png',
-    'assets/objects/volleyball_finale_girl_cowering.png',
-    'assets/objects/volleyball_finale_spiker.png',
-    'assets/objects/volleyball_finale_spiker_girl.png',
-    'assets/objects/volleyball_finale_ball.png',
+    'assets/backgrounds/volleyball_finale_court.webp',
+    'assets/backgrounds/volleyball_finale_spiked_court.webp',
+    'assets/objects/volleyball_finale_girl_scared.webp',
+    'assets/objects/volleyball_finale_girl_cowering.webp',
+    'assets/objects/volleyball_finale_spiker.webp',
+    'assets/objects/volleyball_finale_spiker_girl.webp',
+    'assets/objects/volleyball_finale_ball.webp',
   ],
   // Kept in one place so the comic timing can be tuned without touching the
   // sequence below.  The five power-shot beats add up to 2.8 seconds.
@@ -153,10 +153,8 @@ VA.Cine = {
     // These images are shown later in food scenes, but warm them while the
     // player is talking so its smash-cut never waits for a download/decode.
     if ((evt.steps || []).some(step => step.reaction && step.reaction.kind === 'food-feast')) {
-      VA.Art.preload([
-        'assets/objects/kebab_reaction_boy.png',
-        'assets/objects/kebab_reaction_girl.png',
-      ]);
+      const look = VA.State.data.playerLook === 'girl' ? 'girl' : 'boy';
+      VA.Art.preload(['assets/objects/kebab_reaction_' + look + '.webp']);
     }
     VA.Ambient.set(evt.amb || []);
     await this._afterNextPaint();
@@ -188,7 +186,7 @@ VA.Cine = {
      crop from tower base to tip, while the people drift below the camera like
      they would when someone naturally looks up. */
   towerPan({ from = 100, to = 0, dur = 3600 }) {
-    const image = this.world.querySelector('.art-layer img[src$="event_france_eiffel.png"]');
+    const image = this.world.querySelector('.art-layer img[src$="event_france_eiffel.webp"]');
     const actors = this.world.querySelector('.actor-layer');
     if (!image) return VA.wait(dur);
     image.style.transition = 'none';
@@ -324,6 +322,7 @@ VA.Cine = {
     // Short, deliberate pause: CSS pauses bobbing/idle effects and the overlay
     // captures input while the cinematic engine waits here.
     if (screen) screen.classList.add('item-reward-paused');
+    VA.Ambient.pause();
     overlay.hidden = false;
     overlay.classList.remove('is-visible');
     await VA.wait(200);
@@ -381,6 +380,7 @@ VA.Cine = {
       const timeout = setTimeout(close, cfg.duration || 1850);
     });
     if (screen) screen.classList.remove('item-reward-active', 'item-reward-paused');
+    VA.Ambient.resume();
   },
 
   /* A one-second comic cutaway after receiving food. It deliberately occupies
@@ -392,7 +392,7 @@ VA.Cine = {
     if (!overlay || !art) return;
 
     const isGirl = VA.State.data && VA.State.data.playerLook === 'girl';
-    art.src = 'assets/objects/kebab_reaction_' + (isGirl ? 'girl' : 'boy') + '.png';
+    art.src = 'assets/objects/kebab_reaction_' + (isGirl ? 'girl' : 'boy') + '.webp';
     art.alt = 'A joyful food feast';
     overlay.hidden = false;
     overlay.classList.remove('is-visible', 'is-leaving');
@@ -421,8 +421,8 @@ VA.Cine = {
     const shot = VA.el('div', 'volleyball-finale-shot volleyball-finale-' + kind);
     if (kind !== 'spike') {
       const court = kind === 'spiked'
-        ? 'assets/backgrounds/volleyball_finale_spiked_court.png'
-        : 'assets/backgrounds/volleyball_finale_court.png';
+        ? 'assets/backgrounds/volleyball_finale_spiked_court.webp'
+        : 'assets/backgrounds/volleyball_finale_court.webp';
       shot.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
     }
 
@@ -430,7 +430,7 @@ VA.Cine = {
       const camera = VA.el('div', 'volleyball-scared-camera');
       camera.appendChild(this._volleyballFinaleImage(
         'volleyball-final-girl',
-        'assets/objects/volleyball_finale_girl_scared.png',
+        'assets/objects/volleyball_finale_girl_scared.webp',
         'Scared beach volleyball player',
       ));
       shot.appendChild(camera);
@@ -441,8 +441,8 @@ VA.Cine = {
       const camera = VA.el('div', 'volleyball-spike-camera');
       const isGirlPlayer = VA.State.data && VA.State.data.playerLook === 'girl';
       const spiker = isGirlPlayer
-        ? 'assets/objects/volleyball_finale_spiker_girl.png'
-        : 'assets/objects/volleyball_finale_spiker.png';
+        ? 'assets/objects/volleyball_finale_spiker_girl.webp'
+        : 'assets/objects/volleyball_finale_spiker.webp';
       const aura = VA.el('div', 'volleyball-power-aura');
       const particles = VA.el('div', 'volleyball-energy-particles');
       for (let i = 0; i < 14; i++) {
@@ -454,7 +454,7 @@ VA.Cine = {
       }
       camera.append(
         this._volleyballFinaleImage('volleyball-final-spiker', spiker, 'Player ready to spike'),
-        this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.png', 'Volleyball'),
+        this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.webp', 'Volleyball'),
         VA.el('span', 'volleyball-ball-glint'),
       );
       shot.append(aura, particles, camera, VA.el('div', 'volleyball-shockwave'), VA.el('div', 'volleyball-impact-flash'));
@@ -470,7 +470,7 @@ VA.Cine = {
     }
     shot.appendChild(this._volleyballFinaleImage(
       'volleyball-final-girl',
-      'assets/objects/volleyball_finale_girl_cowering.png',
+      'assets/objects/volleyball_finale_girl_cowering.webp',
       'Cowering beach volleyball player',
     ));
     shot.appendChild(dust);

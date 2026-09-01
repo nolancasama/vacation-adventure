@@ -15,7 +15,8 @@ VA.Main = {
     VA.Dialogue.init();
     VA.Voice.init();
 
-    VA.$('#stage').classList.toggle('no-labels', !VA.State.data.settings.labels);
+    const debugMode = new URLSearchParams(location.search).has('debug');
+    VA.$('#stage').classList.toggle('no-labels', !debugMode && !VA.State.data.settings.labels);
     // Ctrl+Shift+D is Chrome/Edge's own "bookmark all tabs" shortcut — the
     // browser swallows it before page JS ever sees the keydown, so it can
     // never be overridden. Ctrl+Alt+D isn't claimed by any mainstream browser.
@@ -47,8 +48,13 @@ VA.Main = {
     await VA.Fx.afterNextPaint();
     VA.$('#stage').classList.remove('is-booting');
 
-    // This is used later, so warm it only after the title has been revealed.
-    VA.Art.preload(['assets/backgrounds/background_map_world.png']);
+    // Warm the future map sequentially after the title is visible. The map
+    // background remains first priority; cards follow in idle time rather than
+    // competing with the title and character-picker downloads.
+    VA.Art.preloadIdle([
+      'assets/backgrounds/background_map_world.webp',
+      ...VA.Data.DESTS.map(dest => `assets/backgrounds/card_${dest.id}.webp`),
+    ]);
 
     console.log('%c🏝 Vacation Adventure v' + VA.VERSION + ' — placeholder build',
       'font-size:14px;color:#ef6d3d;font-weight:bold');
@@ -61,7 +67,7 @@ VA.Main = {
     // The long painted sky repeats inside one moving strip.  Its duplicate makes
     // the slow horizontal drift loop without a visible reset.
     const cloudTrack = VA.el('div', 'title-cloud-track');
-    const cloudPath = 'assets/backgrounds/intro_cloud_long.png?v=20260805';
+    const cloudPath = 'assets/backgrounds/intro_cloud_long.webp?v=20260805';
     cloudTrack.dataset.assetPath = cloudPath;
     for (let i = 0; i < 2; i++) {
       const cloud = document.createElement('img');
@@ -76,7 +82,7 @@ VA.Main = {
     // moving sky but below the title controls.
     const foreground = VA.$('#title-foreground');
     foreground.innerHTML = '';
-    VA.Art.layer(foreground, { file: 'intro_paradise_1.png?v=20260805', chip: false, fallback: false });
+    VA.Art.layer(foreground, { file: 'intro_paradise_1.webp?v=20260805', chip: false, fallback: false });
 
     scr.classList.add('active');
     VA.Screens.current = 'title';

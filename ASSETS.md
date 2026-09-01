@@ -1,8 +1,8 @@
 # Vacation Adventure — Asset Manifest
 
-The game ships with **zero real assets**. Every visual and sound is a labeled
-placeholder (procedural canvas painting, generated SVG figure, emoji prop, or
-WebAudio synth). Each placeholder shows a small chip with the filename below.
+The game ships with optimized painted artwork and recorded dialogue. Procedural
+canvas art, generated figures, emoji props, and WebAudio remain as fallbacks for
+optional assets that have not been supplied.
 
 **To upgrade any asset:** drop the real file into the matching folder with the
 exact filename. The game detects it automatically the next time the scene loads
@@ -10,13 +10,13 @@ exact filename. The game detects it automatically the next time the scene loads
 
 ```
 assets/
-  backgrounds/   PNG, 1920×1200 (displayed at 960×600, 2× for crisp scaling)
-  characters/    PNG with transparency, ~300px tall, full body, front-facing
-  objects/       PNG with transparency, ~128px
+  backgrounds/   WebP, sized for the 960×600 stage
+  characters/    WebP with alpha transparency, full body, front-facing
+  objects/       WebP with alpha transparency, display-sized by use
   audio/sfx/     WAV, short one-shots
   audio/ambient/ WAV, loopable, 20s+
   audio/music/   MP3, loopable
-  audio/voice/   WAV (future: recorded lines replace text-to-speech)
+  audio/voice/   MP3 recorded dialogue
 ```
 
 Art direction for all backgrounds: **painted anime / light-novel style,
@@ -29,13 +29,15 @@ Characters: expressive anime style, kid-friendly proportions.
 
 | File | Description |
 |---|---|
-| `backgrounds/background_title.png` | Bright tropical bay, big sky, distant island — invites adventure |
-| `backgrounds/background_travel_sky.png` | Above the clouds, soft sunlight, cloud sea below |
-| `backgrounds/background_map_world.png` | Storybook world map, painted ocean, stylized continents, dotted flight routes |
-| `characters/player.png` | The player: cheerful 11-year-old traveler, coral T-shirt (also: `player_happy` / `player_wow` expressions later) |
-| `characters/grandma.png` | Warm smiling grandma, glasses, silver bun, lavender cardigan |
-| `characters/officer.png` | Friendly airport officer, navy uniform + cap |
-| `objects/plane.png` | Small friendly passenger plane, side view, red tail |
+| `backgrounds/intro_cloud_long.webp` | Slowly moving painted title sky |
+| `backgrounds/intro_paradise_1.webp` | Transparent tropical title foreground |
+| `backgrounds/background_travel_sky.webp` | Above the clouds, soft sunlight, cloud sea below |
+| `backgrounds/background_map_world.webp` | Storybook world map, painted ocean, stylized continents, dotted flight routes |
+| `characters/player-alpha.webp` | Boy player: cheerful 11-year-old traveler, coral T-shirt |
+| `characters/player_girl.webp` | Girl player variant |
+| `characters/grandma-clean.webp` | Warm smiling grandma, glasses, silver bun, lavender cardigan |
+| `characters/officer.webp` | Friendly airport officer, navy uniform + cap |
+| `objects/plane.webp` | Small friendly passenger plane, side view, red tail |
 
 **Sounds (interaction, used everywhere)**
 `sfx/click.wav` `sfx/tap.wav` `sfx/pop.wav` `sfx/coins.wav` `sfx/camera.wav`
@@ -52,7 +54,7 @@ Characters: expressive anime style, kid-friendly proportions.
 
 | File | Description |
 |---|---|
-| `backgrounds/background_home_livingroom.png` | Cozy Japanese living room, morning light through window, sofa, rug, framed photos, teapot |
+| `backgrounds/background_home_livingroom.webp` | Cozy Japanese living room, morning light through window, sofa, rug, framed photos, teapot |
 
 - **Music:** `music/theme_home.mp3` — gentle, warm, nostalgic
 - **Ambient:** `ambient/room.wav` — quiet room tone, clock, distant birds
@@ -64,16 +66,16 @@ Characters: expressive anime style, kid-friendly proportions.
 
 | File | Description |
 |---|---|
-| `backgrounds/background_australia_beach.png` | Golden sand, turquoise ocean, beach umbrella, palms, sailboat |
-| `backgrounds/event_australia_icecream.png` | Close-up of a cute ice-cream cart with striped awning on the sand |
-| `backgrounds/event_australia_kangaroo.png` | Grassy wildlife park, eucalyptus trees, wooden fence |
-| `backgrounds/event_australia_volleyball.png` | Beach volleyball court, net, ocean behind |
-| `characters/vendor_icecream.png` | Sunny ice-cream man, cap + apron |
-| `characters/ranger_australia.png` | Park ranger, wide-brim hat |
-| `characters/kids_australia.png` | Beach kid, pigtails, yellow shirt |
-| `characters/kangaroo.png` | Friendly kangaroo (needs hop pose) |
-| `objects/icecream.png` `objects/volleyball.png` | Props |
-| `objects/souvenir_koala.png` `objects/souvenir_shell.png` | Souvenirs |
+| `backgrounds/background_australia_beach.webp` | Golden sand, turquoise ocean, beach umbrella, palms, sailboat |
+| `backgrounds/event_australia_icecream.webp` | Close-up of a cute ice-cream cart with striped awning on the sand |
+| `backgrounds/event_australia_kangaroo.webp` | Grassy wildlife park, eucalyptus trees, wooden fence |
+| `backgrounds/event_australia_volleyball.webp` | Beach volleyball court, net, ocean behind |
+| `characters/vendor_icecream-alpha.webp` | Sunny ice-cream man, cap + apron |
+| `characters/ranger_australia-alpha.webp` | Park ranger, wide-brim hat |
+| `characters/kids_australia-alpha.webp` | Beach kid, pigtails, yellow shirt |
+| `characters/kangaroo.webp` | Friendly kangaroo (needs hop pose) |
+| `objects/icecream.webp` `objects/volleyball.webp` | Props |
+| `objects/souvenir_koala.webp` `objects/souvenir_shell.webp` | Souvenirs |
 
 - **Music:** `music/theme_australia.mp3` — relaxing acoustic guitar
 - **Ambient:** `ambient/waves.wav` · `ambient/seagulls.wav` · `ambient/wind.wav`
@@ -86,16 +88,16 @@ Characters: expressive anime style, kid-friendly proportions.
 
 | File | Description |
 |---|---|
-| `backgrounds/background_paris_evening.png` | Sunset over Paris, Eiffel Tower silhouette, warm windows, string lights, café |
-| `backgrounds/event_france_crepe.png` | Cobbled corner, crêpe stand with round griddle, blue awning, lamplight |
-| `backgrounds/event_france_eiffel.png` | Eiffel Tower from below at dusk, first stars |
-| `backgrounds/event_france_park.png` | Evening park lawn, trees, bench, small soccer goal, tower tip in distance |
-| `characters/vendor_crepe.png` | Crêpe chef, beret + apron |
-| `characters/guide_paris.png` | Marie, friendly guide, long hair |
-| `characters/kids_paris.png` | Louis, park kid with cap |
-| `characters/pigeon.png` | Plump Paris pigeon |
-| `objects/crepe.png` `objects/soccerball.png` | Props |
-| `objects/souvenir_eiffel.png` `objects/souvenir_beret.png` | Souvenirs |
+| `backgrounds/background_paris_evening.webp` | Sunset over Paris, Eiffel Tower silhouette, warm windows, string lights, café |
+| `backgrounds/event_france_crepe.webp` | Cobbled corner, crêpe stand with round griddle, blue awning, lamplight |
+| `backgrounds/event_france_eiffel.webp` | Eiffel Tower from below at dusk, first stars |
+| `backgrounds/event_france_park.webp` | Evening park lawn, trees, bench, small soccer goal, tower tip in distance |
+| `characters/vendor_crepe-clean.webp` | Crêpe chef, beret + apron |
+| `characters/guide_paris.webp` | Marie, friendly guide, long hair |
+| `characters/kids_paris.webp` | Louis, park kid with cap |
+| `characters/pigeon.webp` | Plump Paris pigeon |
+| `objects/crepe.webp` `objects/soccerball.webp` | Props |
+| `objects/souvenir_eiffel.webp` `objects/souvenir_beret.webp` | Souvenirs |
 
 - **Music:** `music/theme_paris.mp3` — soft accordion waltz
 - **Ambient:** `ambient/city_evening.wav` · `ambient/pigeons.wav` · `ambient/crickets.wav`
@@ -108,16 +110,16 @@ Characters: expressive anime style, kid-friendly proportions.
 
 | File | Description |
 |---|---|
-| `backgrounds/background_egypt_desert.png` | Golden desert, three pyramids, dunes, market tents with pennant flags, low sun |
-| `backgrounds/event_egypt_kebab.png` | Market stall, striped canopy, hanging lamps, glowing grill |
-| `backgrounds/event_egypt_pyramid.png` | The Great Pyramid up close, huge against the sky |
-| `backgrounds/event_egypt_sand.png` | Soft sand play spot, bucket & spade, pyramids in the distance |
-| `characters/vendor_kebab.png` | Cheerful kebab man, head scarf + apron |
-| `characters/guide_egypt.png` | Amira, desert guide, white scarf |
-| `characters/kids_egypt.png` | Layla, local kid, teal top |
-| `characters/camel.png` | Coco the camel, red saddle blanket |
-| `objects/kebab.png` `objects/sand_pyramid.png` `objects/flag_small.png` | Props |
-| `objects/souvenir_pyramid.png` `objects/souvenir_camel.png` | Souvenirs |
+| `backgrounds/background_egypt_desert.webp` | Golden desert, three pyramids, dunes, market tents with pennant flags, low sun |
+| `backgrounds/event_egypt_kebab.webp` | Market stall, striped canopy, hanging lamps, glowing grill |
+| `backgrounds/event_egypt_pyramid.webp` | The Great Pyramid up close, huge against the sky |
+| `backgrounds/event_egypt_sand.webp` | Soft sand play spot, bucket & spade, pyramids in the distance |
+| `characters/vendor_kebab.webp` | Cheerful kebab man, head scarf + apron |
+| `characters/guide_egypt.webp` | Amira, desert guide, white scarf |
+| `characters/kids_egypt.webp` | Layla, local kid, teal top |
+| `characters/camel.webp` | Coco the camel, red saddle blanket |
+| `objects/kebab.webp` `objects/sand_pyramid.webp` `objects/flag_small.webp` | Props |
+| `objects/souvenir_pyramid.webp` `objects/souvenir_camel.webp` | Souvenirs |
 
 - **Music:** `music/theme_egypt.mp3` — gentle oud / desert flute
 - **Ambient:** `ambient/desert_wind.wav` · `ambient/market.wav` · `ambient/hawk.wav`
@@ -132,9 +134,9 @@ Polaroids are rendered by the game from the event scene; when real event
 backdrops exist they appear inside the photos automatically. Reference names
 used in the scrapbook data:
 
-`photo_australia_icecream.png` `photo_australia_kangaroo.png` `photo_australia_volleyball.png`
-`photo_france_crepe.png` `photo_france_eiffel.png` `photo_france_soccer.png`
-`photo_egypt_kebab.png` `photo_egypt_pyramids.png` `photo_egypt_sand.png`
+`photo_australia_icecream.webp` `photo_australia_kangaroo.webp` `photo_australia_volleyball.webp`
+`photo_france_crepe.webp` `photo_france_eiffel.webp` `photo_france_soccer.webp`
+`photo_egypt_kebab.webp` `photo_egypt_pyramids.webp` `photo_egypt_sand.webp`
 
 ## Voice (future)
 
