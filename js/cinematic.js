@@ -13,6 +13,8 @@
      {wait:ms}               hold the moment
      {say:['vendor','One ice cream?','アイスはいかが？']}   tap to continue
      {auto:['player','Yummy!','おいしい！',2200]}           auto-advances (optional hold ms)
+                             say/auto take jpMode:'visible' for lines whose
+                             Japanese should show at once (see dialogue.js)
      {choice:{items:[...]}}  player speaks by choosing a line (required beats)
      {offer:{who,yes:{text,jp}}} optional invitation, answered out loud;
                              "no" ends the event with nothing spent or saved
@@ -212,8 +214,8 @@ VA.Cine = {
       if (st.cam)     { await this.cam(st.cam); continue; }
       if (st.towerPan){ await this.towerPan(st.towerPan); continue; }
       if (st.wait)    { await VA.wait(st.wait); continue; }
-      if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3] }); continue; }
-      if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2], dur: st.auto[3] }); continue; }
+      if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3], jpMode: st.jpMode }); continue; }
+      if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2], dur: st.auto[3], jpMode: st.jpMode }); continue; }
       if (st.choice)  { ctx.choice = await VA.Dialogue.choice(st.choice.items, st.choice); continue; }
       if (st.offer) {
         const O = VA.Data.OFFER;

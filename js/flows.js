@@ -34,14 +34,14 @@ VA.Flows = {
 
     const D = VA.Dialogue;
     await D.say('grandma', `Good morning, ${name}!`, { jp: `おはよう、${name}！` });
-    await D.say('grandma', 'Summer vacation is here!', { jp: '夏休みが来たよ！' });
+    await D.say('grandma', 'Summer vacation is here!', { jp: '夏休みが来たよ！', jpMode: 'visible' });
     await D.say('grandma', 'I have a present for you.', { jp: 'プレゼントがあるよ。' });
     VA.Audio.sfx('coins');
     VA.State.addCoins(VA.Data.ALLOWANCE);
     VA.Fx.sparkles(VA.$('#scr-home'), 480, 240);
     await D.say('grandma', 'Here is some money.', { jp: 'はい、おこづかい。' });
-    await D.say('grandma', 'Please go on a trip!', { jp: '旅行に行っておいで！' });
-    await D.say('grandma', 'And take many photos!', { jp: '写真をたくさん撮ってね！' });
+    await D.say('grandma', 'Please go on a trip!', { jp: '旅行に行っておいで！', jpMode: 'visible' });
+    await D.say('grandma', 'And take many photos!', { jp: '写真をたくさん撮ってね！', jpMode: 'visible' });
     await D.choice([
       { text: 'Thank you, Grandma!', jp: 'ありがとう、おばあちゃん！' },
       { text: 'Yay! A trip!', jp: 'やったー！旅行だ！' },
@@ -230,8 +230,8 @@ VA.Flows = {
       const vendorId = dest.events[0].actors.find(a => a.char.includes('vendor')) ?
         dest.events[0].actors.find(a => a.char.includes('vendor')).char : 'au_vendor';
       await D.say(vendorId, 'Wait! One moment!', { jp: 'ちょっと待って！' });
-      await D.say(vendorId, 'A gift for Grandma?', { jp: 'おばあちゃんへのおみやげはいかが？' });
-      const items = dest.souvenirs.map(s => ({ text: s.line, jp: s.jp, value: s.id }));
+      await D.say(vendorId, 'A gift for Grandma?', { jp: 'おばあちゃんへのおみやげはいかが？', jpMode: 'visible' });
+      const items = dest.souvenirs.map(s => ({ text: s.line, jp: s.jp, value: s.id, jpMode: 'visible' }));
       const chosen = await D.choice(items);
       const souv = dest.souvenirs.find(s => s.id === chosen);
       this.preloadTravelScreen(true);
@@ -297,7 +297,7 @@ VA.Flows = {
         await D.choice([{ text: 'Nothing.', jp: 'なにも。', value: 'nothing' }]);
         await panel.fill(Q.verb);
         const R = VA.Data.NOTHING_REACTIONS[Q.verb];
-        await D.say('grandma', R.en, { jp: R.jp });
+        await D.say('grandma', R.en, { jp: R.jp, jpMode: 'visible' });
         continue;
       }
 
@@ -388,10 +388,10 @@ VA.Flows = {
         VA.Art.setMood(grandma, 'wow');
         await D.say('grandma', 'Hmm? Really?', { jp: 'あれ？ほんとに？' });
         if (went) {
-          await D.say('grandma', 'Look at your passport!', { jp: 'パスポートを見てごらん！' });
+          await D.say('grandma', 'Look at your passport!', { jp: 'パスポートを見てごらん！', jpMode: 'visible' });
           await VA.UI.showHint('stamp', dest);
         } else {
-          await D.say('grandma', 'Look at your photo!', { jp: '写真を見てごらん！' });
+          await D.say('grandma', 'Look at your photo!', { jp: '写真を見てごらん！', jpMode: 'visible' });
           await VA.UI.showHint('photo', photos[memories[0].id]);
         }
         VA.Art.setMood(grandma, 'happy');
@@ -419,12 +419,12 @@ VA.Flows = {
     await VA.Screens.show('home', { transition: 'home' });
     VA.Audio.music('theme_home');
     const D = VA.Dialogue;
-    await D.say('grandma', 'Your scrapbook is full!', { jp: 'スクラップブックがいっぱいになったね！' });
-    await D.say('grandma', 'You saw the world!', { jp: '世界を見てきたんだね！' });
+    await D.say('grandma', 'Your scrapbook is full!', { jp: 'スクラップブックがいっぱいになったね！', jpMode: 'visible' });
+    await D.say('grandma', 'You saw the world!', { jp: '世界を見てきたんだね！', jpMode: 'visible' });
     VA.Audio.sfx('fanfare');
     VA.Ambient.burst('confetti');
     VA.Fx.captionBig('🏆 SUPER TRAVELER! 🏆', 2600);
-    await D.say('grandma', 'You are a super traveler!', { jp: 'あなたはスーパートラベラーよ！' });
+    await D.say('grandma', 'You are a super traveler!', { jp: 'あなたはスーパートラベラーよ！', jpMode: 'visible' });
     await D.choice([{ text: 'Thank you, Grandma!', jp: 'ありがとう、おばあちゃん！' }]);
     VA.Fx.hearts(VA.$('#scr-home'), 480, 225);
     await D.say('grandma', 'Where next, I wonder?', { jp: 'つぎはどこに行こうか？' });

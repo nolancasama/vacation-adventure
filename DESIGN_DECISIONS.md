@@ -82,3 +82,30 @@ Interim transcripts are accepted as soon as they match.
 
 **Why.** Classroom Chromebooks and mics are unreliable. A recognition error is
 not a wrong answer.
+
+## 2026-09-25 — English first, Japanese when needed
+
+**What.** Dialogue Japanese is scaffolding, not a subtitle. Each line has a
+`jpMode`: `hint` (the `say` default) hides the Japanese behind a small
+"? 日本語" pill that reveals only that line and resets on the next;
+`visible` shows it at once; `hidden` (the `auto` default, for the player's
+quick exclamations) never shows it. `visible` is opted into by metadata, not
+phrase lists: story exposition and the photo goal in Grandma's intro, one-off
+facts ("It is 4,500 years old!"), unusual words ("sand pyramid"), the souvenir
+question and its buttons, the "Nothing?…" reactions, and recovery instructions
+("Look at your photo!"). Answer buttons show Japanese only when the item
+opts in (souvenir selection). In the spoken-answer ladder the question's
+Japanese appears from the second miss, alongside the vocabulary cue. It is not
+an extra rung, so fallback buttons still come at three misses, a blocked mic
+still shows them at once, and mic-free mode is unchanged. Settings → Japanese
+hints off shows no Japanese anywhere, including `visible` lines, the reveal pill
+and the ladder. No `jp` strings were removed.
+
+**Why.** The children have met these phrases before. Japanese under every
+line meant they read the translation instead of processing the English,
+especially in Grandma's review, which is the retrieval practice.
+
+**Rejected.** A hardcoded list of "easy phrases" compared by string; putting
+the ladder's Japanese in the hint panel (revealing it in the dialogue box
+works for every spoken prompt with no per-call wiring); a fourth ladder rung
+for Japanese, which would delay the buttons.

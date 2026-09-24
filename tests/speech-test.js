@@ -8,6 +8,9 @@
         → Eiffel (ticket button) → soccer "maybe later" → soccer "let's play"
         → depart → "not really" → review: went=STT, ate=Nothing button,
         saw=STT (one wrong "pyramids" first), played=STT
+   2b. English first: Japanese hidden by default, "? 日本語" reveal, ladder
+       reveal on the second miss, blocked/mic-free fallback, hints off
+   4. Egypt next trip, every answer spoken; questions asked English-only
 
    Run:  NODE_PATH=<folder with playwright>/node_modules node tests/speech-test.js */
 'use strict';
@@ -83,7 +86,7 @@ async function talk(page, label, stop, answers = {}, log = []) {
       const mic = wrap.querySelector('.mic-btn:not([disabled])');
       const btns = [...wrap.querySelectorAll('.choice-btn:not(.mic-btn)')].filter(b => !b.disabled).map(b => b.firstChild.textContent);
       if (!mic && !btns.length) return null;
-      return { q: document.querySelector('#dlg-text').textContent, mic: !!mic, listening: !!wrap.querySelector('.mic-btn.listening'), btns };
+      return { q: document.querySelector('#dlg-text').textContent, jp: document.querySelector('#dlg-jp .jp-reveal') ? '' : document.querySelector('#dlg-jp').textContent, mic: !!mic, listening: !!wrap.querySelector('.mic-btn.listening'), btns };
     });
     if (ui && ui.listening) { await page.waitForTimeout(150); continue; }
     if (ui) {
@@ -92,7 +95,7 @@ async function talk(page, label, stop, answers = {}, log = []) {
         let a = key ? answers[key] : null;
         if (Array.isArray(a)) a = a.shift();
         if (a == null) throw new Error(`${label}: no spoken answer scripted for "${ui.q}"`);
-        log.push({ q: ui.q, kind: 'mic', said: a });
+        log.push({ q: ui.q, kind: 'mic', said: a, jp: ui.jp });
         await say(page, typeof a === 'string' ? { final: a } : a);
         await jsClick(page, '#choices .mic-btn');
         await page.waitForTimeout(500);
@@ -232,6 +235,128 @@ async function talk(page, label, stop, answers = {}, log = []) {
   check(after.shown === 'none' && after.kids === 0, 'mic UI removed when the dialogue closed');
   await page.evaluate(() => { document.querySelector('#dialogue').style.display = 'none'; window.__recLog.maxActive = window.__recLog.active; });
 
+  /* ---------- 2b. English first, Japanese when needed ---------- */
+  console.log('japanese: hidden by default, on demand, and in the ladder');
+  const JP = /[぀-ヿ一-龯]/;
+  const jpNow = () => page.evaluate(() => {
+    const box = document.querySelector('#dlg-jp');
+    const reveal = box.querySelector('.jp-reveal');
+    return { text: reveal ? '' : box.textContent, reveal: !!reveal, noJp: document.querySelector('#dialogue').classList.contains('no-jp') };
+  });
+  await page.evaluate(() => {
+    VA.State.data.settings.jp = true;
+    window.__adv = 0;
+    VA.Dialogue.say('grandma', 'Hello!', { jp: 'こんにちは！' }).then(() => { window.__adv++; });
+  });
+  await page.waitForTimeout(400);
+  let jp = await jpNow();
+  check(jp.text === '' && jp.reveal, 'easy line: English only, with a "? 日本語" reveal');
+  await jsClick(page, '#dlg-jp .jp-reveal');
+  await page.waitForTimeout(200);
+  jp = await jpNow();
+  check(jp.text === 'こんにちは！' && !jp.reveal, '"? 日本語" reveals the current line\'s translation');
+  check(await page.evaluate(() => window.__adv) === 0, 'revealing Japanese does not advance the line');
+  await jsClick(page, '#dialogue');
+  await page.waitForTimeout(150);
+  await jsClick(page, '#dialogue');
+  await page.waitForTimeout(150);
+  check(await page.evaluate(() => window.__adv) === 1, 'a tap still advances after revealing');
+  await page.evaluate(() => { VA.Dialogue.say('grandma', 'What do you want?', { jp: '何がほしい？' }); });
+  await page.waitForTimeout(200);
+  jp = await jpNow();
+  check(jp.text === '' && jp.reveal, 'revealed Japanese resets on the next line');
+  await page.evaluate(() => { VA.Dialogue.say('au_ranger', 'It jumps very high!', { jp: 'とても高くジャンプするんだよ！', jpMode: 'visible' }); });
+  await page.waitForTimeout(200);
+  jp = await jpNow();
+  check(jp.text === 'とても高くジャンプするんだよ！' && !jp.reveal, 'jpMode "visible": Japanese shown at once');
+  await page.evaluate(() => { VA.Dialogue.auto('player', 'Yay!', { jp: 'やったー！' }); });
+  await page.waitForTimeout(200);
+  jp = await jpNow();
+  check(jp.text === '' && !jp.reveal && jp.noJp, 'auto exclamation: no Japanese, no reveal, English-only layout');
+  check(await page.evaluate(() => [...document.querySelectorAll('#choices .ch-jp')].length === 0 &&
+    VA.Dialogue._choiceBtn({ text: 'Yes, please!', jp: 'はい！' }, () => {}).querySelector('.ch-jp') === null &&
+    !!VA.Dialogue._choiceBtn({ text: 'The beret, please.', jp: 'ベレーぼうをください。', jpMode: 'visible' }, () => {}).querySelector('.ch-jp')),
+  'answer buttons: no Japanese unless the item opts in (souvenir selection)');
+  await page.evaluate(() => VA.Dialogue.hide());
+
+  // the ladder: frame first, the question's Japanese only from the second miss
+  const askEat = () => page.evaluate(() => {
+    window.__ans = undefined;
+    VA.Dialogue.say('grandma', 'What did you eat?', { jp: '何を食べたの？' });
+    VA.Dialogue.respond({
+      match: t => (VA.Speech.matchesAny(t, ['crepe']) ? 'ok' : null),
+      options: [{ value: 'ok', text: 'I ate a crepe.', jp: 'クレープを食べたよ。' }],
+      hints: ['I ate ______.', 'I ate ______.　👉 crepe'],
+    }).then(v => { window.__ans = v; });
+  });
+  const panelNow = () => page.evaluate(() => ({
+    hint: (document.querySelector('.speak-hint') || {}).textContent || '',
+    status: (document.querySelector('.speak-status') || {}).textContent || '',
+    fallback: [...document.querySelectorAll('.speak-fallback .choice-btn')].map(b => b.textContent),
+  }));
+  await askEat();
+  await page.waitForTimeout(300);
+  const rungs = [{ jp: await jpNow(), panel: await panelNow() }];
+  for (let i = 0; i < 3; i++) {
+    await say(page, { error: 'no-speech' });
+    await jsClick(page, '#choices .mic-btn');
+    await page.waitForTimeout(600);
+    rungs.push({ jp: await jpNow(), panel: await panelNow() });
+  }
+  check(rungs[0].jp.text === '' && !rungs[0].panel.hint, 'question starts English-only, no hint');
+  check(rungs[1].jp.text === '' && rungs[1].panel.status.includes('Try again') && rungs[1].panel.hint === 'I ate ______.', 'first miss: "Try again." + sentence frame, still no Japanese');
+  check(rungs[2].jp.text === '何を食べたの？' && rungs[2].panel.hint.includes('crepe'), 'second miss: vocabulary cue + the question\'s Japanese');
+  check(rungs[3].panel.fallback.join() === 'I ate a crepe.', 'third miss: contextual fallback button (no Japanese on it)');
+  await page.evaluate(() => VA.Dialogue.hide());
+
+  // a right answer on the first try: accepted from the interim, no Japanese ever shown
+  await askEat();
+  await page.waitForTimeout(300);
+  await say(page, { interim: ['crepe'], final: 'crepe please', finalDelay: 3000 });
+  await jsClick(page, '#choices .mic-btn');
+  await page.waitForTimeout(700);
+  jp = await jpNow();
+  check(jp.text === '' && await page.evaluate(() => document.querySelector('.speak-status').textContent.includes('crepe')), 'interim "crepe" accepted at once, Japanese never shown');
+  await page.waitForTimeout(2000);
+  check(await page.evaluate(() => window.__ans) === 'ok', 'accepted answer resolves the question');
+
+  // blocked mic: straight to the buttons, no Japanese rung in between
+  await askEat();
+  await page.waitForTimeout(300);
+  await say(page, { error: 'not-allowed' });
+  await jsClick(page, '#choices .mic-btn');
+  await page.waitForTimeout(600);
+  const blocked = await panelNow();
+  check(blocked.fallback.join() === 'I ate a crepe.' && blocked.status.includes('microphone'), 'blocked mic: fallback buttons on the first failure');
+  await page.evaluate(() => VA.Dialogue.hide());
+
+  // mic-free: buttons at once, question still English-first
+  await page.evaluate(() => { VA.State.data.settings.mic = false; });
+  await askEat();
+  await page.waitForTimeout(300);
+  const micFree = await page.evaluate(() => ({ mic: !!document.querySelector('#choices .mic-btn'), btns: [...document.querySelectorAll('#choices .choice-btn')].map(b => b.textContent) }));
+  check(!micFree.mic && micFree.btns.join() === 'I ate a crepe.', 'mic-free: the answer button at once, no ladder');
+  await page.evaluate(() => { VA.Dialogue.hide(); VA.State.data.settings.mic = true; });
+
+  // Japanese hints off: never visible, never revealable, not even by the ladder
+  await page.evaluate(() => { VA.State.data.settings.jp = false; });
+  await page.evaluate(() => { VA.Dialogue.say('au_ranger', 'It jumps very high!', { jp: 'とても高くジャンプするんだよ！', jpMode: 'visible' }); });
+  await page.waitForTimeout(200);
+  const offVisible = await jpNow();
+  await askEat();
+  await page.waitForTimeout(300);
+  const offTexts = [];
+  for (let i = 0; i < 3; i++) {
+    await say(page, { error: 'no-speech' });
+    await jsClick(page, '#choices .mic-btn');
+    await page.waitForTimeout(600);
+    offTexts.push(await page.evaluate(() => document.querySelector('#dialogue').textContent + document.querySelector('#choices').textContent));
+  }
+  check(!offVisible.text && !offVisible.reveal, 'hints off: even "visible" lines show no Japanese');
+  check(offTexts.every(t => !/何を食べたの|日本語|クレープ/.test(t)), 'hints off: the ladder never exposes a translation');
+  check(await page.evaluate(() => document.querySelectorAll('.speak-fallback .choice-btn').length === 1), 'hints off: fallback button still appears');
+  await page.evaluate(() => { VA.Dialogue.hide(); VA.State.data.settings.jp = true; document.querySelector('#dialogue').style.display = 'none'; });
+
   /* ---------- 3. France mixed trip ---------- */
   console.log('game: France mixed trip');
   await page.evaluate(() => { localStorage.clear(); });
@@ -298,6 +423,37 @@ async function talk(page, label, stop, answers = {}, log = []) {
   check(log.some(l => l.kind === 'hint'), 'wrong memory showed the photo hint');
   check(find('What did you play?')[0].kind === 'mic', '"What did you play?" is speech');
   check(!!(s.book.france && s.book.france.done), 'trip completed and scrapbook page saved');
+  const firstAsk = q => find(q)[0] || { jp: 'MISSING' };
+  ['Where did you go?', 'What did you see?', 'What did you play?', 'Did you have fun?'].forEach(q =>
+    check(!JP.test(firstAsk(q).jp), `review "${q}" is asked English-only`));
+  check(!JP.test(firstAsk('One crepe?').jp) && !JP.test(firstAsk("Let's play soccer!").jp), 'activity offers are English-only');
+
+  /* ---------- 4. Egypt: next trip, all spoken, all English-first ---------- */
+  console.log('game: Egypt trip');
+  await clickUntil(page, '#btn-book-close', () => !document.querySelector('#scr-scrapbook').classList.contains('active'), 'close scrapbook');
+  await talk(page, 'next trip', new Function(`return () => document.querySelector('#scr-map').classList.contains('active') && ${dlgHidden}`)(),
+    { 'Do you want another trip?': 'yes' }, log);
+  await clickUntil(page, '.dest-card[data-dest="egypt"]', () => !document.querySelector('#scr-map').classList.contains('active'), 'board egypt');
+  await talk(page, 'egypt passport', new Function(`return () => { const h = document.querySelector('#hs-kebab'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(), {}, log);
+  await runHotspot('kebab', { 'Try this kebab!': 'yes please' });
+  await runHotspot('pyramids', {});
+  await runHotspot('sand', { "Let's make a sand pyramid!": 'okay' });
+  s = await state(page);
+  check(['kebab', 'pyramids', 'sand'].every(id => s.trip.done.includes(id)), 'Egypt: all three activities completed');
+  await clickUntil(page, '#btn-depart', () => document.querySelector('#dialogue').style.display !== 'none' || !document.querySelector('#scr-explore').classList.contains('active'), 'depart egypt');
+  const egStart = log.length;
+  await talk(page, 'egypt debrief', () => document.querySelector('#scr-scrapbook').classList.contains('active'), {
+    'Did you have fun?': 'yes',
+    'Where did you go?': 'egypt',
+    'What did you eat?': 'kebab',
+    'What did you see?': 'the pyramids',
+    'What did you play?': 'sand',
+  }, log);
+  s = await state(page);
+  check(!!(s.book.egypt && s.book.egypt.done), 'Egypt trip completed and scrapbook page saved');
+  const egReview = log.slice(egStart).filter(l => l.kind === 'mic');
+  check(egReview.length === 5 && egReview.every(l => !JP.test(l.jp)), 'Egypt review: five spoken answers, every question English-only');
+
   const maxActive = await page.evaluate(() => window.__recLog.maxActive);
   check(maxActive <= 1, 'never more than one recognizer at a time');
 

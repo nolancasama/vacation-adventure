@@ -11,10 +11,14 @@ from `main` (GitHub Pages workflow + Vercel).
   matching) + `VA.Dialogue.respond` / `yesNo` (mic UI, hint ladder, fallback).
   Cinematic `offer` step = optional activity that can be declined.
   See DESIGN_DECISIONS.md for which interactions are spoken vs. buttons.
+- English first: dialogue Japanese is hidden behind a "? 日本語" reveal by
+  default (`jpMode` in `VA.Dialogue.say`; `visible` opts in per line), and the
+  spoken-answer ladder reveals the question's Japanese from the second miss.
 
 ## Tests
 - `tests/speech-test.js` — fake recognizer: classifier/alias units, interim
-  acceptance, errors/fallback ladder, cleanup, France mixed-trip playthrough.
+  acceptance, errors/fallback ladder, cleanup, Japanese scaffolding (jpMode,
+  reveal, ladder, hints off), France mixed-trip and Egypt all-spoken playthroughs.
 - `test-e2e.js` — full Australia trip in mic-free (button) mode.
 - Run either with `NODE_PATH=C:/Users/nolan/ui-verify/node_modules node <file>`.
 

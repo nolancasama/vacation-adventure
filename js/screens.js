@@ -90,7 +90,7 @@ VA.UI = {
         { text: 'I saw the moon.', jp: '月を見たよ。' },
       ]);
       if (picked !== answer) {
-        await D.say('grandma', `Look at your ${gift.label.toLowerCase()}.`, { jp: 'プレゼントを見てごらん。' });
+        await D.say('grandma', `Look at your ${gift.label.toLowerCase()}.`, { jp: 'プレゼントを見てごらん。', jpMode: 'visible' });
       }
       await D.say('player', answer, { jp: gift.relatedGrammarJP || '', voiceKey: answer === 'I saw the Eiffel Tower.' ? 'player-review-eiffel' : '' });
       await D.say('grandma', gift.grandmaDialogue, { jp: '旅行の思い出は大切ね。' });

@@ -5,6 +5,15 @@
    reveal, portrait, optional Japanese hint, and spoken aloud
    with the browser's text-to-speech (tap 🔊 to hear again).
 
+   English first, Japanese when needed.  opts.jpMode decides
+   how a line's Japanese renders (only with Settings → Japanese
+   hints on):
+     'hint'    (say default)  hidden; a small "? 日本語" reveals it,
+                              and a struggling spoken answer reveals it
+     'visible'                shown at once (instructions, story, hard words)
+     'hidden'  (auto default) never shown
+   Choice buttons show their jp only with item.jpMode 'visible'.
+
    VA.Dialogue.say('grandma', 'Welcome home!', {jp:'おかえり！'})
    VA.Dialogue.choice([{text:'Yes!', jp:'うん！', value:'y'}, ...])
    ============================================================ */
@@ -67,8 +76,10 @@ VA.Dialogue = {
     port.innerHTML = '';
     if (!c.noPortrait) port.appendChild(VA.Art.portraitEl(whoId, opts.mood || 'happy'));
 
-    const jpEl = VA.$('#dlg-jp');
-    jpEl.textContent = (VA.State.data.settings.jp && opts.jp) ? opts.jp : '';
+    const mode = opts.jpMode || 'hint';
+    this._jp = (VA.State.data.settings.jp && opts.jp && mode !== 'hidden')
+      ? { text: opts.jp, shown: mode === 'visible' } : null;
+    this._renderJp();
 
     this._lastLine = text;
     this._lastProf = c.voice;
@@ -96,10 +107,39 @@ VA.Dialogue = {
     return new Promise(res => { this._resolveTap = res; });
   },
 
+  /* the current line's Japanese: its text, the "? 日本語" reveal, or nothing */
+  _renderJp() {
+    const box = VA.$('#dlg-jp');
+    const j = this._jp;
+    box.innerHTML = '';
+    VA.$('#dialogue').classList.toggle('no-jp', !j);
+    if (!j) return;
+    if (j.shown) { box.textContent = j.text; return; }
+    const b = VA.el('button', 'jp-reveal', '? 日本語');
+    b.type = 'button';
+    b.title = '日本語を見る';
+    b.addEventListener('click', e => {
+      e.stopPropagation(); // revealing never advances the line
+      VA.Audio.sfx('click');
+      this.revealJp();
+    });
+    box.appendChild(b);
+  },
+
+  /* show the current line's hidden Japanese (tap on "? 日本語", or the
+     spoken-answer ladder).  Settings → Japanese hints off: nothing to show. */
+  revealJp() {
+    if (!this._jp || this._jp.shown) return false;
+    this._jp.shown = true;
+    this._renderJp();
+    return true;
+  },
+
   /* a line that advances by itself (for cinematic pacing) */
   async auto(whoId, text, opts = {}) {
     const holdFor = opts.dur || Math.max(1300, 350 + text.length * 65);
-    const p = this.say(whoId, text, opts);
+    // the player's own quick exclamations: no reveal button on a moving line
+    const p = this.say(whoId, text, Object.assign({}, opts, { jpMode: opts.jpMode || 'hidden' }));
     const mine = this._resolveTap; // resolver belonging to THIS line
     await VA.wait(holdFor);
     // only auto-advance if the player hasn't already tapped past it
@@ -126,7 +166,8 @@ VA.Dialogue = {
 
   _choiceBtn(it, onPick) {
     const b = VA.el('button', 'choice-btn');
-    b.innerHTML = it.text + (VA.State.data.settings.jp && it.jp ? `<span class="ch-jp">${it.jp}</span>` : '');
+    const jp = VA.State.data.settings.jp && it.jp && it.jpMode === 'visible';
+    b.innerHTML = it.text + (jp ? `<span class="ch-jp">${it.jp}</span>` : '');
     b.addEventListener('click', () => { VA.Audio.sfx('pop'); onPick(b); });
     return b;
   },
@@ -165,6 +206,9 @@ VA.Dialogue = {
     while (true) {
       const hints = spec.hints || [];
       const hint = misses ? hints[Math.min(misses, hints.length) - 1] || '' : '';
+      // English first: the question's Japanese only joins the ladder once
+      // the sentence-frame hint alone has not been enough
+      if (misses >= 2) this.revealJp();
       const r = await this._micRound({
         match: spec.match, hint, status,
         fallback: hard || misses >= maxMisses ? options : null,
@@ -276,6 +320,8 @@ VA.Dialogue = {
     VA.Speech.cancel();
     this._respondToken = (this._respondToken || 0) + 1; // orphan any open answer
     this._resolveTap = null;
+    this._jp = null;
+    this._renderJp();
     if (this._typing) { clearInterval(this._typing.timer); this._typing = null; }
     VA.Voice.stop();
   },
