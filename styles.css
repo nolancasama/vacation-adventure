@@ -556,6 +556,23 @@ body {
 .choice-btn:active{ transform:scale(.95); }
 .choice-btn .ch-jp { display:block; font-size:13px; font-weight:normal; color:var(--ink-soft); }
 
+/* spoken answers: press-to-talk mic, hint line, fallback buttons */
+.speak-panel { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.speak-hint {
+  font-family:var(--font); font-size:21px; font-weight:bold; color:var(--ink);
+  background:rgba(255,255,255,.92); border-radius:14px; padding:6px 18px; box-shadow:var(--shadow);
+}
+.mic-btn { border-color:var(--coral); }
+.mic-btn.listening { border-color:var(--leaf); animation:micpulse 1s ease-in-out infinite; }
+@keyframes micpulse { 0%,100% { box-shadow:var(--shadow), 0 0 0 0 rgba(121,184,81,.55); } 50% { box-shadow:var(--shadow), 0 0 0 14px rgba(121,184,81,0); } }
+.speak-status:empty { display:none; }
+.speak-status {
+  font-family:var(--font); font-size:19px; font-weight:bold; color:var(--ink);
+  background:rgba(255,255,255,.85); border-radius:12px; padding:4px 14px;
+}
+.speak-status small { font-weight:normal; color:var(--ink-soft); }
+.speak-fallback { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+
 /* ---------- HUD ---------- */
 #hud { position:absolute; top:0; left:0; right:0; z-index:55; display:flex; justify-content:space-between; padding:12px 14px; pointer-events:none; }
 #hud > * { pointer-events:auto; }

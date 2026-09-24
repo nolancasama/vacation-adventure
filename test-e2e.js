@@ -1,8 +1,11 @@
 /* End-to-end smoke test: plays one FULL vacation loop —
    name entry → Grandma's allowance → map → flight → passport stamp →
    all 3 Australia activities (incl. the tap mini-game) → souvenir →
-   flight home → Grandma debrief (with one deliberate wrong answer to
-   exercise the photo-hint path) → scrapbook page → next-trip map.
+   flight home → Grandma debrief → scrapbook page → next-trip map.
+
+   Runs in MIC-FREE mode (SpeechRecognition removed), so every spoken
+   answer falls back to its buttons.  The speech path itself, refusals and
+   the memory review are covered by tests/speech-test.js.
 
    Run from a folder where `playwright` is installed:
        node vacation-adventure/test-e2e.js
@@ -18,7 +21,6 @@ fs.mkdirSync(OUT, { recursive: true });
 const SHOT = name => path.join(OUT, name + '.png');
 const PAGE_URL = 'file:///' + path.join(__dirname, 'index.html').replace(/\\/g, '/');
 
-let wantWrong = true; // answer "What did you eat?" wrong once, on purpose
 const errors = [];
 
 async function vis(page, sel) {
@@ -75,23 +77,13 @@ async function talk(page, label, stopFnBody, opts = {}) {
 
     const hasChoice = await vis(page, '#choices');
     if (hasChoice) {
-      const pickedWrong = await page.evaluate(doWrong => {
-        const q = (document.querySelector('#dlg-text') || {}).textContent || '';
+      await page.evaluate(() => {
         const btns = [...document.querySelectorAll('#choices .choice-btn')].filter(b => !b.disabled);
         if (!btns.length) return null;
-        const find = t => btns.find(b => b.textContent.includes(t));
-        let pick = btns[0], wrong = false;
-        if (q.includes('Where did you go')) pick = find('Australia') || pick;
-        else if (q.includes('What did you eat')) {
-          if (doWrong) { pick = btns.find(b => !b.textContent.includes('ice cream')) || pick; wrong = true; }
-          else pick = find('ice cream') || pick;
-        }
-        else if (q.includes('What did you see')) pick = find('kangaroo') || pick;
-        else if (q.includes('What did you play')) pick = find('volleyball') || pick;
-        pick.click();
-        return wrong;
-      }, wantWrong);
-      if (pickedWrong === true) { wantWrong = false; console.log('  (answered wrong on purpose — expecting photo hint)'); }
+        // mic-free review offers only the player's real memory; yes/no
+        // questions list "yes" first
+        btns[0].click();
+      });
       await page.waitForTimeout(950);
       continue;
     }
@@ -109,6 +101,7 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
 (async () => {
   const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.addInitScript(() => { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; });
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   page.on('console', m => {
     if (m.type() !== 'error') return;
@@ -172,7 +165,7 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
     `() => document.querySelector('#dialogue').style.display !== 'none' || !document.querySelector('#scr-explore').classList.contains('active')`, 'depart');
   await talk(page, 'debrief → scrapbook',
     `() => { const s = document.querySelector('#scr-scrapbook'); return s && s.classList.contains('active') && document.querySelector('.page-ribbon'); }`,
-    { watch: [{ sel: '#debrief-page.show', name: '10-debrief' }, { sel: '#hint-photo', name: '11-photo-hint' }] });
+    { watch: [{ sel: '#debrief-page.show', name: '10-debrief' }] });
   await page.waitForTimeout(700);
   await page.screenshot({ path: SHOT('12-scrapbook') });
 

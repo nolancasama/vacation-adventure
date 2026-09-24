@@ -63,7 +63,11 @@ VA.Flows = {
     const keepsake = VA.Data.FEATURES.grandmaHomeSouvenirs && VA.State.homeSouvenirs().slice(-1)[0];
     if (keepsake) await D.say('grandma', keepsake.grandmaDialogue, { jp: '旅行の思い出は大切ね。' });
     await D.say('grandma', 'Do you want another trip?', { jp: 'また旅行に行きたい？' });
-    await D.choice([{ text: 'Yes!', jp: 'うん！' }, { text: 'Yes, please!', jp: 'うん、おねがい！' }]);
+    const again = await D.yesNo({
+      yes: { text: 'Yes, please!', jp: 'うん、おねがい！' },
+      no: { text: 'No, thank you.', jp: 'ううん、いまはいい。' },
+    });
+    if (again === 'no') await D.say('grandma', 'Okay! Maybe later!', { jp: 'わかった！またあとでね！' });
     VA.Audio.sfx('coins');
     VA.State.addCoins(VA.Data.ALLOWANCE);
     await D.say('grandma', 'Here is some money.', { jp: 'はい、おこづかい。' });
@@ -271,44 +275,33 @@ VA.Flows = {
     const D = VA.Dialogue;
     await D.say('grandma', `Welcome home, ${name}!`, { jp: `おかえり、${name}！` });
     await D.say('grandma', 'Did you have fun?', { jp: '楽しかった？' });
-    await D.choice([{ text: 'Yes!', jp: 'うん！' }, { text: 'Yes, I did!', jp: 'うん、楽しかった！' }]);
+    const fun = await D.yesNo({
+      yes: { text: 'Yes, I did!', jp: 'うん、楽しかった！' },
+      no: { text: "No, I didn't.", jp: 'ううん、楽しくなかった。' },
+    });
+    VA.Art.setMood(grandma, fun === 'yes' ? 'happy' : 'wow');
+    if (fun === 'yes') await D.say('grandma', 'Great!', { jp: 'よかった！' });
+    else await D.say('grandma', 'Oh no!', { jp: 'あらら！' });
     VA.Art.setMood(grandma, 'happy');
-    await D.say('grandma', 'Great!', { jp: 'よかった！' });
 
-    /* the four questions */
+    /* the four questions — answered from what the player actually did */
     for (const Q of VA.Data.DEBRIEF_QUESTIONS) {
       // A temporarily disabled activity has no photo to review, so omit its
       // associated grammar question while preserving all of its data.
       if (Q.verb !== 'went' && !dest.events.some(e => e.verb === Q.verb && e.enabled !== false)) continue;
-      const correctText = Q.verb === 'went'
-        ? dest.sentences.went.en
-        : (photos[this._eventForVerb(dest, Q.verb)] || {}).caption;
+      await D.say('grandma', Q.q, { jp: Q.jp });
 
-      // build the choice set: this verb's sentence from every destination
-      const items = VA.shuffle(VA.Data.DESTS.map(d => {
-        if (Q.verb === 'went') return { text: d.sentences.went.en, jp: d.sentences.went.jp, value: d.id };
-        const e = d.events.find(x => x.verb === Q.verb);
-        return { text: e.caption, jp: e.captionJP, value: d.id };
-      }));
-
-      while (true) {
-        await D.say('grandma', Q.q, { jp: Q.jp });
-        const picked = await D.choice(items);
-        if (picked === dest.id) break;
-
-        // gentle correction + a look at the real memory
-        VA.Audio.sfx('hmm');
-        VA.Art.setMood(grandma, 'wow');
-        await D.say('grandma', 'Hmm? Really?', { jp: 'あれ？ほんとに？' });
-        if (Q.verb === 'went') {
-          await D.say('grandma', 'Look at your passport!', { jp: 'パスポートを見てごらん！' });
-          await VA.UI.showHint('stamp', dest);
-        } else {
-          await D.say('grandma', 'Look at your photo!', { jp: '写真を見てごらん！' });
-          await VA.UI.showHint('photo', photos[this._eventForVerb(dest, Q.verb)]);
-        }
-        VA.Art.setMood(grandma, 'happy');
+      const memories = Q.verb === 'went' ? null : this._memories(dest, Q.verb);
+      if (memories && !memories.length) {
+        // nothing to remember (declined or skipped): one honest answer, no mic
+        await D.choice([{ text: 'Nothing.', jp: 'なにも。', value: 'nothing' }]);
+        await panel.fill(Q.verb);
+        const R = VA.Data.NOTHING_REACTIONS[Q.verb];
+        await D.say('grandma', R.en, { jp: R.jp });
+        continue;
       }
+
+      await this._recall(Q, dest, memories, grandma, photos);
 
       // correct! grandma reacts, the scrapbook page fills in
       VA.Audio.sfx('chime');
@@ -355,6 +348,56 @@ VA.Flows = {
     VA.Audio.music('theme_scrapbook');
     VA.Audio.ambient(null);
     VA.Audio.sfx('page');
+  },
+
+  /* completed events for a verb — only what the player really did counts */
+  _memories(dest, verb) {
+    const t = VA.State.data.trip;
+    return dest.events.filter(e => e.verb === verb && e.enabled !== false && t.done.includes(e.id));
+  },
+
+  /* "I saw the Eiffel Tower." -> "the Eiffel Tower" */
+  _memoryObject(caption) {
+    return caption.replace(/^I (went to|ate|saw|played|found|bought)\s+/i, '').replace(/[.!]$/, '');
+  },
+
+  /* words that prove the player remembers this event: the caption's object
+     with and without its article, plus the event's own speechAliases */
+  _speechAliases(evt) {
+    const obj = this._memoryObject(evt.caption);
+    return [obj, obj.replace(/^(in |on |at )?(the |a |an )/i, ''), ...(evt.speechAliases || [])];
+  },
+
+  /* ask for one memory out loud until it is recalled.  Grammar is not
+     graded: naming the thing is enough, and the full sentence is modelled
+     back.  A recognised-but-wrong answer gets Grandma's gentle correction. */
+  _recall(Q, dest, memories, grandma, photos) {
+    const D = VA.Dialogue;
+    const went = Q.verb === 'went';
+    const answer = went ? dest.sentences.went : { en: memories[0].caption, jp: memories[0].captionJP };
+    const aliases = went ? [dest.name, ...(dest.sentences.speech || [])]
+      : memories.reduce((all, e) => all.concat(this._speechAliases(e)), []);
+    const frame = VA.Data.DEBRIEF_FRAMES[Q.verb];
+    const cue = went ? dest.name : this._memoryObject(memories[0].caption);
+    return D.respond({
+      match: t => (VA.Speech.matchesAny(t, aliases) ? 'ok' : null),
+      options: [{ value: 'ok', text: answer.en, jp: answer.jp }],
+      hints: [frame, `${frame}　👉 ${cue}`],
+      onMiss: async () => {
+        VA.Audio.sfx('hmm');
+        VA.Art.setMood(grandma, 'wow');
+        await D.say('grandma', 'Hmm? Really?', { jp: 'あれ？ほんとに？' });
+        if (went) {
+          await D.say('grandma', 'Look at your passport!', { jp: 'パスポートを見てごらん！' });
+          await VA.UI.showHint('stamp', dest);
+        } else {
+          await D.say('grandma', 'Look at your photo!', { jp: '写真を見てごらん！' });
+          await VA.UI.showHint('photo', photos[memories[0].id]);
+        }
+        VA.Art.setMood(grandma, 'happy');
+        await D.say('grandma', Q.q, { jp: Q.jp });
+      },
+    });
   },
 
   _eventForVerb(dest, verb) {

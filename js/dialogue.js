@@ -112,35 +112,169 @@ VA.Dialogue = {
     const wrap = VA.$('#choices');
     wrap.innerHTML = '';
     wrap.style.display = 'flex';
-    const jpOn = VA.State.data.settings.jp;
     return new Promise(res => {
-      items.forEach(it => {
-        const b = VA.el('button', 'choice-btn');
-        b.innerHTML = it.text + (jpOn && it.jp ? `<span class="ch-jp">${it.jp}</span>` : '');
-        b.addEventListener('click', async () => {
-          VA.Audio.sfx('pop');
-          wrap.querySelectorAll('button').forEach(x => x.disabled = true);
-          b.style.borderColor = 'var(--leaf)';
-          // the player "says" their chosen line out loud
-          VA.Voice.speak(it.text, VA.Data.CHARS.player.voice, 'player', it.voiceKey || '');
-          // Do not cut a longer player answer off with the next speaker. The
-          // estimate is deliberately a little generous because browser voices
-          // vary, and callers can still override it for a special beat.
-          const rate = VA.Data.CHARS.player.voice.rate || 0.9;
-          const estimatedSpeechMs = Math.max(900, Math.ceil((it.text.length * 82) / rate + 260));
-          await VA.wait(opts.speakDelay != null ? opts.speakDelay : estimatedSpeechMs);
-          wrap.style.display = 'none';
-          wrap.innerHTML = '';
-          res(it.value !== undefined ? it.value : it.text);
-        });
-        wrap.appendChild(b);
-      });
+      items.forEach(it => wrap.appendChild(this._choiceBtn(it, async b => {
+        wrap.querySelectorAll('button').forEach(x => x.disabled = true);
+        b.style.borderColor = 'var(--leaf)';
+        await this._playerSays(it, opts.speakDelay);
+        wrap.style.display = 'none';
+        wrap.innerHTML = '';
+        res(it.value !== undefined ? it.value : it.text);
+      })));
     });
+  },
+
+  _choiceBtn(it, onPick) {
+    const b = VA.el('button', 'choice-btn');
+    b.innerHTML = it.text + (VA.State.data.settings.jp && it.jp ? `<span class="ch-jp">${it.jp}</span>` : '');
+    b.addEventListener('click', () => { VA.Audio.sfx('pop'); onPick(b); });
+    return b;
+  },
+
+  /* the player "says" a line out loud, then waits so the next speaker does
+     not cut a longer answer off.  The estimate is deliberately a little
+     generous because browser voices vary; callers can override it. */
+  _playerSays(it, speakDelay) {
+    VA.Voice.speak(it.text, VA.Data.CHARS.player.voice, 'player', it.voiceKey || '');
+    const rate = VA.Data.CHARS.player.voice.rate || 0.9;
+    const estimatedSpeechMs = Math.max(900, Math.ceil((it.text.length * 82) / rate + 260));
+    return VA.wait(speakDelay != null ? speakDelay : estimatedSpeechMs);
+  },
+
+  /* ---------- spoken answers ----------
+     The player answers a real question out loud.  `options` are the model
+     lines ({value, text, jp}); the matched one is spoken back as the polished
+     sentence, and they double as the buttons when speech is off or keeps
+     failing.  Resolves to the chosen option's value.
+
+     spec: { match(transcript) -> value|null,
+             options: [{value, text, jp, voiceKey}],
+             hints: ['after 1 miss', 'after 2 misses'],
+             onMiss(transcript) -> async (recognized but wrong),
+             maxMisses: 3 } */
+  async respond(spec) {
+    const options = spec.options;
+    const pick = v => options.find(o => o.value === v) || options[0];
+    if (!VA.Speech.available()) return this.choice(options);
+
+    const token = this._respondToken = (this._respondToken || 0) + 1;
+    const maxMisses = spec.maxMisses || 3;
+    let misses = 0;
+    let status = '';
+    let hard = false;
+    while (true) {
+      const hints = spec.hints || [];
+      const hint = misses ? hints[Math.min(misses, hints.length) - 1] || '' : '';
+      const r = await this._micRound({
+        match: spec.match, hint, status,
+        fallback: hard || misses >= maxMisses ? options : null,
+      });
+      if (token !== this._respondToken) return new Promise(() => {}); // scene left
+      if (r.via === 'button') return r.value;
+      if (r.status === 'match') {
+        const it = pick(r.value);
+        await this._playerSays(it);
+        this._clearChoices();
+        return it.value;
+      }
+      if (r.status === 'cancelled') { status = ''; continue; }
+      misses++;
+      if (r.status === 'nomatch' && spec.onMiss) {
+        this._clearChoices();
+        await spec.onMiss(r.transcript);
+        if (token !== this._respondToken) return new Promise(() => {});
+        status = '';
+      } else {
+        hard = hard || VA.Speech.isHardError(r.error);
+        status = hard ? 'The microphone is not working. Tap an answer!'
+          : r.transcript ? `Try again. <small>(“${VA.escape(r.transcript)}”)</small>` : 'Try again.';
+      }
+    }
+  },
+
+  /* a yes/no question: yes and no are both real answers */
+  yesNo({ yes, no }) {
+    return this.respond({
+      match: t => { const c = VA.Speech.classifyYesNo(t); return c === 'unknown' ? null : c; },
+      options: [Object.assign({}, yes, { value: 'yes' }), Object.assign({}, no, { value: 'no' })],
+      hints: [`${yes.text}　/　${no.text}`],
+    });
+  },
+
+  /* one press-to-talk round.  Resolves with the listen() result, or
+     {via:'button', value} if a fallback button was tapped instead. */
+  _micRound({ match, hint, status, fallback }) {
+    const wrap = VA.$('#choices');
+    wrap.innerHTML = '';
+    wrap.style.display = 'flex';
+    const jpOn = VA.State.data.settings.jp;
+    const panel = VA.el('div', 'speak-panel');
+    if (hint) panel.appendChild(VA.el('div', 'speak-hint', VA.escape(hint)));
+    const mic = VA.el('button', 'choice-btn mic-btn');
+    const idleLabel = '🎤 Speak' + (jpOn ? '<span class="ch-jp">おして話してね</span>' : '');
+    mic.innerHTML = idleLabel;
+    panel.appendChild(mic);
+    const statusEl = VA.el('div', 'speak-status', status || '');
+    panel.appendChild(statusEl);
+    wrap.appendChild(panel);
+
+    return new Promise(res => {
+      let listening = false;
+      let done = false;
+      const end = r => {
+        if (done) return;
+        done = true;
+        wrap.querySelectorAll('button').forEach(x => x.disabled = true);
+        res(r);
+      };
+      mic.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (listening) { VA.Speech.cancel(); return; } // tap again = stop
+        VA.Audio.sfx('pop');
+        VA.Voice.stop(); // never let the game's own voice answer the question
+        listening = true;
+        mic.classList.add('listening');
+        mic.innerHTML = '👂 Listening…' + (jpOn ? '<span class="ch-jp">タップでやめる</span>' : '');
+        statusEl.innerHTML = '';
+        const r = await VA.Speech.listen({ match });
+        listening = false;
+        mic.classList.remove('listening');
+        mic.innerHTML = idleLabel;
+        if (r.status === 'match') {
+          VA.Audio.sfx('chime');
+          statusEl.innerHTML = `✓ <small>“${VA.escape(r.transcript)}”</small>`;
+          mic.disabled = true;
+        }
+        end(r);
+      });
+      if (fallback) {
+        const row = VA.el('div', 'speak-fallback');
+        fallback.forEach(it => row.appendChild(this._choiceBtn(it, async b => {
+          if (done) return;
+          done = true; // wins over the 'cancelled' the mic is about to report
+          wrap.querySelectorAll('button').forEach(x => x.disabled = true);
+          VA.Speech.cancel();
+          b.style.borderColor = 'var(--leaf)';
+          await this._playerSays(it);
+          this._clearChoices();
+          res({ via: 'button', value: it.value });
+        })));
+        panel.appendChild(row);
+      }
+    });
+  },
+
+  _clearChoices() {
+    const wrap = VA.$('#choices');
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
   },
 
   hide() {
     VA.$('#dialogue').style.display = 'none';
-    VA.$('#choices').style.display = 'none';
+    this._clearChoices();
+    VA.Speech.cancel();
+    this._respondToken = (this._respondToken || 0) + 1; // orphan any open answer
     this._resolveTap = null;
     if (this._typing) { clearInterval(this._typing.timer); this._typing = null; }
     VA.Voice.stop();

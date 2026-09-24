@@ -172,6 +172,7 @@ VA.Data.DESTS = [
     ambientFiles: ['waves', 'seagulls', 'wind'],
     sentences: {
       went: { en: 'I went to Australia.', jp: 'オーストラリアに行ったよ。' },
+      speech: ['australia', 'sydney'], // spoken answers to "Where did you go?"
     },
     // the big tree-covered coastal island, bottom-left of the map
     mapPin: { x: 166, y: 353 },
@@ -186,6 +187,7 @@ VA.Data.DESTS = [
         backdrop: 'event_australia_icecream.webp', painter: 'ev_au_icecream',
         photoFile: 'photo_australia_icecream.webp', photoIcon: '🍦',
         caption: 'I ate ice cream.', captionJP: 'アイスクリームを食べたよ。',
+        speechAliases: ['icecream'],
         photoPlayerPose: { x: 110, y: 600 },
         actors: [
           { id: 'player', char: 'player', x: 235, y: 600, scale: 1.05 },
@@ -204,7 +206,7 @@ VA.Data.DESTS = [
           { cam: { x: 480, y: 340, s: 1.12, dur: 1700 } },
           { say: ['au_vendor', 'Hello!', 'こんにちは！'] },
           { say: ['au_vendor', 'One ice cream?', 'アイスクリーム、ひとついかが？'] },
-          { choice: { items: [{ text: 'Yes, please!', jp: 'はい、ください！' }] } },
+          { offer: { who: 'au_vendor', yes: { text: 'Yes, please!', jp: 'はい、ください！' } } },
           { coins: -3 },
           { show: 'ice' }, { sfx: 'pop' },
           { say: ['au_vendor', 'Here you are.', 'はい、どうぞ。'] },
@@ -264,6 +266,7 @@ VA.Data.DESTS = [
         backdrop: 'event_australia_volleyball.webp', painter: 'ev_au_volleyball',
         photoFile: 'photo_australia_volleyball.webp', photoIcon: '🏐',
         caption: 'I played volleyball.', captionJP: 'バレーボールをしたよ。',
+        speechAliases: ['volley ball', 'volley'],
         actors: [
           { id: 'au_kid', char: 'au_kid', x: 700, y: 520, scale: 1 },
           { id: 'player', char: 'player', x: 250, y: 555, scale: 1.05 },
@@ -276,7 +279,7 @@ VA.Data.DESTS = [
           { cam: { x: 480, y: 340, s: 1.08, dur: 1400 } },
           { say: ['au_kid', 'Hi!', 'ハーイ！'] },
           { say: ['au_kid', "Let's play!", 'いっしょに遊ぼう！'] },
-          { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
+          { offer: { who: 'au_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
           { caption: 'TAP the ball!' },
           // The regular volleyball activity is active. Keep its dramatic
           // three-shot finale in the project but do not play it for now.
@@ -315,6 +318,7 @@ VA.Data.DESTS = [
     ambientFiles: ['city_evening', 'pigeons', 'crickets'],
     sentences: {
       went: { en: 'I went to France.', jp: 'フランスに行ったよ。' },
+      speech: ['france', 'paris'], // spoken answers to "Where did you go?"
     },
     // the elegant blue-spired central castle — reads as romantic France
     mapPin: { x: 444, y: 232 },
@@ -329,6 +333,7 @@ VA.Data.DESTS = [
         backdrop: 'event_france_crepe.webp', painter: 'ev_fr_crepe',
         photoFile: 'photo_france_crepe.webp', photoIcon: '🥞',
         caption: 'I ate a crepe.', captionJP: 'クレープを食べたよ。',
+        speechAliases: ['crape'],
         photoPlayerPose: { x: 260, y: 555, scale: 1.18 },
         actors: [
           { id: 'player', char: 'player', x: 250, y: 555, scale: 1.05 },
@@ -344,7 +349,7 @@ VA.Data.DESTS = [
           { say: ['fr_vendor', 'Bonjour!', 'ボンジュール！'] },
           { say: ['fr_vendor', 'It means "hello"!', 'フランス語で「こんにちは」！'] },
           { say: ['fr_vendor', 'One crepe?', 'クレープはいかが？'] },
-          { choice: { items: [{ text: 'Yes, please!', jp: 'はい、ください！' }] } },
+          { offer: { who: 'fr_vendor', yes: { text: 'Yes, please!', jp: 'はい、ください！' } } },
           { coins: -3 },
           { fx: ['steam', 645, 305] },
           { sfx: 'sizzle' },
@@ -367,6 +372,7 @@ VA.Data.DESTS = [
         backdrop: 'event_france_eiffel.webp', painter: 'ev_fr_eiffel',
         photoFile: 'photo_france_eiffel.webp', photoIcon: '',
         caption: 'I saw the Eiffel Tower.', captionJP: 'エッフェル塔を見たよ。',
+        speechAliases: ['eiffel', 'eifel', 'tower'],
         // Keep the foreground clear: this tall landmark shot starts at the
         // Eiffel Tower's base, then pans all the way up to its tip.
         actors: [],
@@ -404,6 +410,7 @@ VA.Data.DESTS = [
         backdrop: 'event_france_park.webp', painter: 'ev_fr_park',
         photoFile: 'photo_france_soccer.webp', photoIcon: '⚽',
         caption: 'I played soccer.', captionJP: 'サッカーをしたよ。',
+        speechAliases: ['football'],
         actors: [
           { id: 'fr_kid', char: 'fr_kid', x: 700, y: 530, scale: 1 },
           { id: 'player', char: 'player', x: 280, y: 555, scale: 1.05 },
@@ -417,7 +424,7 @@ VA.Data.DESTS = [
           { cam: { x: 480, y: 360, s: 1.06, dur: 1400 } },
           { say: ['fr_kid', 'Bonjour!', 'ボンジュール！'] },
           { say: ['fr_kid', "Let's play soccer!", 'サッカーしよう！'] },
-          { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
+          { offer: { who: 'fr_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
           { caption: 'TAP to kick!' },
           { game: { n: 3, label: 'KICK! ⚽', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'fr_kid', goal: { x: 790, y: 370, scale: 0.25 }, sfx: 'kick' } },
           { caption: 'GOAL!' },
@@ -455,6 +462,7 @@ VA.Data.DESTS = [
     ambientFiles: ['desert_wind', 'market', 'hawk'],
     sentences: {
       went: { en: 'I went to Egypt.', jp: 'エジプトに行ったよ。' },
+      speech: ['egypt', 'cairo'], // spoken answers to "Where did you go?"
     },
     // the sandy dunes + red rock spires + domed building — the actual desert region
     mapPin: { x: 716, y: 353 },
@@ -469,6 +477,7 @@ VA.Data.DESTS = [
         backdrop: 'event_egypt_kebab.webp', painter: 'ev_eg_kebab',
         photoFile: 'photo_egypt_kebab.webp', photoIcon: '🍢',
         caption: 'I ate a kebab.', captionJP: 'ケバブを食べたよ。',
+        speechAliases: ['kebob', 'kabob', 'kabab'],
         photoPlayerPose: { x: 260, y: 555 },
         actors: [
           { id: 'player', char: 'player', x: 265, y: 555, scale: 1.05 },
@@ -483,7 +492,7 @@ VA.Data.DESTS = [
           { cam: { x: 490, y: 330, s: 1.12, dur: 1700 } },
           { say: ['eg_vendor', 'Hello, hello!', 'こんにちは、こんにちは！'] },
           { say: ['eg_vendor', 'Try this kebab!', 'ケバブを食べてみて！'] },
-          { choice: { items: [{ text: 'Yes, please!', jp: 'はい、ください！' }] } },
+          { offer: { who: 'eg_vendor', yes: { text: 'Yes, please!', jp: 'はい、ください！' } } },
           { coins: -3 },
           { sfx: 'sizzle' },
           { fx: ['steam', 390, 280] },
@@ -546,6 +555,7 @@ VA.Data.DESTS = [
         backdrop: 'event_egypt_sand.webp', painter: 'ev_eg_sand',
         photoFile: 'photo_egypt_sand.webp', photoIcon: '🔺',
         caption: 'I played in the sand.', captionJP: 'すなあそびをしたよ。',
+        speechAliases: ['sand pyramid', 'sandcastle'],
         actors: [
           { id: 'eg_kid', char: 'eg_kid', x: 805, y: 540, scale: 1 },
           { id: 'player', char: 'player', x: 300, y: 555, scale: 1.05 },
@@ -559,7 +569,7 @@ VA.Data.DESTS = [
           { cam: { x: 480, y: 370, s: 1.08, dur: 1400 } },
           { say: ['eg_kid', 'Hi!', 'ハーイ！'] },
           { say: ['eg_kid', "Let's make a sand pyramid!", 'すなのピラミッドを作ろう！'] },
-          { choice: { items: [{ text: 'OK!', jp: 'オッケー！' }, { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' }] } },
+          { offer: { who: 'eg_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
           { show: 'pyr' },
           { caption: 'TAP the sand!' },
           { game: { n: 3, label: 'TAP! 🏖️', propId: 'pyr', anim: 'grow', growTo: 2.5, flagId: 'flag', flagEmbed: 54, flagOffsetX: 12, sfx: 'pop' } },
@@ -593,6 +603,20 @@ VA.Data.DEBRIEF_QUESTIONS = [
   { verb: 'saw',    q: 'What did you see?',  jp: '何を見たの？',      react: ['Wow! Really?', 'わあ、ほんとに？'] },
   { verb: 'played', q: 'What did you play?', jp: '何をして遊んだの？', react: ['That sounds fun!', 'たのしそう！'] },
 ];
+
+/* sentence frames and "no memory" reactions for the debrief */
+VA.Data.DEBRIEF_FRAMES = { went: 'I went to ______.', ate: 'I ate ______.', saw: 'I saw ______.', played: 'I played ______.' };
+VA.Data.NOTHING_REACTIONS = {
+  ate:    { en: 'Nothing?! You must be hungry!', jp: '何も食べなかったの？おなかすいたでしょう！' },
+  saw:    { en: 'Nothing? Maybe next time!',     jp: '何も見なかったの？また今度ね！' },
+  played: { en: 'Nothing? You had a relaxing day!', jp: '何もしなかったの？のんびりしたんだね！' },
+};
+
+/* declining an optional activity (see the cinematic `offer` step) */
+VA.Data.OFFER = {
+  no: { text: 'No, thank you.', jp: 'いいえ、けっこうです。' },
+  later: { en: 'Okay! Maybe later!', jp: 'わかった！またあとでね！' },
+};
 
 /* allowance per trip */
 VA.Data.ALLOWANCE = 12;

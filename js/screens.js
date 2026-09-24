@@ -228,9 +228,11 @@ VA.UI = {
       hsLayer.appendChild(b);
     });
 
-    const allDone = availableEvents.every(e => trip.done.includes(e.id));
-    VA.$('#btn-depart').style.display = allDone ? 'block' : 'none';
-    VA.$('#explore-hint').textContent = allDone ? '' : '';
+    // A declined activity stays open for later, so leaving cannot wait for
+    // every photo: one memory is enough to go home and tell Grandma about.
+    const anyDone = availableEvents.some(e => trip.done.includes(e.id));
+    VA.$('#btn-depart').style.display = anyDone ? 'block' : 'none';
+    VA.$('#explore-hint').textContent = '';
   },
 
   /* ---------- the live scrapbook page beside Grandma ---------- */
@@ -256,7 +258,8 @@ VA.UI = {
         } else {
           const evtId = VA.Flows._eventForVerb(dest, verb);
           const ph = photos[evtId];
-          if (ph) s.innerHTML = `<span class="dp-ico">${ph.icon}</span><span>${ph.caption.replace('I ', '')}</span>`;
+          s.innerHTML = ph ? `<span class="dp-ico">${ph.icon}</span><span>${ph.caption.replace('I ', '')}</span>`
+            : '<span class="dp-ico">—</span><span>nothing</span>';
         }
         s.classList.add('filled');
         VA.Audio.sfx('pop');
@@ -422,6 +425,7 @@ VA.UI = {
       ['sfx', '🔔 Sounds', 'こうかおん'],
       ['voice', '🗣 Voice (English)', 'えいごの声で読む'],
       ['jp', '🇯🇵 Japanese hints', 'にほんごのヒント'],
+      ['mic', '🎤 Spoken answers', 'こえでこたえる（オフ＝ボタン）'],
       ['labels', '🏷 Asset labels', 'アセット名を表示（開発用）'],
     ];
     rows.forEach(([key, label, jp]) => {

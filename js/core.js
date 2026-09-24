@@ -24,6 +24,7 @@ VA.rand  = (a, b) => a + Math.random() * (b - a);
 VA.randi = (a, b) => Math.floor(VA.rand(a, b + 1));
 VA.pick  = arr => arr[Math.floor(Math.random() * arr.length)];
 VA.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+VA.escape = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /* apply a chosen player look ('boy'/'girl') onto the single shared
    CHARS.player entry — every event script's `char: 'player'` reference
@@ -73,7 +74,7 @@ VA.State = {
       stamps: [],
       checkpoint: 'title',
       finaleDone: false,
-      settings: { music: true, sfx: true, voice: true, jp: true, labels: false },
+      settings: { music: true, sfx: true, voice: true, jp: true, labels: false, mic: true },
     };
   },
 
@@ -82,6 +83,8 @@ VA.State = {
       const raw = localStorage.getItem(VA.SAVE_KEY);
       this.data = raw ? Object.assign(this.fresh(), JSON.parse(raw)) : this.fresh();
       this.data.homeGifts = this.data.homeGifts || {};
+      // older saves predate newer settings (e.g. spoken answers): keep theirs, add ours
+      this.data.settings = Object.assign(this.fresh().settings, this.data.settings);
       this._migrateHomeGifts();
     } catch (e) {
       this.data = this.fresh();
