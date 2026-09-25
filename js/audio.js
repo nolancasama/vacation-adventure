@@ -123,6 +123,12 @@ VA.Audio = {
     fanfare(){ [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this._tone({ f0: f, dur: 0.42, type: 'triangle', gain: 0.22, at: i * 0.13 })); },
     pop()    { this._tone({ f0: 300, f1: 620, dur: 0.09, gain: 0.3 }); },
     whoosh() { this._noise({ dur: 0.7, freq: 900, gain: 0.3, type: 'bandpass', q: 0.8 }); },
+    // Bedroom phone/PC: quiet notification sounds, never louder than a tap.
+    postUp()    { [660, 990].forEach((f, i) => this._tone({ f0: f, dur: 0.16, type: 'triangle', gain: 0.14, at: i * 0.08 })); },
+    like()      { this._tone({ f0: 1250, f1: 1500, dur: 0.05, type: 'sine', gain: 0.07 }); },
+    comment()   { [880, 1175].forEach((f, i) => this._tone({ f0: f, dur: 0.1, type: 'sine', gain: 0.09, at: i * 0.07 })); },
+    reviewUp()  { [523, 784].forEach((f, i) => this._tone({ f0: f, dur: 0.18, type: 'triangle', gain: 0.14, at: i * 0.09 })); },
+    ownerReply(){ [988, 784, 1175].forEach((f, i) => this._tone({ f0: f, dur: 0.11, type: 'sine', gain: 0.09, at: i * 0.07 })); },
     // Volleyball finale: intentionally cartoony sports-anime punctuation.
     tension(){ [0, .45, .9, 1.35].forEach((at, i) => this._tone({ f0: 95 + i * 20, f1: 135 + i * 28, dur: .55, type: 'sine', gain: .07, at })); },
     thump()  { this._tone({ f0: 92, f1: 42, dur: .34, type: 'sine', gain: .62 }); this._noise({ dur: .11, freq: 340, gain: .13 }); },

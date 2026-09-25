@@ -620,3 +620,4 @@ VA.Data.OFFER = {
 
 /* allowance per trip */
 VA.Data.ALLOWANCE = 12;
+VA.Data.SOCIAL_BONUS_CAP = 3;

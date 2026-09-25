@@ -19,6 +19,7 @@ VA.Flows = {
     if (cp === 'depart' && st.trip) return this.departure();
     if (cp === 'debrief' && st.trip) return this.debrief(true);
     if (cp === 'map') return this.toMap();
+    if (cp === 'bedroom') return VA.Bedroom.show();
     return this.homeIntro();
   },
 
@@ -50,7 +51,7 @@ VA.Flows = {
     VA.Fx.hearts(VA.$('#scr-home'), 480, 225);
     await D.say('grandma', 'Have fun!', { jp: '楽しんでね！' });
     D.hide();
-    await this.toMap();
+    await VA.Bedroom.show();
   },
 
   /* ---------- between trips: a quick new allowance ---------- */
@@ -68,6 +69,10 @@ VA.Flows = {
       no: { text: 'No, thank you.', jp: 'ううん、いまはいい。' },
     });
     if (again === 'no') await D.say('grandma', 'Okay! Maybe later!', { jp: 'わかった！またあとでね！' });
+    if (again === 'no') {
+      D.hide();
+      return VA.Bedroom.show();
+    }
     VA.Audio.sfx('coins');
     VA.State.addCoins(VA.Data.ALLOWANCE);
     await D.say('grandma', 'Here is some money.', { jp: 'はい、おこづかい。' });
@@ -358,14 +363,13 @@ VA.Flows = {
 
   /* "I saw the Eiffel Tower." -> "the Eiffel Tower" */
   _memoryObject(caption) {
-    return caption.replace(/^I (went to|ate|saw|played|found|bought)\s+/i, '').replace(/[.!]$/, '');
+    return VA.Lang.memoryObject(caption);
   },
 
   /* words that prove the player remembers this event: the caption's object
      with and without its article, plus the event's own speechAliases */
   _speechAliases(evt) {
-    const obj = this._memoryObject(evt.caption);
-    return [obj, obj.replace(/^(in |on |at )?(the |a |an )/i, ''), ...(evt.speechAliases || [])];
+    return VA.Lang.speechAliases(evt);
   },
 
   /* ask for one memory out loud until it is recalled.  Grammar is not
@@ -408,7 +412,7 @@ VA.Flows = {
   /* called by the scrapbook OK button */
   async afterScrapbook() {
     if (VA.State.allDone() && !VA.State.data.finaleDone) return this.finale();
-    await this.newTripIntro();
+    await VA.Bedroom.show();
   },
 
   /* ---------- every page complete! ---------- */
@@ -429,6 +433,6 @@ VA.Flows = {
     VA.Fx.hearts(VA.$('#scr-home'), 480, 225);
     await D.say('grandma', 'Where next, I wonder?', { jp: 'つぎはどこに行こうか？' });
     D.hide();
-    await this.newTripIntro();
+    await VA.Bedroom.show();
   },
 };

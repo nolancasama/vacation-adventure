@@ -33,6 +33,13 @@
       <div id="debrief-page"></div>
     </div>
 
+    <div class="screen" id="scr-bedroom">
+      <div class="scene-art"></div>
+      <div class="bedroom-pennants" aria-label="Places visited"></div>
+      <div class="bedroom-corkboard" aria-label="Vacation photos"></div>
+      <div class="bedroom-hotspots"></div>
+    </div>
+
     <div class="screen" id="scr-map">
       <div class="scene-art"></div>
       <div class="map-banner" id="map-banner">Where do you want to go? <span class="jp-inline">どこに行きたい？</span></div>
@@ -142,6 +149,19 @@
       <div class="modal-card" id="modal-card"></div>
     </div>
 
+    <div id="phone-overlay" class="phone-overlay" style="display:none">
+      <div class="phone-device" role="dialog" aria-label="Postcards social feed">
+        <div class="phone-speaker" aria-hidden="true"></div>
+        <div id="phone-screen"></div>
+      </div>
+    </div>
+
+    <div id="reviews-overlay" class="reviews-overlay" style="display:none">
+      <div class="reviews-monitor" role="dialog" aria-label="TripStars reviews">
+        <div id="reviews-screen"></div>
+      </div>
+    </div>
+
     <div id="look-modal" style="display:none">
       <div class="modal-card look-card">
         <h2>Who are you?</h2>
@@ -186,6 +206,7 @@
 </div>
 
 <script src="js/core.js"></script>
+<script src="js/timeline.js"></script>
 <script src="js/audio-files.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/art.js"></script>
@@ -195,6 +216,10 @@
 <script src="js/cinematic.js"></script>
 <script src="js/data.js"></script>
 <script src="js/player-effects.js"></script>
+<script src="js/language.js"></script>
+<script src="js/bedroom.js"></script>
+<script src="js/social.js"></script>
+<script src="js/reviews.js"></script>
 <script src="js/flows.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/main.js"></script>

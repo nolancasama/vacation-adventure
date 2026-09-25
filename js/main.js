@@ -195,6 +195,7 @@ VA.Main = {
         if (ret === 'home') { VA.UI.home(); }
         if (ret === 'explore' && VA.State.data.trip) { return VA.Flows.exploreScreen(true); }
         if (ret === 'map') { return VA.Flows.toMap(); }
+        if (ret === 'bedroom') { return VA.Bedroom.show(); }
         await VA.Screens.show(ret, ret === 'home' ? { transition: 'home' } : undefined);
       } else {
         await VA.Flows.afterScrapbook();

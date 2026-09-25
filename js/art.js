@@ -60,7 +60,10 @@ VA.Art = {
     if (entry.decodePromise) return entry.decodePromise;
     entry.decodePromise = entry.ready.then(async img => {
       if (!img) return null;
-      if (img.decode) await img.decode().catch(() => {});
+      // decode() can stay pending forever (seen in headless Chromium under
+      // file://). The image has already loaded, so cap the wait rather than
+      // leave a boot cover or scene transition hung.
+      if (img.decode) await Promise.race([img.decode().catch(() => {}), VA.wait(3000)]);
       entry.decoded = true;
       return img;
     });
@@ -810,6 +813,133 @@ VA.Art.painters = {
     p.rect(0.55, 0.16, 0.07, 0.1, '#8a6238'); p.rect(0.558, 0.172, 0.054, 0.076, '#ffe9bd');
     p.rect(0.66, 0.13, 0.09, 0.13, '#8a6238'); p.rect(0.669, 0.145, 0.072, 0.1, '#bde4f0');
     p.rect(0.79, 0.17, 0.07, 0.1, '#8a6238'); p.rect(0.798, 0.182, 0.054, 0.076, '#f6dfa8');
+    p.vignette();
+  },
+
+  bedroom(ctx, w, h) {
+    const p = VA.Art._p(ctx, w, h);
+    // Warm plaster walls, softly lit from the window.
+    p.sky([[0, '#f7dfbd'], [0.66, '#edcfa4'], [1, '#d6ad79']], 0.7);
+    const glow = ctx.createRadialGradient(w * 0.27, h * 0.24, 2, w * 0.27, h * 0.24, w * 0.42);
+    glow.addColorStop(0, 'rgba(255,248,211,.6)');
+    glow.addColorStop(1, 'rgba(255,231,188,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h * 0.7);
+    p.rect(0, 0.67, 1, 0.03, '#b98a59');
+
+    // Honey-coloured floorboards.
+    p.rect(0, 0.7, 1, 0.3, '#b9804f');
+    for (let i = 0; i < 8; i++) {
+      p.line(0, 0.735 + i * 0.038, 1, 0.735 + i * 0.038, 'rgba(91,55,31,.2)', 0.002);
+    }
+    [0.08, 0.27, 0.49, 0.7, 0.89].forEach((x, i) => {
+      p.line(x, 0.7 + (i % 2) * 0.038, x, 1, 'rgba(112,68,38,.12)', 0.002);
+    });
+
+    // Window and curtains, with a calm late-afternoon sky outside.
+    p.rect(0.095, 0.09, 0.285, 0.35, '#9a6847', 0.008);
+    p.rect(0.108, 0.107, 0.259, 0.315, '#d9f0f1');
+    const windowSky = ctx.createLinearGradient(0, h * 0.107, 0, h * 0.422);
+    windowSky.addColorStop(0, '#8fc8dd'); windowSky.addColorStop(1, '#f6d59e');
+    ctx.fillStyle = windowSky; ctx.fillRect(w * 0.108, h * 0.107, w * 0.259, h * 0.315);
+    p.circle(0.31, 0.18, 0.027, 'rgba(255,241,181,.88)');
+    p.ellipse(0.235, 0.39, 0.13, 0.028, '#839d70');
+    p.line(0.2375, 0.107, 0.2375, 0.422, 'rgba(255,250,235,.92)', 0.007);
+    p.line(0.108, 0.265, 0.367, 0.265, 'rgba(255,250,235,.92)', 0.007);
+    p.rect(0.068, 0.065, 0.052, 0.405, '#c96f5b', 0.018);
+    p.rect(0.355, 0.065, 0.052, 0.405, '#c96f5b', 0.018);
+    p.line(0.072, 0.08, 0.402, 0.08, '#7c5740', 0.006);
+
+    // A quiet strand of lights ties the two halves of the room together.
+    p.stringLights(0.42, 0.96, 0.085, 0.038, 10);
+
+    // Photo corkboard in the centre wall gap, clear of the computer.
+    p.ellipse(0.518, 0.455, 0.125, 0.016, 'rgba(76,45,27,.12)');
+    p.rect(0.397, 0.125, 0.242, 0.32, '#87572f', 0.012);
+    p.rect(0.41, 0.143, 0.216, 0.282, '#c68b54', 0.006);
+    for (let i = 0; i < 18; i++) {
+      p.circle(0.42 + (i % 6) * 0.038, 0.16 + Math.floor(i / 6) * 0.112,
+        0.0018, 'rgba(111,68,35,.22)');
+    }
+    p.circle(0.42, 0.155, 0.005, '#e9b84f');
+    p.circle(0.616, 0.155, 0.005, '#e9b84f');
+
+    // Travel shelf above the monitor. Collected pennants stand on this plank.
+    p.ellipse(0.81, 0.226, 0.12, 0.012, 'rgba(69,42,27,.13)');
+    p.rect(0.695, 0.198, 0.235, 0.025, '#875a38', 0.005);
+    p.rect(0.715, 0.22, 0.018, 0.06, '#6d482f', 0.003);
+    p.poly([[0.733, 0.22], [0.733, 0.266], [0.775, 0.22]], '#9a6844');
+    p.rect(0.89, 0.22, 0.018, 0.06, '#6d482f', 0.003);
+    p.poly([[0.89, 0.22], [0.848, 0.22], [0.89, 0.266]], '#9a6844');
+
+    // A broad rug softens the lower centre.
+    p.ellipse(0.57, 0.9, 0.29, 0.075, 'rgba(224,163,92,.78)');
+    p.ellipse(0.57, 0.9, 0.23, 0.052, 'rgba(251,211,139,.68)');
+
+    // Cosy bed on the left.
+    p.rect(0.055, 0.56, 0.4, 0.27, '#81593f', 0.018);
+    p.rect(0.07, 0.51, 0.13, 0.3, '#986849', 0.018);
+    p.rect(0.088, 0.565, 0.355, 0.225, '#f5e8cf', 0.022);
+    p.rect(0.105, 0.58, 0.14, 0.09, '#fff7e8', 0.018);
+    p.rect(0.09, 0.655, 0.353, 0.13, '#739aa0', 0.018);
+    p.poly([[0.09, 0.655], [0.443, 0.655], [0.443, 0.71], [0.09, 0.75]], 'rgba(255,255,255,.13)');
+    p.rect(0.075, 0.81, 0.025, 0.09, '#6b4935');
+    p.rect(0.415, 0.81, 0.025, 0.09, '#6b4935');
+
+    // Phone resting on the blanket near the pillow, with its screen off.
+    ctx.save();
+    // Portrait and hand-sized so it reads as a phone, not a tablet.
+    ctx.translate(w * 0.302, h * 0.665);
+    ctx.rotate(-0.06);
+    p.rect(-0.0185, -0.05, 0.037, 0.1, '#25292d', 0.008);
+    p.rect(-0.0155, -0.041, 0.031, 0.078, '#111820', 0.004);
+    p.rect(-0.006, -0.046, 0.012, 0.003, '#697078', 0.002);
+    p.circle(0, 0.043, 0.003, '#697078');
+    ctx.restore();
+
+    // Nightstand fills the bedside gap; the colourful scrapbook is the only
+    // object on top and reads as a thick album rather than another screen.
+    p.ellipse(0.525, 0.865, 0.065, 0.014, 'rgba(61,45,36,.2)');
+    p.rect(0.475, 0.59, 0.1, 0.035, '#8d603d', 0.006);
+    p.rect(0.484, 0.62, 0.018, 0.24, '#704b34', 0.004);
+    p.rect(0.548, 0.62, 0.018, 0.24, '#704b34', 0.004);
+    p.rect(0.486, 0.676, 0.078, 0.018, '#7d5336', 0.003);
+    ctx.save();
+    ctx.translate(w * 0.525, h * 0.565);
+    ctx.rotate(-0.045);
+    p.rect(-0.044, -0.03, 0.088, 0.061, '#653f67', 0.007);
+    p.rect(-0.037, -0.027, 0.073, 0.052, '#d66e62', 0.004);
+    p.rect(-0.044, -0.03, 0.012, 0.061, '#49314e', 0.004);
+    p.rect(0.005, -0.015, 0.024, 0.026, '#fff3dc', 0.002);
+    p.poly([[0.005, -0.015], [0.029, -0.015], [0.029, -0.006]], '#eccb76');
+    ctx.restore();
+
+    // Clean desk on the right, with the larger monitor as the focal object.
+    p.rect(0.64, 0.565, 0.31, 0.045, '#805739', 0.008);
+    p.rect(0.675, 0.61, 0.025, 0.25, '#704b34');
+    p.rect(0.905, 0.61, 0.025, 0.25, '#704b34');
+    p.ellipse(0.79, 0.579, 0.12, 0.014, 'rgba(61,45,36,.17)');
+    p.rect(0.68, 0.295, 0.22, 0.245, '#45484d', 0.014);
+    p.rect(0.693, 0.312, 0.194, 0.205, '#111820', 0.007);
+    p.rect(0.782, 0.538, 0.017, 0.04, '#45484d', 0.003);
+    p.rect(0.745, 0.572, 0.092, 0.013, '#45484d', 0.005);
+    // Keyboard and one pencil cup are the only other desk objects.
+    p.poly([[0.716, 0.542], [0.862, 0.542], [0.85, 0.564], [0.727, 0.564]], '#ddd3c1');
+    for (let i = 0; i < 6; i++) p.line(0.73 + i * 0.02, 0.55, 0.744 + i * 0.02, 0.55, '#aaa194', 0.0015);
+    p.rect(0.892, 0.51, 0.035, 0.052, '#558e91', 0.005);
+    p.line(0.899, 0.513, 0.895, 0.475, '#d49643', 0.003);
+    p.line(0.91, 0.513, 0.913, 0.468, '#6c8db0', 0.003);
+    p.line(0.919, 0.513, 0.925, 0.482, '#d56d5d', 0.003);
+
+    // Upright suitcase beside the desk's left leg, with handle and strap.
+    p.ellipse(0.615, 0.935, 0.054, 0.013, 'rgba(61,45,36,.23)');
+    p.line(0.602, 0.76, 0.602, 0.718, '#5d4131', 0.007);
+    p.line(0.633, 0.76, 0.633, 0.718, '#5d4131', 0.007);
+    p.line(0.602, 0.718, 0.633, 0.718, '#5d4131', 0.007);
+    p.rect(0.574, 0.75, 0.084, 0.18, '#d46658', 0.014);
+    p.rect(0.606, 0.75, 0.014, 0.18, '#aa493f');
+    p.rect(0.583, 0.772, 0.015, 0.132, 'rgba(255,255,255,.18)', 0.004);
+    p.circle(0.588, 0.932, 0.006, '#4b4038');
+    p.circle(0.644, 0.932, 0.006, '#4b4038');
     p.vignette();
   },
 

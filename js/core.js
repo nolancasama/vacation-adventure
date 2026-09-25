@@ -71,6 +71,10 @@ VA.State = {
       // Gifts Grandma has received, keyed by destination + souvenir ID.
       // Each record contains the permanent in-house display assignment.
       homeGifts: {},
+      socialPosts: [],
+      reviews: {},
+      bedroomGuide: { phoneSeen: false, phoneDone: false, pcSeen: false, pcDone: false },
+      socialBonus: {},
       stamps: [],
       checkpoint: 'title',
       finaleDone: false,
@@ -81,8 +85,28 @@ VA.State = {
   load() {
     try {
       const raw = localStorage.getItem(VA.SAVE_KEY);
-      this.data = raw ? Object.assign(this.fresh(), JSON.parse(raw)) : this.fresh();
+      const saved = raw ? JSON.parse(raw) : null;
+      this.data = saved ? Object.assign(this.fresh(), saved) : this.fresh();
       this.data.homeGifts = this.data.homeGifts || {};
+      this.data.socialPosts = this.data.socialPosts || [];
+      // older posts kept the follow-up question outside the comment thread
+      if (VA.Phone && VA.Phone.migratePosts) VA.Phone.migratePosts(this.data.socialPosts);
+      this.data.reviews = this.data.reviews || {};
+      if (!saved || !saved.bedroomGuide) {
+        const phoneDone = this.data.socialPosts.length > 0;
+        const pcDone = Object.keys(this.data.reviews).length > 0;
+        this.data.bedroomGuide = {
+          phoneSeen: phoneDone,
+          phoneDone,
+          pcSeen: pcDone,
+          pcDone,
+        };
+      } else {
+        this.data.bedroomGuide = Object.assign(this.fresh().bedroomGuide, this.data.bedroomGuide);
+        if (this.data.bedroomGuide.phoneDone) this.data.bedroomGuide.phoneSeen = true;
+        if (this.data.bedroomGuide.pcDone) this.data.bedroomGuide.pcSeen = true;
+      }
+      this.data.socialBonus = this.data.socialBonus || {};
       // older saves predate newer settings (e.g. spoken answers): keep theirs, add ours
       this.data.settings = Object.assign(this.fresh().settings, this.data.settings);
       this._migrateHomeGifts();

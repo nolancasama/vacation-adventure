@@ -10,7 +10,7 @@
         saw=STT (one wrong "pyramids" first), played=STT
    2b. English first: Japanese hidden by default, "? 日本語" reveal, ladder
        reveal on the second miss, blocked/mic-free fallback, hints off
-   4. Egypt next trip, every answer spoken; questions asked English-only
+   4. Bedroom suitcase → Egypt next trip, every answer spoken; questions asked English-only
 
    Run:  NODE_PATH=<folder with playwright>/node_modules node tests/speech-test.js */
 'use strict';
@@ -368,7 +368,9 @@ async function talk(page, label, stop, answers = {}, log = []) {
   await jsClick(page, '#btn-name-ok');
   const dlgHidden = `document.querySelector('#dialogue').style.display === 'none'`;
   const log = [];
-  await talk(page, 'intro', new Function(`return () => document.querySelector('#scr-map').classList.contains('active') && document.querySelector('.dest-card') && ${dlgHidden}`)(), {}, log);
+  await talk(page, 'intro', new Function(`return () => document.querySelector('#scr-bedroom').classList.contains('active') && ${dlgHidden}`)(), {}, log);
+  check(await page.evaluate(() => document.querySelector('#scr-bedroom').classList.contains('active')), 'first send-off lands in the bedroom');
+  await clickUntil(page, '.bedroom-hotspot[data-action="trip"]', () => document.querySelector('#scr-map').classList.contains('active') && !!document.querySelector('.dest-card'), 'first suitcase');
   await clickUntil(page, '.dest-card[data-dest="france"]', () => !document.querySelector('#scr-map').classList.contains('active'), 'board');
   await talk(page, 'passport', new Function(`return () => { const h = document.querySelector('#hs-crepe'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(), {}, log);
   const coins0 = (await state(page)).coins;
@@ -430,7 +432,9 @@ async function talk(page, label, stop, answers = {}, log = []) {
 
   /* ---------- 4. Egypt: next trip, all spoken, all English-first ---------- */
   console.log('game: Egypt trip');
-  await clickUntil(page, '#btn-book-close', () => !document.querySelector('#scr-scrapbook').classList.contains('active'), 'close scrapbook');
+  await clickUntil(page, '#btn-book-close', () => document.querySelector('#scr-bedroom').classList.contains('active') && document.querySelector('#dialogue').style.display === 'none', 'close scrapbook');
+  check(await page.evaluate(() => document.querySelector('#scr-bedroom').classList.contains('active')), 'closing the scrapbook returns to the bedroom');
+  await clickUntil(page, '.bedroom-hotspot[data-action="trip"]', () => document.querySelector('#dialogue').style.display !== 'none', 'next suitcase');
   await talk(page, 'next trip', new Function(`return () => document.querySelector('#scr-map').classList.contains('active') && ${dlgHidden}`)(),
     { 'Do you want another trip?': 'yes' }, log);
   await clickUntil(page, '.dest-card[data-dest="egypt"]', () => !document.querySelector('#scr-map').classList.contains('active'), 'board egypt');

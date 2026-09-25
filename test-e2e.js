@@ -1,7 +1,8 @@
 /* End-to-end smoke test: plays one FULL vacation loop —
-   name entry → Grandma's allowance → map → flight → passport stamp →
+   name entry → Grandma's allowance → bedroom → suitcase → map → flight → passport stamp →
    all 3 Australia activities (incl. the tap mini-game) → souvenir →
-   flight home → Grandma debrief → scrapbook page → next-trip map.
+   flight home → Grandma debrief → scrapbook page → bedroom →
+   suitcase → Grandma's next-trip question → map.
 
    Runs in MIC-FREE mode (SpeechRecognition removed), so every spoken
    answer falls back to its buttons.  The speech path itself, refusals and
@@ -131,10 +132,12 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
   await page.screenshot({ path: SHOT('02-name') });
   await jsClick(page, '#btn-name-ok');
 
-  // Grandma's intro → map
+  // Grandma's intro → bedroom; the first suitcase goes straight to the map
   console.log('home intro…');
-  await talk(page, 'home intro → map',
-    `() => { const c = document.querySelector('#scr-map'); return c && c.classList.contains('active') && document.querySelector('.dest-card') && ${dialogueHidden}; }`);
+  await talk(page, 'home intro → bedroom',
+    `() => { const c = document.querySelector('#scr-bedroom'); return c && c.classList.contains('active') && ${dialogueHidden}; }`);
+  await clickUntil(page, '.bedroom-hotspot[data-action="trip"], .bedroom-hotspot[data-id="trip"], #bedroom-trip',
+    `() => { const c = document.querySelector('#scr-map'); return c && c.classList.contains('active') && document.querySelector('.dest-card') && ${dialogueHidden}; }`, 'first suitcase');
   await page.screenshot({ path: SHOT('03-map') });
 
   // fly to Australia, pass passport control (stop only once the stamp is SAVED)
@@ -183,10 +186,12 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
   if (!au || !au.souvenir) { errors.push('ASSERT: no souvenir saved'); }
   if (save.coins !== 3) { errors.push('ASSERT: expected 3 coins left (12 - food 3 - ticket 3 - souvenir 3), got ' + save.coins); }
 
-  // close the scrapbook → Grandma offers the next trip → map again
+  // close the scrapbook → bedroom → suitcase → Grandma offers the next trip → map again
   console.log('next trip…');
   await clickUntil(page, '#btn-book-close',
-    `() => !document.querySelector('#scr-scrapbook').classList.contains('active')`, 'close scrapbook');
+    `() => { const c = document.querySelector('#scr-bedroom'); return c && c.classList.contains('active') && ${dialogueHidden}; }`, 'close scrapbook');
+  await clickUntil(page, '.bedroom-hotspot[data-action="trip"], .bedroom-hotspot[data-id="trip"], #bedroom-trip',
+    `() => document.querySelector('#dialogue').style.display !== 'none'`, 'next suitcase');
   await talk(page, 'next trip → map',
     `() => { const c = document.querySelector('#scr-map'); return c && c.classList.contains('active') && document.querySelector('.dest-card [class="dc-done"], .dest-card .dc-done') && ${dialogueHidden}; }`);
   await page.screenshot({ path: SHOT('13-map-visited') });

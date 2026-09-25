@@ -119,6 +119,51 @@ VA.Speech = {
     });
   },
 
+  /* Free-form dictation waits for the final transcript. Interim speech is
+     never inserted, and the caller remains free to edit the result. */
+  dictate({ timeout = 8000, lang = 'en-US' } = {}) {
+    this.cancel();
+    const Ctor = this._ctor();
+    return new Promise(resolve => {
+      if (!Ctor) { resolve({ status: 'error', transcript: '' }); return; }
+      let rec;
+      try { rec = new Ctor(); } catch (e) { resolve({ status: 'error', transcript: '' }); return; }
+      rec.lang = lang;
+      rec.interimResults = true;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+
+      let heard = '';
+      let settled = false;
+      const session = {};
+      const finish = result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (this._active === session) this._active = null;
+        rec.onresult = rec.onerror = rec.onend = null;
+        try { rec.abort(); } catch (e) {}
+        resolve(Object.assign({ transcript: heard }, result));
+      };
+      session.finish = finish;
+      this._active = session;
+      const timer = setTimeout(() => finish({ status: 'error' }), timeout);
+
+      rec.onresult = e => {
+        const results = Array.from(e.results || []);
+        const whole = results.map(r => (r[0] ? r[0].transcript : '')).join(' ').trim();
+        if (whole) heard = whole;
+        const final = results.filter(r => r.isFinal)
+          .map(r => (r[0] ? r[0].transcript : '')).join(' ').trim();
+        if (final) { heard = final; finish({ status: 'ok', transcript: final }); }
+      };
+      rec.onerror = () => finish({ status: 'error' });
+      // ended without a final result: keep what was heard rather than lose it
+      rec.onend = () => finish(heard ? { status: 'ok', transcript: heard } : { status: 'error' });
+      try { rec.start(); } catch (e) { finish({ status: 'error' }); }
+    });
+  },
+
   /* stop listening now; the pending listen() resolves as 'cancelled' */
   cancel() {
     if (this._active) this._active.finish({ status: 'cancelled' });
