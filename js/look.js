@@ -49,6 +49,11 @@ VA.Look = {
     if (token !== this._pendingToken) return new Promise(() => {});
     if (!loaded) {
       console.info('[LOOK observe fallback]', panorama);
+      // Scene prep that only the in-scene search needs (e.g. bring the target on stage).
+      if (cfg.fallback && cfg.fallback.before) {
+        await cine.play(cfg.fallback.before);
+        if (token !== this._pendingToken) return new Promise(() => {});
+      }
       return this._begin(cfg.fallback || {}, cine, {
         presentation: 'observe', panorama, loaded: false, usedFallback: true,
       });

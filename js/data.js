@@ -243,7 +243,8 @@ VA.Data.DESTS = [
           { coins: -3 },
           { say: ['au_ranger', 'Thank you!', 'ありがとう！'] },
           { say: ['au_ranger', 'Look over there!', 'あそこを見て！'] },
-          { move: { id: 'roo', x: 760, y: 545, dur: 1000 } },
+          // The cinematic roo waits offscreen right; its entrance after the
+          // search is the payoff for finding the kangaroo in the panorama.
           { look: {
             presentation: 'observe', panorama: 'look_australia_park.webp',
             size: { w: 3000, h: 1000 }, window: { w: 1280, h: 800 },
@@ -256,6 +257,8 @@ VA.Data.DESTS = [
               path: { from: 1700, to: 2650, duration: 5200, pause: 380 },
             }],
             fallback: {
+              // The in-scene search needs the roo on stage to be findable.
+              before: [{ move: { id: 'roo', x: 760, y: 545, dur: 1000 } }],
               target: 'roo', axis: 'x', s: 1.4,
               start: { x: 350, y: 380 }, radius: 150, hold: 600,
               prompt: 'Look over there!', promptJP: 'あそこを見て！', found: 'Found it!',

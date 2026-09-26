@@ -341,6 +341,8 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await observeContract(page, 'look_australia_park.webp', 'Australia');
   check(rangerTelemetry.lineX === rangerTelemetry.observe && rangerTelemetry.observe === 480,
     'Australia: ranger stays at the conversation position when observe starts (never x 170)');
+  check(await actorX(page, 'roo') === 1090,
+    'Australia: cinematic kangaroo stays offscreen right while observation is active');
   let australia = await lookState(page);
   check(Math.abs(australia.target.x - australia.view.x) > 500,
     'Australia: kangaroo is not initially centred');
@@ -379,7 +381,24 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     undefined, 'kangaroo key dwell reached found hold', 3000);
   check((await lookState(page)).dwellMs >= 500, 'Australia: dwell completes without selecting');
   await page.screenshot({ path: OBSERVE_SHOT('04-australia-centred-found') });
+  check(await actorX(page, 'roo') === 1090,
+    'Australia: cinematic kangaroo has not entered when the panorama kangaroo is found');
   await armActorTelemetry(page, 'roo');
+  // Record the first frame the cinematic roo leaves x 1090: the observe screen
+  // must already be closed and its hop must not have started yet.
+  await page.evaluate(() => {
+    window.__rooEntry = null;
+    const tick = () => {
+      const actor = VA.Cine.ctx && VA.Cine.ctx.actors.roo;
+      const x = actor ? Number.parseFloat(actor.style.left) : null;
+      if (x != null && x !== 1090) {
+        window.__rooEntry = { x, lookActive: VA.Look.state().active, hopped: window.__lookSawAnim };
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
   await precondition(page, () => !VA.Look.state().active, undefined, 'Australia observe returned to cinematic', 2500);
   rangerTelemetry.returned = await actorX(page, 'au_ranger');
   check(rangerTelemetry.returned === rangerTelemetry.lineX,
@@ -388,6 +407,9 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await precondition(page, () => window.__lookSfx.includes('boing') && window.__lookSawAnim,
     undefined, 'Australia following hop and boing ran', 6000);
   check(true, 'Australia: following cinematic hop and boing still run');
+  const rooEntry = await page.evaluate(() => window.__rooEntry);
+  check(!!rooEntry && !rooEntry.lookActive && !rooEntry.hopped,
+    'Australia: cinematic kangaroo enters only after observation closes, before its hop');
   const rooPhoto = await finishEventAndCapturePhoto(page, 'kangaroo', 'observe/06-australia-photo-toast');
   const rooActor = rooPhoto && rooPhoto.actors.find(actor => actor.char === 'kangaroo');
   check(!!rooPhoto && rooPhoto.caption === 'I saw a kangaroo.' && !!rooActor && rooActor.x >= 620 && rooActor.x <= 700,
@@ -481,6 +503,8 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     !fallback.loaded && fallback.usedFallback, 'missing panorama silently uses the configured fallback');
   check(!await page.locator('.look-observe').count() && await visible(page, '#cine-world'),
     'fallback is the existing in-scene look, not an observe overlay');
+  check(await actorX(page, 'roo') === 760,
+    'fallback brings the cinematic kangaroo on stage before the in-scene search');
   await page.screenshot({ path: OBSERVE_SHOT('18-missing-panorama-fallback') });
   await finishCurrentLook(page, 'x', 'missing panorama fallback completion');
   await finishEventAndCapturePhoto(page, 'kangaroo', 'observe/19-fallback-photo-toast');

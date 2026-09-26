@@ -499,3 +499,18 @@ but cannot register a bite.
 
 **Rejected.** Hiding TAP TO EAT for as long as the camera is merely on, which
 can strand a student.
+
+## 2026-09-26 — The kangaroo's entrance is the reward for finding it
+
+**What.** In Kangaroo Park the cinematic kangaroo waits offscreen right during
+the panorama search and hops in (x 1090 → 660, then boing + hops) only after
+"Found it!" closes the observe screen. If the panorama fails to load, the look
+step's `fallback.before` steps bring it on stage first, because the in-scene
+search needs a visible kangaroo.
+
+**Why.** Seeing it walk in before the search gives the answer away; entering
+right after the find makes the normal scene the payoff.
+
+**Rejected.** Moving the old pre-search `roo → 760` step to after the search:
+followed by the existing `roo → 660` move it made the kangaroo stop and
+shuffle mid-entrance.
