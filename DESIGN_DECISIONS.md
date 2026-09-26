@@ -341,3 +341,145 @@ is useful.
 **Rejected.** Blocking or auto-replacing Japanese; percentage thresholds;
 exposing a language score; editing understood posts (it would wipe reply
 threads and invite bonus farming).
+
+## 2026-09-26 — Engagement pass: the student does the vacation verb
+
+**What.** Each vacation verb gets its own interaction, added as reusable
+cinematic steps so `data.js` stays declarative:
+
+- **SAW → `look` step.** The guide's line ("Look over there!", "Look up!",
+  "Look! The pyramids!", "Now look at Coco!") is the only instruction; the
+  student pans the view (arrow keys / WASD, pointer or touchpad drag, large
+  on-screen arrows) until the target sits under a centre reticle for ~0.6 s.
+  Generous invisible hit regions, no select button, named decoys give friendly
+  feedback ("That's a pyramid! 😄") and never fail. A gentle assist appears
+  after a few idle seconds (pulsing arrow toward the target) and, later, a
+  "Show me" button that glides the view there, so no student is gated on aim.
+  The Eiffel Tower uses the same step on the vertical axis by driving the
+  existing source-image `towerPan` crop instead of the world transform.
+- **PLAYED → soccer arcade.** France soccer's three-tap game becomes a short
+  top-down overlay minigame (`js/soccer.js`, `{soccerGame:{…}}` step): dribble
+  past three readable defenders (chaser, lane-blocker, fast last defender),
+  contact knocks the ball loose to be recovered (never game over), shooting
+  zone opens a LEFT/CENTRE/RIGHT aim against a visible goalkeeper. One optional
+  utterance of the memory sentence "I played soccer!" fills the remaining power
+  meter → ENGLISH POWER super shot (wider target, slower keeper, comic effects).
+  Speech never gates shooting; mic-off shows the sentence as a tap button (the
+  same pattern as the rest of the game's mic-free mode). A save repositions for
+  another shot, and the keeper "slips" after two saves. Afterward the existing
+  side-view park scene resumes with the ball in the net for the same photo.
+  Volleyball and sand keep their tap games for now; the soccer module is the
+  reference for giving each played event its own mechanic later.
+- **ATE → `eatGame` step.** After the unchanged purchase/reward, the food
+  appears large and the student takes 3 bites; each bite visibly removes part
+  of the food (mask cut-outs), with CHOMP!/NOM! feedback. Tapping always works.
+  Camera eating is **opt-in** via a small "📷 Eat with the camera" button (and a
+  Settings toggle), never an automatic permission prompt: a mid-lesson browser
+  prompt in front of 30 children is a classroom problem. Camera detection
+  (`js/camera-mouth.js`, `VA.CameraMouth`) uses vendored MediaPipe Face
+  Landmarker (assets/vendor/mediapipe, lazy-loaded on first use), mouth
+  openness = lip gap / mouth width with open/closed hysteresis, ~8 checks per
+  second, tracks and loop stopped when the food is finished.
+
+**Why.** Students clicked through events like a picture book. Tying each
+English instruction to an action ("Look up!" → look up) makes the reading
+matter and makes the photo a memory of something the student did.
+
+**Rejected.** More dialogue as the fix; new countries before these three are
+fun; auto-requesting the camera; speech as a gate on shooting; repeating the
+sentence per shot; a post-eating "I ate …!" utterance (Grandma's debrief
+already asks exactly that, so it would be repetition); a live CDN for the
+face model (the game must run offline/static); hand tracking.
+
+## 2026-09-26 — Engagement pass details settled during review
+
+**What.** Guides (ranger, Amira) step aside while the student searches and
+return afterwards, so the target is never behind a person and photo
+compositions are unchanged. The eating game ends on "All gone! 😋" rather
+than "YUMMY!", because the unchanged feast reaction and the player's "Yummy!"
+line follow straight after. Bites are cut from the existing food art with
+mask holes; what a finished snack leaves (empty cone, plate, skewer) comes
+from the art itself or a CSS redraw underneath, not new artwork.
+
+**Why.** Searching around a guide's body made the decoy line fire on the
+guide ("That's a pyramid!" on Amira's face); three "yummy"s in a row reads as
+a bug; new per-bite artwork was not needed for a clear effect.
+
+**Rejected.** Per-bite illustration sets; fading the food out on the last
+bite (loses the satisfying empty cone / clean plate).
+
+## 2026-09-26 — Engagement pass revision: 3D soccer, camera by default, observation screens
+
+**What.**
+
+- **Soccer is a compact third-person 3D minigame** (`js/soccer3d.js`,
+  `VA.Soccer3D.start(cfg) → Promise<result>`), not the top-down overlay. It
+  keeps the top-down design's rules: 3 readable defenders (direct chaser,
+  lane blocker, shooting-area guard), contact knocks the ball 1–3 m loose to
+  be recovered, a shooting state with LEFT/CENTRE/RIGHT aim against a keeper,
+  retry the shot (not the course) after a save, keeper slips after two saves,
+  one optional "I played soccer!" fills the power meter → ENGLISH POWER super
+  shot. Aim still matters: a super shot aimed at the keeper can be saved. The
+  camera follows automatically behind/above; no mouse-look. three.js r158 is
+  vendored (`assets/vendor/three/`, the classic-script build so `file://`
+  still works) and injected only when soccer starts, together with the
+  minigame's own `soccer3d.css`. Everything is disposed on exit. When WebGL or
+  three.js is unavailable, the existing top-down `VA.Soccer` runs instead, so
+  soccer never blocks the trip. The France event still owns the invitation,
+  refusal, GOAL scene, photo and memory ("I played soccer.").
+- **Camera eating is on by default** (`facingMode: 'user'`) — a deliberate
+  reversal of the earlier opt-in rule, at the user's direction. Settings →
+  camera off remains the teacher's switch. Layout: big "EAT! 😋" prompt and
+  food in the centre, a small mirrored preview bottom-right, a full-width
+  "TAP TO EAT" bar at the bottom that works from the first frame and is never
+  renamed "skip". First ever food shows an in-place Japanese control hint
+  (口をあけて、とじてね！) and a looping cartoon mouth demo; no gate, no extra
+  screen. `guides.eating` remembers it. A mouth-state indicator (○ ◔ ●)
+  replaces any numeric readout. If the camera is running and no bite has
+  happened for ~6 s, the hint returns; a tap bite in that food silences it.
+- **Phone attention.** The first return with a postable photo (`phone-new`)
+  plays a one-time sequence over the painted phone: notification sound, glow,
+  large bouncing red badge, 2–3 pulses and "New! Share your trip! 📱", plus
+  one extra gentle pulse if ignored. Opening the phone sets `phoneSeen` as
+  before. Later trips get a quiet ding, a badge and one pulse, once per trip
+  (`bedroomGuide.phoneNotifiedTrip`). The painted phone is never animated,
+  only overlays on its hotspot.
+- **Photo picker.** Single tap selects (border, ✓, "Selected", small pop),
+  then a short smooth scroll reveals NEXT if it is hidden. It never advances
+  on its own.
+- **Observation screens.** Australia's kangaroo and Egypt's pyramids and Coco
+  searches move to a dedicated full-screen `observe` presentation of
+  `VA.Look` (same input, dwell, assists and cleanup), over a wide panorama
+  with dynamic sprites. France stays on its existing Eiffel background in
+  tower mode. One Egypt panorama serves both targets: the pyramids sit far
+  right, Coco's open sand is centre-left, so each search needs its own pan.
+  Panoramas are 3000×1000 (3:1) and are generated by the user from the
+  prompts in `ASSETS.md`, never by code. Until a panorama file exists, the
+  step falls back to today's in-scene look, so the trip stays playable.
+  Existing recorded lines ("Look over there!", "Look! The pyramids!") are
+  kept rather than rewritten.
+
+**Why.** Soccer should feel like playing, not steering a dot. Camera eating is
+the fun default and tapping is a real alternative, not an error path. The
+first phone notification was too subtle to discover. Double-checking what's
+selected and where NEXT is cost young students a hunt. Searching the same
+backdrop the dialogue sits on isn't observation, and the existing Egypt art
+is one pyramid filling the frame, so there was nothing to search.
+
+**Rejected.** A full soccer simulation, free camera, or physics engine; ES
+module three.js (breaks `file://`); a HOW TO PLAY screen before eating; a
+CAMERA/TAP mode chooser; code-drawn or placeholder panoramas; two Egypt
+panoramas; animating the baked phone art.
+
+## 2026-09-26 — Soccer returns to the legacy tap game
+
+**What.** France's soccer event plays the original 3-tap KICK! game again.
+Both new soccer minigames (3D `VA.Soccer3D` and its top-down `VA.Soccer`
+fallback) are parked: not loaded by `index.html`, not deployed, kept on disk
+for later.
+
+**Why.** The user's call when shipping the engagement pass: the 3D version was
+not accepted (keyboard play could not reach the shooting line) and the user
+did not want the top-down fallback live on its own either.
+
+**Rejected.** Shipping the 2D top-down game alone as France's soccer.

@@ -88,12 +88,15 @@ VA.State = {
       homeGifts: {},
       socialPosts: [],
       reviews: {},
-      bedroomGuide: { phoneSeen: false, phoneDone: false, pcSeen: false, pcDone: false },
+      bedroomGuide: { phoneSeen: false, phoneDone: false, phoneNotifiedTrip: 0, pcSeen: false, pcDone: false },
+      guides: { eating: false },
       socialBonus: {},
       stamps: [],
       checkpoint: 'title',
       finaleDone: false,
-      settings: { music: true, sfx: true, voice: true, jp: true, labels: false, mic: true },
+      // camera: offer the opt-in webcam eating game; cameraEat: the student
+      // has used it, so it may auto-start once the browser already allows it.
+      settings: { music: true, sfx: true, voice: true, jp: true, labels: false, mic: true, camera: true, cameraEat: false },
     };
   },
 
@@ -113,6 +116,7 @@ VA.State = {
         this.data.bedroomGuide = {
           phoneSeen: phoneDone,
           phoneDone,
+          phoneNotifiedTrip: 0,
           pcSeen: pcDone,
           pcDone,
         };
@@ -121,6 +125,7 @@ VA.State = {
         if (this.data.bedroomGuide.phoneDone) this.data.bedroomGuide.phoneSeen = true;
         if (this.data.bedroomGuide.pcDone) this.data.bedroomGuide.pcSeen = true;
       }
+      this.data.guides = Object.assign(this.fresh().guides, this.data.guides || {});
       this.data.socialBonus = this.data.socialBonus || {};
       // older saves predate newer settings (e.g. spoken answers): keep theirs, add ours
       this.data.settings = Object.assign(this.fresh().settings, this.data.settings);

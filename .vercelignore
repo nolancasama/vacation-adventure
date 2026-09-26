@@ -10,3 +10,4 @@ scripts/
 tests/
 DESIGN_DECISIONS.md
 CURRENT_STATE.md
+package.json

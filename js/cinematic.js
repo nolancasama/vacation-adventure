@@ -10,6 +10,9 @@
    Step vocabulary (used by data.js):
      {cam:{x,y,s,dur}}       slow pan/zoom to focus point x,y (stage px)
      {towerPan:{from,to,dur}} pan a tall background from its base to its top
+     {look:{...}}             player pans/looks until a target is held in view
+     {soccerGame:{...}}       third-person 3D soccer (top-down fallback)
+     {eatGame:{shape,illustration,bites}} take bites by tapping or (opt-in) webcam
      {wait:ms}               hold the moment
      {say:['vendor','One ice cream?','アイスはいかが？']}   tap to continue
      {auto:['player','Yummy!','おいしい！',2200]}           auto-advances (optional hold ms)
@@ -191,19 +194,29 @@ VA.Cine = {
      they would when someone naturally looks up. */
   towerPan({ from = 100, to = 0, dur = 3600 }) {
     const image = this.world.querySelector('.art-layer img[src$="event_france_eiffel.webp"]');
-    const actors = this.world.querySelector('.actor-layer');
     if (!image) return VA.wait(dur);
-    image.style.transition = 'none';
-    image.style.objectPosition = `50% ${from}%`;
-    actors.style.transition = 'none';
-    actors.style.transform = 'translateY(0)';
+    this.setTowerView(from, 0);
     void image.offsetWidth;
-    const ease = 'cubic-bezier(.36,0,.22,1)';
-    image.style.transition = `object-position ${dur}ms ${ease}`;
-    actors.style.transition = `transform ${dur}ms ${ease}`;
-    image.style.objectPosition = `50% ${to}%`;
-    actors.style.transform = 'translateY(680px)';
+    this.setTowerView(to, dur);
     return VA.wait(dur + 70);
+  },
+
+  /* Set one frame of the Eiffel source-image crop. Look mode uses this same
+     relationship so its manual pan and the established automatic pan cannot
+     drift apart: base=100% / actors=0, tip=0% / actors=680px. */
+  setTowerView(pct, dur = 0) {
+    const image = this.world.querySelector('.art-layer img[src$="event_france_eiffel.webp"]');
+    const actors = this.world.querySelector('.actor-layer');
+    if (!image) return false;
+    const p = VA.clamp(Number(pct) || 0, 0, 100);
+    const ease = 'cubic-bezier(.36,0,.22,1)';
+    image.style.transition = dur ? `object-position ${dur}ms ${ease}` : 'none';
+    image.style.objectPosition = `50% ${p}%`;
+    if (actors) {
+      actors.style.transition = dur ? `transform ${dur}ms ${ease}` : 'none';
+      actors.style.transform = `translateY(${680 * (1 - p / 100)}px)`;
+    }
+    return true;
   },
 
   ANIM_MS: { hop: 580, wiggle: 520, cheer: 1250, arc: 720, 'pop-in': 470 },
@@ -213,6 +226,16 @@ VA.Cine = {
     for (const st of steps) {
       if (st.cam)     { await this.cam(st.cam); continue; }
       if (st.towerPan){ await this.towerPan(st.towerPan); continue; }
+      if (st.look)    { await VA.Look.run(st.look, this); continue; }
+      if (st.soccerGame) {
+        let soccer = null;
+        if (window.VA_SOCCER_2D !== true && VA.Soccer3D && VA.Soccer3D.isSupported()) {
+          soccer = await VA.Soccer3D.start(st.soccerGame, this);
+        }
+        ctx.soccer = soccer && !soccer.fallback ? soccer : await VA.Soccer.play(st.soccerGame, this);
+        continue;
+      }
+      if (st.eatGame) { await VA.EatGame.play(st.eatGame, this); continue; }
       if (st.wait)    { await VA.wait(st.wait); continue; }
       if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3], jpMode: st.jpMode }); continue; }
       if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2], dur: st.auto[3], jpMode: st.jpMode }); continue; }

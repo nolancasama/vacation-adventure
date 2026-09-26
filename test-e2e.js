@@ -33,6 +33,26 @@ async function vis(page, sel) {
 
 const jsClick = (page, sel) => page.$eval(sel, el => el.click()).catch(() => {});
 
+async function finishLook(page, label) {
+  for (let i = 0; i < 160; i++) {
+    const st = await page.evaluate(() => VA.Look && VA.Look.state()).catch(() => null);
+    if (!st || !st.active) return;
+    const dx = st.target.x - st.view.x;
+    const dy = st.target.y - st.view.y;
+    if (st.distance <= 28) {
+      await page.waitForTimeout(80);
+      continue;
+    }
+    const key = Math.abs(dx) >= Math.abs(dy)
+      ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft')
+      : (dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    await page.keyboard.down(key);
+    await page.waitForTimeout(140);
+    await page.keyboard.up(key);
+  }
+  throw new Error('HARNESS_PRECONDITION_FAILED: active look did not finish: ' + label);
+}
+
 /* click sel until condFnBody becomes true (fade transitions can swallow a click) */
 async function clickUntil(page, sel, condFnBody, label) {
   for (let i = 0; i < 10; i++) {
@@ -75,6 +95,11 @@ async function talk(page, label, stopFnBody, opts = {}) {
 
     if (await vis(page, '#hint-photo')) { await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn'))    { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
+    if (await vis(page, '.eat-tap:not([disabled])')) { await jsClick(page, '.eat-tap'); await page.waitForTimeout(350); continue; }
+    if (await page.evaluate(() => !!(VA.Look && VA.Look.state().active)).catch(() => false)) {
+      await finishLook(page, label);
+      continue;
+    }
 
     const hasChoice = await vis(page, '#choices');
     if (hasChoice) {

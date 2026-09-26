@@ -1,0 +1,19 @@
+{
+  "name": "vacation-adventure",
+  "private": true,
+  "description": "Static browser game; this file only declares test scripts.",
+  "scripts": {
+    "test": "node tests/lang-test.js",
+    "test:lang": "node tests/lang-test.js",
+    "test:speech": "node -r ./tests/pw-path.js tests/speech-test.js",
+    "test:bedroom": "node -r ./tests/pw-path.js tests/bedroom-test.js",
+    "test:guide": "node -r ./tests/pw-path.js tests/bedroom-guide-test.js",
+    "test:depart": "node -r ./tests/pw-path.js tests/depart-test.js",
+    "test:japanese": "node -r ./tests/pw-path.js tests/japanese-test.js",
+    "test:e2e": "node -r ./tests/pw-path.js test-e2e.js",
+    "test:look": "node -r ./tests/pw-path.js tests/look-test.js",
+    "test:soccer": "node -r ./tests/pw-path.js tests/soccer-test.js",
+    "test:soccer3d": "node -r ./tests/pw-path.js tests/soccer3d-test.js",
+    "test:eat": "node -r ./tests/pw-path.js tests/eat-test.js"
+  }
+}

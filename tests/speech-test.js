@@ -27,6 +27,9 @@ const check = (ok, msg) => { if (ok) console.log('  ✓ ' + msg); else { console
    window.__speechQueue entries, consumed one per start():
      { interim:['i saw the eif', ...], final:'...', finalDelay:ms, error:'no-speech' } */
 function installFakeSpeech() {
+  // Speech coverage exercises the whole trip, not WebGL. Keep France on the
+  // deterministic top-down fallback; soccer3d-test.js owns the 3D path.
+  window.VA_SOCCER_2D = true;
   window.__speechQueue = [];
   window.__recLog = { started: 0, aborted: 0, active: 0, maxActive: 0 };
   class FakeRec {
@@ -63,6 +66,69 @@ const jsClick = (page, sel) => page.$eval(sel, el => el.click()).catch(() => {})
 const say = (page, entry) => page.evaluate(e => window.__speechQueue.push(e), entry);
 const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('vacation-adventure-v1')));
 
+async function finishLook(page, label) {
+  for (let i = 0; i < 160; i++) {
+    const st = await page.evaluate(() => VA.Look && VA.Look.state()).catch(() => null);
+    if (!st || !st.active) return;
+    const dx = st.target.x - st.view.x;
+    const dy = st.target.y - st.view.y;
+    if (st.distance <= 28) {
+      await page.waitForTimeout(80);
+      continue;
+    }
+    const key = Math.abs(dx) >= Math.abs(dy)
+      ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft')
+      : (dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    await page.keyboard.down(key);
+    await page.waitForTimeout(140);
+    await page.keyboard.up(key);
+  }
+  const last = await page.evaluate(() => VA.Look && VA.Look.state()).catch(() => null);
+  throw new Error('HARNESS_PRECONDITION_FAILED: active look did not finish: ' + label + ' ' + JSON.stringify(last));
+}
+
+async function finishSoccer(page, label) {
+  // Queue the optional bonus before the automatic listener starts. Movement,
+  // recovery, aim and every shot still go through the real game controls.
+  await say(page, { final: 'I played soccer!' });
+  for (let i = 0; i < 520; i++) {
+    const st = await page.evaluate(() => VA.Soccer && VA.Soccer.state()).catch(() => null);
+    if (!st || !st.active) return;
+    if (st.phase === 'intro' || st.phase === 'shot' || st.phase === 'celebrate') {
+      await page.waitForTimeout(100);
+      continue;
+    }
+    if (st.phase === 'aim') {
+      // Give the one bonus utterance time to resolve, then read Louis and aim
+      // at a genuinely open third of the goal.
+      if (st.listening) { await page.waitForTimeout(180); continue; }
+      const zones = ['left', 'center', 'right'];
+      const open = zones.find(z => z !== st.keeperZone);
+      while ((await page.evaluate(() => VA.Soccer.state().aimZone)) !== open) {
+        const at = zones.indexOf(await page.evaluate(() => VA.Soccer.state().aimZone));
+        await page.keyboard.press(zones.indexOf(open) < at ? 'ArrowLeft' : 'ArrowRight');
+      }
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(120);
+      continue;
+    }
+    const target = st.hasBall ? { x: 480, y: 210 } : st.ball;
+    let dx = target.x - st.player.x;
+    const dy = target.y - st.player.y;
+    if (st.hasBall) {
+      const threat = st.defenders.find(d => !d.stunned && Math.abs(d.y - st.player.y) < 125 && Math.abs(d.x - st.player.x) < 145);
+      if (threat) dx = st.player.x < threat.x ? -180 : 180;
+    }
+    const keys = [];
+    if (Math.abs(dx) > 18) keys.push(dx < 0 ? 'ArrowLeft' : 'ArrowRight');
+    if (Math.abs(dy) > 18) keys.push(dy < 0 ? 'ArrowUp' : 'ArrowDown');
+    for (const key of keys) await page.keyboard.down(key);
+    await page.waitForTimeout(115);
+    for (const key of keys) await page.keyboard.up(key);
+  }
+  throw new Error('HARNESS_PRECONDITION_FAILED: active soccer did not finish: ' + label);
+}
+
 async function clickUntil(page, sel, cond, label) {
   for (let i = 0; i < 10; i++) {
     await jsClick(page, sel);
@@ -80,6 +146,15 @@ async function talk(page, label, stop, answers = {}, log = []) {
     if (await page.evaluate(stop).catch(() => false)) return log;
     if (await vis(page, '#hint-photo')) { log.push({ q: '(hint)', kind: 'hint' }); await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn')) { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
+    if (await vis(page, '.eat-tap:not([disabled])')) { await jsClick(page, '.eat-tap'); await page.waitForTimeout(350); continue; }
+    if (await page.evaluate(() => !!(VA.Look && VA.Look.state().active)).catch(() => false)) {
+      await finishLook(page, label);
+      continue;
+    }
+    if (await page.evaluate(() => !!(VA.Soccer && VA.Soccer.state().active)).catch(() => false)) {
+      await finishSoccer(page, label);
+      continue;
+    }
     const ui = await page.evaluate(() => {
       const wrap = document.querySelector('#choices');
       if (!wrap || wrap.style.display === 'none') return null;

@@ -37,6 +37,36 @@ VA.Bedroom = {
     { id: 'corkboard', rect: { x: 321, y: 76, w: 278, h: 205 }, label: 'Photos', hint: ['Your trip photos will go here!', '旅行の写真がここにはられるよ！'] },
   ],
   hintTimer: 0,
+  notificationTimers: [],
+
+  clearNotificationTimers() {
+    this.notificationTimers.forEach(timer => clearTimeout(timer));
+    this.notificationTimers = [];
+    VA.$('#scr-bedroom')?.querySelector('.bedroom-phone-hint')?.remove();
+  },
+
+  notificationDelay(fn, ms) {
+    const scale = VA.Timeline ? VA.Timeline.scale : (Number(window.VA_TIMELINE_SCALE) || 1);
+    const timer = setTimeout(() => {
+      this.notificationTimers = this.notificationTimers.filter(item => item !== timer);
+      fn();
+    }, Math.max(1, Math.round(ms * scale)));
+    this.notificationTimers.push(timer);
+    return timer;
+  },
+
+  unpostedPhotos(data) {
+    const d = data || VA.State.data;
+    const posts = d.socialPosts || [];
+    return VA.Memories.list().filter(memory => !posts.some(post =>
+      post.tripNo === memory.tripNo && post.destId === memory.destId && post.eventId === memory.eventId));
+  },
+
+  unpostedNewestPhotos(data) {
+    const d = data || VA.State.data;
+    const tripNo = Number(d.tripCount) || 0;
+    return tripNo ? this.unpostedPhotos(d).filter(memory => memory.tripNo === tripNo) : [];
+  },
 
   guideStage(data) {
     const d = data || {};
@@ -52,6 +82,7 @@ VA.Bedroom = {
   },
 
   async show() {
+    this.clearNotificationTimers();
     VA.State.checkpoint('bedroom');
     this.render();
     await VA.Screens.show('bedroom', { transition: 'home' });
@@ -59,6 +90,7 @@ VA.Bedroom = {
     VA.Audio.music('theme_home');
     VA.Audio.ambient(['room']);
     VA.Ambient.set([{ type: 'motes', rect: [0.08, 0.08, 0.84, 0.7], n: 7 }]);
+    this.startPhoneNotification();
   },
 
   render() {
@@ -113,23 +145,40 @@ VA.Bedroom = {
   },
 
   renderGuide(handoff) {
+    this.clearNotificationTimers();
     const scr = VA.$('#scr-bedroom');
-    scr.querySelector('.bedroom-guide-layer')?.remove();
+    scr.querySelectorAll('.bedroom-guide-layer').forEach(layer => layer.remove());
     const stage = this.guideStage(VA.State.data);
-    if (!/^(phone|pc)-/.test(stage)) return;
-    const id = stage.startsWith('phone') ? 'phone' : 'pc';
+    if (/^phone-/.test(stage)) this.renderGuideFor('phone', stage);
+    if (/^pc-/.test(stage)) this.renderGuideFor('pc', stage, handoff);
+    if (VA.State.data.bedroomGuide.phoneDone && this.unpostedPhotos(VA.State.data).length) {
+      this.renderGuideFor('phone', 'phone-later');
+    }
+  },
+
+  renderGuideFor(id, stage, handoff) {
+    const scr = VA.$('#scr-bedroom');
     const item = this.hotspots.find(entry => entry.id === id);
     const layer = VA.el('div', `bedroom-guide-layer guide-${stage}`);
     layer.dataset.guideFor = id;
-    const screen = VA.el('div', `bedroom-guide-screen ${id}-guide-screen`);
-    Object.assign(screen.style, { left: item.screen.x + 'px', top: item.screen.y + 'px', width: item.screen.w + 'px', height: item.screen.h + 'px' });
-    if (item.screen.clip) screen.style.clipPath = item.screen.clip;
-    if (id === 'pc' && stage === 'pc-new') screen.appendChild(VA.el('span', 'bedroom-guide-star', '★'));
-    const dot = VA.el('span', `bedroom-guide-dot ${id}-guide-dot`, stage.endsWith('-new') ? '1' : '');
+    layer.dataset.attentionState = stage === 'phone-new' ? 'waiting' : stage === 'phone-later' ? 'static' : stage;
+    if (stage !== 'phone-pending' && stage !== 'phone-later' && stage !== 'pc-pending') {
+      const screen = VA.el('div', `bedroom-guide-screen ${id}-guide-screen`);
+      Object.assign(screen.style, { left: item.screen.x + 'px', top: item.screen.y + 'px', width: item.screen.w + 'px', height: item.screen.h + 'px' });
+      if (item.screen.clip) screen.style.clipPath = item.screen.clip;
+      if (id === 'pc' && stage === 'pc-new') screen.appendChild(VA.el('span', 'bedroom-guide-star', '★'));
+      layer.appendChild(screen);
+    }
+    const count = stage === 'phone-later' ? Math.min(9, this.unpostedPhotos(VA.State.data).length) : '';
+    const dot = VA.el('span', `bedroom-guide-dot ${id}-guide-dot`, stage === 'phone-new' ? '1' : String(count));
     dot.style.left = (item.screen.x + item.screen.w - 5) + 'px';
     dot.style.top = (item.screen.y - 7) + 'px';
-    if (stage !== 'pc-pending') layer.appendChild(screen);
     layer.appendChild(dot);
+    if (stage === 'phone-new' || stage === 'phone-later') {
+      const ring = VA.el('span', 'bedroom-phone-ring');
+      Object.assign(ring.style, { left: item.rect.x + 'px', top: item.rect.y + 'px', width: item.rect.w + 'px', height: item.rect.h + 'px' });
+      layer.appendChild(ring);
+    }
     if (handoff && id === 'pc' && !VA.reducedMotion) {
       const sparkle = VA.el('span', 'bedroom-guide-handoff', '✦');
       sparkle.style.left = (item.screen.x + item.screen.w / 2) + 'px';
@@ -137,6 +186,66 @@ VA.Bedroom = {
       layer.appendChild(sparkle);
     }
     scr.appendChild(layer);
+  },
+
+  phoneAttentionHint() {
+    const scr = VA.$('#scr-bedroom');
+    if (scr.querySelector('.bedroom-phone-hint')) return;
+    const item = this.hotspots.find(entry => entry.id === 'phone');
+    const bubble = VA.el('div', 'bedroom-hint bedroom-phone-hint');
+    bubble.dataset.for = 'phone-notification';
+    bubble.style.left = (item.rect.x + item.rect.w / 2) + 'px';
+    bubble.style.top = (item.rect.y - 10) + 'px';
+    bubble.appendChild(VA.el('div', 'bedroom-hint-en', 'New! Share your trip! 📱'));
+    if (VA.State.data.settings.jp) {
+      const reveal = VA.el('button', 'bedroom-hint-jp-toggle', '? 日本語');
+      reveal.type = 'button';
+      const japanese = VA.el('div', 'bedroom-hint-jp', 'あたらしい！旅行をシェアしよう！');
+      japanese.hidden = true;
+      reveal.addEventListener('click', event => {
+        event.stopPropagation();
+        japanese.hidden = false;
+        reveal.hidden = true;
+      });
+      bubble.append(reveal, japanese);
+    }
+    scr.appendChild(bubble);
+  },
+
+  startPhoneNotification() {
+    const scr = VA.$('#scr-bedroom');
+    if (!scr?.classList.contains('active')) return;
+    const stage = this.guideStage(VA.State.data);
+    if (stage === 'phone-new') {
+      this.notificationDelay(() => {
+        if (!scr.classList.contains('active') || this.guideStage(VA.State.data) !== 'phone-new') return;
+        const layer = scr.querySelector('.guide-phone-new');
+        if (!layer) return;
+        VA.Audio.sfx('chime');
+        layer.classList.add('phone-attention-active');
+        layer.dataset.attentionState = 'strong';
+        this.phoneAttentionHint();
+        this.notificationDelay(() => {
+          if (!scr.classList.contains('active') || this.guideStage(VA.State.data) !== 'phone-new') return;
+          layer.classList.remove('phone-attention-extra');
+          void layer.offsetWidth;
+          layer.classList.add('phone-attention-extra');
+        }, 8000);
+      }, 700);
+      return;
+    }
+    const guide = VA.State.data.bedroomGuide;
+    const count = this.unpostedNewestPhotos(VA.State.data).length;
+    if (guide.phoneDone && count && guide.phoneNotifiedTrip !== VA.State.data.tripCount) {
+      const layer = scr.querySelector('.guide-phone-later');
+      if (layer) {
+        VA.Audio.sfx('postUp');
+        layer.classList.add('phone-attention-later');
+        layer.dataset.attentionState = 'quiet';
+      }
+      guide.phoneNotifiedTrip = VA.State.data.tripCount;
+      VA.State.save();
+    }
   },
 
   hint(id, en, jp) {
@@ -175,11 +284,15 @@ VA.Bedroom = {
     if (id === 'phone') return VA.Phone.open();
     if (id === 'pc') return VA.Reviews.open();
     if (id === 'scrapbook') {
+      this.clearNotificationTimers();
       VA.UI.scrapbook(memories[0].destId, false);
       VA.UI.modalScrapbookReturn = 'bedroom';
       return VA.Screens.show('scrapbook');
     }
-    if (id === 'trip') return VA.State.data.tripCount === 0 ? VA.Flows.toMap() : VA.Flows.newTripIntro();
+    if (id === 'trip') {
+      this.clearNotificationTimers();
+      return VA.State.data.tripCount === 0 ? VA.Flows.toMap() : VA.Flows.newTripIntro();
+    }
     if (id === 'shelf') {
       const places = VA.Data.DESTS.filter(dest => VA.State.data.book[dest.id]?.done).map(dest => dest.name);
       if (!places.length) return this.hint(id, item.hint[0], item.hint[1]);

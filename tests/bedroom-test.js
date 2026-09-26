@@ -18,6 +18,9 @@ const PAGE_URL = 'file:///' + path.join(__dirname, '..', 'index.html').replace(/
 const OUT = process.env.VA_SHOTS || path.join(__dirname, '..', '.shots');
 fs.mkdirSync(OUT, { recursive: true });
 const SHOT = name => path.join(OUT, name + '.png');
+const ATTENTION_OUT = path.join(OUT, 'bedroom', 'attention');
+fs.mkdirSync(ATTENTION_OUT, { recursive: true });
+const ATTENTION_SHOT = name => path.join(ATTENTION_OUT, name + '.png');
 const failures = [];
 const errors = [];
 const check = (ok, msg) => {
@@ -294,7 +297,69 @@ async function advanceDialogueTo(page, stop) {
   check(phoneKeys.length === 5, 'phone picker lists exactly the five earned photos');
   check(!phoneKeys.some(key => key.endsWith(':soccer')), 'declined soccer is absent from the phone picker');
   await page.screenshot({ path: SHOT('phone-picker') });
+  await page.setViewportSize({ width: 1366, height: 768 });
   await click(page, '.phone-memory-option[data-key="france:eiffel"]');
+  await page.waitForFunction(() => {
+    const next = document.querySelector('.phone-next');
+    const screen = document.querySelector('#phone-screen');
+    if (!next || !screen) return false;
+    const n = next.getBoundingClientRect();
+    const s = screen.getBoundingClientRect();
+    return n.top >= s.top && n.bottom <= s.bottom;
+  });
+  const selectedPhoto = await page.evaluate(() => ({
+    selected: document.querySelectorAll('.phone-memory-option.selected').length,
+    pressed: document.querySelector('.phone-memory-option.selected')?.getAttribute('aria-pressed'),
+    check: document.querySelector('.phone-memory-option.selected .phone-selected-check')?.textContent,
+    label: document.querySelector('.phone-memory-option.selected .phone-selected-label')?.textContent,
+    nextEnabled: !document.querySelector('.phone-next')?.disabled,
+    stayed: !document.querySelector('.phone-title-step'),
+  }));
+  check(selectedPhoto.selected === 1 && selectedPhoto.pressed === 'true' && selectedPhoto.check === '✓' &&
+    selectedPhoto.label === 'Selected' && selectedPhoto.nextEnabled && selectedPhoto.stayed,
+  'one click selects exactly one photo with a check and Selected label without advancing');
+  await page.screenshot({ path: ATTENTION_SHOT('selected-photo') });
+  await page.screenshot({ path: ATTENTION_SHOT('next-revealed-after-scroll') });
+
+  await page.waitForFunction(() => {
+    const box = document.querySelector('#phone-screen');
+    if (!box) return false;
+    const now = Math.round(box.scrollTop);
+    const previous = Number(box.dataset.scrollProbe);
+    box.dataset.scrollProbe = now;
+    box.dataset.scrollStable = now === previous ? String(Number(box.dataset.scrollStable || 0) + 1) : '0';
+    return Number(box.dataset.scrollStable) >= 3;
+  }, null, { polling: 'raf' });
+  const noScroll = await page.evaluate(async () => {
+    const box = document.querySelector('#phone-screen');
+    const before = box.scrollTop;
+    document.querySelector('.phone-memory-option[data-key="france:crepe"]').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return { before, after: box.scrollTop, key: document.querySelector('.phone-memory-option.selected')?.dataset.key };
+  });
+  check(Math.abs(noScroll.after - noScroll.before) < 1 && noScroll.key === 'france:crepe',
+    'choosing another photo moves selection and does not scroll when NEXT is already fully visible');
+  await click(page, '.phone-memory-option[data-key="france:eiffel"]');
+
+  const touchPage = await browser.newPage({ viewport: { width: 1366, height: 768 }, hasTouch: true });
+  await touchPage.addInitScript(seed => {
+    window.VA_TIMELINE_SCALE = 0.05;
+    delete window.SpeechRecognition;
+    delete window.webkitSpeechRecognition;
+    localStorage.setItem('vacation-adventure-v1', JSON.stringify(seed));
+  }, populatedSave);
+  await touchPage.goto(PAGE_URL);
+  await touchPage.waitForTimeout(900);
+  await resume(touchPage);
+  await openPhone(touchPage);
+  await touchPage.tap('.phone-new-post');
+  await touchPage.waitForSelector('.phone-memory-option[data-key="france:eiffel"]');
+  await touchPage.tap('.phone-memory-option[data-key="france:eiffel"]');
+  check(await touchPage.locator('.phone-memory-option.selected .phone-selected-label').textContent() === 'Selected' &&
+    !await touchPage.locator('.phone-next').isDisabled() && !await vis(touchPage, '.phone-title-step'),
+  'a touch tap selects the photo and stays on the picker page');
+  await touchPage.close();
+
   await click(page, '.phone-next');
   await page.fill('.phone-title-input', 'Paris Day');
   await click(page, '.phone-next');

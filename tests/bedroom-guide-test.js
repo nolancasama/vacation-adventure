@@ -18,6 +18,9 @@ const PAGE_URL = 'file:///' + path.join(__dirname, '..', 'index.html').replace(/
 const OUT = process.env.VA_SHOTS || path.join(__dirname, '..', '.shots');
 fs.mkdirSync(OUT, { recursive: true });
 const SHOT = name => path.join(OUT, name + '.png');
+const ATTENTION_OUT = path.join(OUT, 'bedroom', 'attention');
+fs.mkdirSync(ATTENTION_OUT, { recursive: true });
+const ATTENTION_SHOT = name => path.join(ATTENTION_OUT, name + '.png');
 const failures = [];
 const errors = [];
 const check = (ok, msg) => {
@@ -257,6 +260,12 @@ async function dialogueChoice(page, text) {
   const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   await page.addInitScript(seed => {
+    window.VA_TIMELINE_SCALE = 0.2;
+    window.__bedroomSfx = [];
+    window.addEventListener('DOMContentLoaded', () => {
+      const original = VA.Audio.sfx.bind(VA.Audio);
+      VA.Audio.sfx = name => { window.__bedroomSfx.push(name); return original(name); };
+    });
     delete window.SpeechRecognition;
     delete window.webkitSpeechRecognition;
     if (!localStorage.getItem('vacation-adventure-v1')) {
@@ -342,11 +351,29 @@ async function dialogueChoice(page, text) {
 
   // A first trip with memories but no writing starts on the phone only.
   await setSaveAndReload(page, completedSave);
+  await page.waitForFunction(() => document.querySelector('.guide-phone-new')?.dataset.attentionState === 'strong');
   check(await stage(page) === 'phone-new', 'a completed first trip starts the phone-new stage');
   let phoneAttention = await attention(page, 'phone');
   let pcAttention = await attention(page, 'pc');
   check(phoneAttention.screen && phoneAttention.dot && phoneAttention.one && phoneAttention.pulse,
     'phone-new lights and pulses the phone with a 1 dot');
+  const strongDetails = await page.evaluate(() => {
+    const layer = document.querySelector('.guide-phone-new');
+    const badge = layer.querySelector('.bedroom-guide-dot').getBoundingClientRect();
+    const glow = layer.querySelector('.bedroom-guide-screen');
+    const ring = layer.querySelector('.bedroom-phone-ring');
+    const hint = document.querySelector('.bedroom-phone-hint');
+    return {
+      sound: window.__bedroomSfx.filter(name => name === 'chime').length,
+      badgeWidth: badge.width,
+      glow: !!(glow && glow.offsetParent),
+      ring: !!ring && getComputedStyle(ring).animationName !== 'none',
+      hint: hint?.textContent || '',
+    };
+  });
+  check(strongDetails.sound === 1 && strongDetails.glow && strongDetails.badgeWidth >= 32 && strongDetails.ring &&
+    strongDetails.hint.includes('New! Share your trip! 📱'),
+  'phone-new plays one chime and shows the large badge, glow, finite pulse ring, and sharing hint');
   check(!pcAttention.screen && !pcAttention.dot && !pcAttention.pulse, 'PC stays completely dark during the phone stage');
   const probeDetected = await page.evaluate(() => {
     const original = VA.Bedroom.guideStage;
@@ -360,7 +387,34 @@ async function dialogueChoice(page, text) {
     }
   });
   check(probeDetected, 'the attention assertion detects a temporary forced-done guide mutation');
+  await page.evaluate(() => VA.Bedroom.startPhoneNotification());
+  await page.waitForFunction(() => document.querySelector('.guide-phone-new')?.dataset.attentionState === 'strong');
   await page.screenshot({ path: SHOT('guide-phone-attention') });
+  await page.screenshot({ path: ATTENTION_SHOT('first-trip-notification') });
+  await page.screenshot({ path: ATTENTION_SHOT('hint') });
+
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 720 }, { width: 800, height: 600 }]) {
+    await page.setViewportSize(viewport);
+    const aligned = await page.evaluate(() => {
+      const stageBox = document.querySelector('#stage').getBoundingClientRect();
+      const hotspot = VA.Bedroom.hotspots.find(item => item.id === 'phone');
+      const scale = stageBox.width / 960;
+      const screen = document.querySelector('.guide-phone-new .bedroom-guide-screen').getBoundingClientRect();
+      const hint = document.querySelector('.bedroom-phone-hint').getBoundingClientRect();
+      const others = Array.from(document.querySelectorAll('.bedroom-hotspot:not([data-action="phone"])')).map(el => el.getBoundingClientRect());
+      const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      return {
+        screen: Math.abs(screen.left - (stageBox.left + hotspot.screen.x * scale)) < 1.5 &&
+          Math.abs(screen.top - (stageBox.top + hotspot.screen.y * scale)) < 1.5 &&
+          Math.abs(screen.width - hotspot.screen.w * scale) < 1.5,
+        hintNear: Math.abs((hint.left + hint.right) / 2 - (stageBox.left + (hotspot.rect.x + hotspot.rect.w / 2) * scale)) < 2,
+        clear: !others.some(box => overlap(hint, box)) && !Array.from(document.querySelectorAll('.writing-coach')).some(el => el.offsetParent),
+      };
+    });
+    check(aligned.screen && aligned.hintNear && aligned.clear,
+      `phone glow and hint stay hotspot-aligned and collision-free at ${viewport.width}x${viewport.height}`);
+  }
+  await page.setViewportSize({ width: 1366, height: 768 });
 
   await openPhone(page);
   check(await stage(page) === 'phone-pending', 'opening the phone persists phoneSeen immediately');
@@ -377,16 +431,19 @@ async function dialogueChoice(page, text) {
   await closePhone(page);
   phoneAttention = await attention(page, 'phone');
   pcAttention = await attention(page, 'pc');
-  check(await stage(page) === 'phone-pending' && phoneAttention.screen && phoneAttention.dot && !phoneAttention.pulse,
-    'closing without a post leaves the dim phone screen and quiet dot without a pulse');
+  check(await stage(page) === 'phone-pending' && !phoneAttention.screen && phoneAttention.dot && !phoneAttention.pulse,
+    'closing without a post leaves only the quiet phone badge without glow or pulse');
   check(!pcAttention.screen && !pcAttention.dot, 'PC remains dark while the phone is pending');
 
   await page.reload();
   await page.waitForTimeout(900);
   await resume(page);
   phoneAttention = await attention(page, 'phone');
-  check(await stage(page) === 'phone-pending' && phoneAttention.screen && phoneAttention.dot && !phoneAttention.pulse,
+  check(await stage(page) === 'phone-pending' && !phoneAttention.screen && phoneAttention.dot && !phoneAttention.pulse,
     'reload restores phone-pending from persisted state');
+  check(!await vis(page, '.bedroom-phone-hint') &&
+    await page.evaluate(() => !window.__bedroomSfx.includes('chime')),
+  'opening the phone prevents the strong sequence and hint from replaying after reload');
 
   await openPhone(page);
   await click(page, '.phone-new-post');
@@ -461,7 +518,22 @@ async function dialogueChoice(page, text) {
 
   // A later trip does not restart either tutorial.
   await setSaveAndReload(page, accumulatedSave);
+  await page.waitForFunction(() => document.querySelector('.guide-phone-later')?.dataset.attentionState === 'quiet');
   check(await stage(page) === 'done', 'a second or later completed trip does not restart a completed guide');
+  const laterNotice = await page.evaluate(() => ({
+    sound: window.__bedroomSfx.filter(name => name === 'postUp').length,
+    badge: document.querySelector('.guide-phone-later .bedroom-guide-dot')?.textContent,
+    pulse: getComputedStyle(document.querySelector('.guide-phone-later .bedroom-phone-ring')).animationName,
+    hint: !!document.querySelector('.bedroom-phone-hint'),
+    notified: VA.State.data.bedroomGuide.phoneNotifiedTrip,
+  }));
+  check(laterNotice.sound === 1 && laterNotice.badge === '7' && laterNotice.pulse !== 'none' && !laterNotice.hint && laterNotice.notified === 3,
+    'a later trip gets one quiet notification, a counted badge and one pulse without the first-trip hint');
+  await page.screenshot({ path: ATTENTION_SHOT('later-trip-notification') });
+  await page.evaluate(() => VA.Bedroom.show());
+  await page.waitForFunction(() => document.querySelector('.guide-phone-later')?.dataset.attentionState === 'static');
+  check(await page.evaluate(() => window.__bedroomSfx.filter(name => name === 'postUp').length) === 1,
+    're-entering the bedroom does not replay a later-trip notification already saved for that trip');
   await openPhone(page);
   check(!await vis(page, '.writing-coach') && !await vis(page, '.coach-bubble'), 'completed phone guide shows no coach bubbles');
   await closePhone(page);

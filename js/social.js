@@ -240,6 +240,7 @@ VA.Phone = {
   },
 
   open() {
+    VA.Bedroom.clearNotificationTimers();
     this.draft = null;
     this.openGuideStage = VA.Bedroom.guideStage(VA.State.data);
     if (VA.Memories.list().length && !VA.State.data.bedroomGuide.phoneDone) {
@@ -467,6 +468,8 @@ VA.Phone = {
       return;
     }
     const list = VA.el('div', 'phone-memory-list');
+    let nextScrollBusy = false;
+    let nextScrollTimer = 0;
     let current = null;
     memories.forEach(memory => {
       if (memory.destId !== current) {
@@ -485,11 +488,38 @@ VA.Phone = {
         btn.setAttribute('aria-label', `${memory.evt.title}: already posted. View post.`);
         btn.addEventListener('click', () => this.viewPost(post));
       } else {
+        btn.setAttribute('aria-pressed', 'false');
+        const selectedState = VA.el('span', 'phone-selection-state');
+        selectedState.setAttribute('aria-hidden', 'true');
+        selectedState.append(
+          VA.el('span', 'phone-selected-check', '✓'),
+          VA.el('span', 'phone-selected-label', 'Selected')
+        );
+        btn.appendChild(selectedState);
         btn.addEventListener('click', () => {
-          list.querySelectorAll('.phone-memory-option').forEach(el => el.classList.remove('selected'));
+          list.querySelectorAll('.phone-memory-option').forEach(el => {
+            el.classList.remove('selected', 'phone-memory-pop');
+            if (!el.classList.contains('posted')) el.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('selected');
+          btn.setAttribute('aria-pressed', 'true');
+          if (!VA.reducedMotion) {
+            void btn.offsetWidth;
+            btn.classList.add('phone-memory-pop');
+          }
           this.draft = { memory, title: '', text: '', help: 0 };
           next.disabled = false;
+          requestAnimationFrame(() => {
+            const box = VA.$('#phone-screen');
+            if (!box || nextScrollBusy || !next.isConnected) return;
+            const buttonRect = next.getBoundingClientRect();
+            const boxRect = box.getBoundingClientRect();
+            if (buttonRect.top >= boxRect.top && buttonRect.bottom <= boxRect.bottom) return;
+            nextScrollBusy = true;
+            VA.Social.show(next);
+            clearTimeout(nextScrollTimer);
+            nextScrollTimer = setTimeout(() => { nextScrollBusy = false; }, VA.reducedMotion ? 0 : 425);
+          });
         });
       }
       list.appendChild(btn);

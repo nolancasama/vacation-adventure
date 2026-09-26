@@ -468,6 +468,7 @@ VA.UI = {
       ['voice', '🗣 Voice (English)', 'えいごの声で読む'],
       ['jp', '🇯🇵 Japanese hints', 'にほんごのヒント'],
       ['mic', '🎤 Spoken answers', 'こえでこたえる（オフ＝ボタン）'],
+      ['camera', '📷 Camera eating game', 'カメラでたべるまね（オフ＝タップ）'],
       ['labels', '🏷 Asset labels', 'アセット名を表示（開発用）'],
     ];
     rows.forEach(([key, label, jp]) => {
