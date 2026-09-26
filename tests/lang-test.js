@@ -101,5 +101,26 @@ check(typeof VA.Lang.memoryObject === 'function' && VA.Lang.memoryObject('I saw 
 check(typeof VA.Lang.speechAliases === 'function' && VA.Lang.speechAliases(mem('eiffel').evt).includes('Eiffel Tower'),
   'VA.Lang.speechAliases includes the article-free object');
 
+console.log('\n— broad language detection (never shown to the student) —');
+const lang = (text, expected) => {
+  const got = VA.Lang.languageOf(text);
+  check(got === expected, `"${text}" → ${expected}` + (got === expected ? '' : `  (got ${got})`));
+};
+lang('It was delicious!', 'english');
+lang('I go France. it was fun', 'english');           // minor errors are still English
+lang('I see Eiffel Tower.', 'english');
+lang('おいしかった！', 'japanese');                     // hiragana
+lang('クレープ！', 'japanese');                          // katakana
+lang('エッフェル塔を見た。', 'japanese');               // katakana + kanji
+lang('楽しい', 'japanese');                              // kanji
+lang('It was delicious! おいしかった！', 'mixed');
+lang('I went to France! フランス楽しかった！', 'mixed');
+lang('😂😂🔥', 'unclear');
+lang('!!!', 'unclear');
+lang('', 'unclear');
+check(VA.Lang.englishPart('It was fun! めっちゃ楽しかった！') === 'It was fun!', 'englishPart keeps only the English words');
+check(post('crepe', VA.Lang.englishPart('Crepe was delicious! おいしい！')).quality !== 'unclear',
+  'the English part of a mixed post is still assessable');
+
 console.log(failures.length ? `\n✗ ${failures.length} failure(s)` : '\n✓ all language checks passed');
 process.exit(failures.length ? 1 : 0);

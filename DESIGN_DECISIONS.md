@@ -257,3 +257,87 @@ for insulting or disputing language.
 
 **Why.** A negative review is valid English and a valid opinion. The comic
 reply makes honesty fun without punishing it.
+
+## 2026-09-26 — Departure has one reserved hub safe zone
+
+**What.** Every destination hub reserves a centred band at the bottom of the
+960×600 stage for “Time to go home!”. Once the hub is visible, activity cards
+are measured in stage pixels and any card entering that zone, or coming within
+24 px of the actual departure button, is lifted just enough to clear it. The
+button is centred with equal left/right insets and auto margins so pulse,
+hover and active transforms cannot replace its centring transform.
+
+**Why.** Activity labels and completed cards can be larger than their artwork
+anchor suggests. A shared rendered-rectangle rule keeps the exit readable and
+clickable for current and future destinations.
+
+**Rejected.** Per-country manual nudging, which would duplicate the rule and
+could regress when card text or button size changes.
+
+## 2026-09-26 — The phone is held up from below the screen
+
+**What.** The phone is anchored to the stage's bottom edge, rises in when
+opened, and its lower body continues past the edge and is clipped
+(`overflow: clip`). The whole screen stays on the stage, so no control is ever
+cut off. Auto-scroll moves only the device screen, never the overlay.
+
+**Why.** A centred rounded rectangle read as a modal box. Holding the phone up
+from below reads as a real device, and keeping the whole screen visible means
+the illusion costs nothing in usability.
+
+**Rejected.** Clipping part of the screen itself (it would hide POST / SEND).
+
+## 2026-09-26 — One post per earned photo, one review per place
+
+**What.** A photo is identified by trip + destination + event and can be
+posted once. Posted photos stay in the picker as "✓ Posted · View" and open
+the existing post. A photo from a later trip is a new photo and can be posted.
+Reviews stay keyed by `destId:eventId`: a reviewed place shows its stars and
+"✓ Reviewed · View" and opens the existing review, where Edit is the only way
+to change it. Both pickers have an all-done message.
+
+**Why.** Repeating the same memory to keep interacting is farming, not
+communication. Ongoing interaction lives in the comment threads and review
+history instead.
+
+## 2026-09-26 — Replies are inline threads on any friend comment
+
+**What.** Every top-level friend comment (including the follow-up question)
+has a subtle "Reply" link. The reply editor opens inside that comment's thread.
+A comment takes one player reply and at most one short friend acknowledgment
+(`comment.replies`), with no reply-to-reply. Thanks and flavours are always
+acknowledged, the follow-up question always is, and other replies usually are.
+Comments and replies have stable ids, and migration nests old top-level
+follow-up replies under their question.
+
+**Why.** Replying becomes a reading choice rather than a required step, and
+nesting makes "the reply renders under what it answers" true by construction.
+
+**Rejected.** One global reply box; unlimited nested discussion.
+
+## 2026-09-26 — Japanese is allowed; the world shows why English helps
+
+**What.** `VA.Lang.languageOf` broadly classifies text as english, mixed,
+japanese or unclear by script (kana/kanji versus Latin words, with no
+percentages). The student never sees the classification. Mixed text is
+judged by its English part (`englishPart`): if that part is understandable,
+the post or review is normal English, with normal reactions and bonus. A
+Japanese-only post publishes unchanged. Friends react 🤔 😕 😅, ask for
+English, and usually one thinks "Japanese is cool!". It earns no travel bonus
+yet ("your friends need some English!") and offers ✏️ Edit post. Editing
+updates the same post, keeps the old comments as history, adds "Oh! I
+understand now!" comments, marks it Edited and can claim the bonus under the
+usual rules. Contradiction checking runs only on English, because the local
+evaluator cannot read Japanese meaning. A Japanese-only reply is sent, the
+friend asks for English, and one more (English) reply is allowed. On the PC a
+Japanese-only review publishes, and the owner reacts to the stars
+("ONE STAR?! 😱 I can't read Japanese, but…") and invites an English edit of
+the same review.
+
+**Why.** Forbidding Japanese teaches nothing. Letting international
+characters visibly fail to understand, and then understand, shows why English
+is useful.
+
+**Rejected.** Blocking or auto-replacing Japanese; percentage thresholds;
+exposing a language score; editing understood posts (it would wipe reply
+threads and invite bonus farming).

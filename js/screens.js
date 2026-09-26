@@ -207,6 +207,7 @@ VA.UI = {
     const trip = VA.State.data.trip || { done: [] };
     const hsLayer = VA.$('#hotspot-layer');
     hsLayer.innerHTML = '';
+    if (scr._departLayoutObserver) scr._departLayoutObserver.disconnect();
     const availableEvents = dest.events.filter(evt => evt.enabled !== false);
     availableEvents.forEach(evt => {
       const done = trip.done.includes(evt.id);
@@ -231,7 +232,48 @@ VA.UI = {
     // A declined activity stays open for later, so leaving cannot wait for
     // every photo: one memory is enough to go home and tell Grandma about.
     const anyDone = availableEvents.some(e => trip.done.includes(e.id));
-    VA.$('#btn-depart').style.display = anyDone ? 'block' : 'none';
+    const depart = VA.$('#btn-depart');
+    depart.style.display = anyDone ? 'block' : 'none';
+
+    // UI.explore may build the next hub while its screen is still hidden.
+    // Once visible, measure the real label/done-card boxes in stage pixels and
+    // lift only cards that enter the single reserved departure zone.
+    const reserveDepartureZone = () => {
+      if (!anyDone || !scr.classList.contains('active')) return;
+      const stageRect = VA.$('#stage').getBoundingClientRect();
+      if (!stageRect.width || !stageRect.height) return;
+      const scaleX = stageRect.width / VA.W;
+      const scaleY = stageRect.height / VA.H;
+      const stageBox = el => {
+        const rect = el.getBoundingClientRect();
+        return {
+          left: (rect.left - stageRect.left) / scaleX,
+          top: (rect.top - stageRect.top) / scaleY,
+          right: (rect.right - stageRect.left) / scaleX,
+          bottom: (rect.bottom - stageRect.top) / scaleY,
+        };
+      };
+      const buttonRect = stageBox(depart);
+      const rule = VA.Layout.DEPART_ZONE;
+      Array.from(hsLayer.querySelectorAll('.hotspot')).forEach(hotspot => {
+        const rect = stageBox(hotspot);
+        if (!VA.Layout.rectsOverlapWithMargin(rect, buttonRect, rule.margin) &&
+            !VA.Layout.rectsOverlapWithMargin(rect, rule, 0)) return;
+        const clearanceTop = Math.min(rule.top, buttonRect.top - rule.margin);
+        const lift = rect.bottom - clearanceTop;
+        if (lift > 0) hotspot.style.top = (parseFloat(hotspot.style.top) - lift) + 'px';
+      });
+    };
+    if (scr.classList.contains('active')) {
+      requestAnimationFrame(reserveDepartureZone);
+    } else if (anyDone) {
+      scr._departLayoutObserver = new MutationObserver(() => {
+        if (!scr.classList.contains('active')) return;
+        scr._departLayoutObserver.disconnect();
+        requestAnimationFrame(reserveDepartureZone);
+      });
+      scr._departLayoutObserver.observe(scr, { attributes: true, attributeFilter: ['class'] });
+    }
     VA.$('#explore-hint').textContent = '';
   },
 

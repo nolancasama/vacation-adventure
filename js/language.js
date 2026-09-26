@@ -282,10 +282,32 @@
     return { ok, model: ok ? reviewModel(tokens) : null };
   }
 
+  /* Broad script detection, never shown to the student.  Japanese means any
+     hiragana, katakana or kanji; English means Latin-letter words.  Mixed
+     text is judged by its English part alone. */
+  const JAPANESE = /[぀-ヿㇰ-ㇿ㐀-䶿一-鿿ｦ-ﾟ]/;
+  const JAPANESE_ALL = /[　-〿぀-ヿㇰ-ㇿ㐀-䶿一-鿿＀-￯]+/g;
+
+  function englishPart(text) {
+    return String(text || '').replace(JAPANESE_ALL, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function languageOf(text) {
+    const value = String(text || '');
+    const japanese = JAPANESE.test(value);
+    const english = /[a-z]{2,}|\b[ia]\b/i.test(englishPart(value).normalize('NFD').replace(/[̀-ͯ]/g, ''));
+    if (japanese && english) return 'mixed';
+    if (japanese) return 'japanese';
+    if (english) return 'english';
+    return 'unclear';
+  }
+
   VA.Lang = {
     evaluatePost,
     evaluateReview,
     memoryObject,
     speechAliases,
+    languageOf,
+    englishPart,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

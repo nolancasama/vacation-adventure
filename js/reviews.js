@@ -175,23 +175,46 @@ VA.Reviews = {
     content.appendChild(VA.el('h2', 'review-page-title', 'Where did you go?'));
     const memories = this.places();
     if (!memories.length) return;
+    // One review per place (destId:eventId), not per trip: a reviewed place
+    // opens its existing review, which can be edited from there.
+    if (memories.every(memory => VA.State.data.reviews[`${memory.destId}:${memory.eventId}`])) {
+      content.firstChild.remove();
+      const done = VA.el('div', 'review-empty review-all-done',
+        "You've reviewed every place you've visited!<br><small>Visit somewhere new to write another review.</small>");
+      if (VA.State.data.settings.jp) done.appendChild(VA.el('small', 'writing-jp', '新しい場所に行ったら、またレビューを書こう！'));
+      content.appendChild(done);
+      const mine = VA.el('button', 'review-next writing-primary', 'MY REVIEWS');
+      mine.type = 'button';
+      mine.addEventListener('click', () => this.history());
+      content.appendChild(mine);
+      return;
+    }
     const grid = VA.el('div', 'review-place-grid');
     memories.forEach(memory => {
-      const btn = VA.el('button', 'review-place-option');
+      const key = `${memory.destId}:${memory.eventId}`;
+      const review = VA.State.data.reviews[key];
+      const btn = VA.el('button', 'review-place-option' + (review ? ' reviewed' : ''));
       btn.type = 'button';
-      btn.dataset.key = `${memory.destId}:${memory.eventId}`;
+      btn.dataset.key = key;
       btn.appendChild(VA.Social.photo(memory.photo, 220, 16 / 10));
       const label = VA.el('span', 'review-place-label');
       label.appendChild(VA.el('b', '', `${memory.evt.icon || memory.photo.icon} ${VA.escape(memory.evt.title)}`));
       label.appendChild(VA.el('small', '', `${memory.dest.flag} ${VA.escape(memory.dest.name)}`));
-      if (VA.State.data.reviews[btn.dataset.key]) label.appendChild(VA.el('small', 'review-place-done', '✓ reviewed'));
+      if (review) {
+        label.appendChild(VA.el('span', 'review-place-stars', '★'.repeat(review.stars) +
+          '<span class="review-star-off">' + '★'.repeat(5 - review.stars) + '</span>'));
+        label.appendChild(VA.el('small', 'review-place-done', '✓ Reviewed · View'));
+        btn.setAttribute('aria-label', `${memory.evt.title}: already reviewed. View your review.`);
+        btn.addEventListener('click', () => this.viewReview(key));
+      } else {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.review-place-option').forEach(el => el.classList.remove('selected'));
+          btn.classList.add('selected');
+          this.draft = { memory, stars: 0, text: '' };
+          next.disabled = false;
+        });
+      }
       btn.appendChild(label);
-      btn.addEventListener('click', () => {
-        grid.querySelectorAll('.review-place-option').forEach(el => el.classList.remove('selected'));
-        btn.classList.add('selected');
-        this.draft = { memory, stars: 0, text: '' };
-        next.disabled = false;
-      });
       grid.appendChild(btn);
     });
     content.appendChild(grid);
@@ -340,6 +363,30 @@ VA.Reviews = {
     return { mood: 'negative', style, text: pick(this.replies.negative[style], style) };
   },
 
+  /* The owner cannot read Japanese but can read the stars: a Japanese-only
+     review is published, and the owner reacts to the rating and asks,
+     theatrically but kindly, for some English. */
+  japaneseReplies: {
+    positive: ['{Stars}!! Thank you! 😭❤️ I can’t read Japanese, though! Can you tell me in English too?',
+      'Thank you for the {stars}! ⭐ Japanese looks cool, but I don’t understand it. 😅 Can you add some English?'],
+    neutral: ['Thank you for your review! But I can’t read Japanese. 😭 Could you write it in English?',
+      'I wish I could understand this! 😅 Can you add some English?'],
+    negative: ['{STARS}?! 😱 I can’t read Japanese, but that star rating scares me! Please tell me what happened in English! 😭',
+      '{Stars}… 😢 I can’t read it, but I want to make it better! Can you tell us in English?'],
+  },
+
+  japaneseOwnerReply(key, stars, text) {
+    const mood = stars >= 4 ? 'positive' : stars === 3 ? 'neutral' : 'negative';
+    const bank = this.japaneseReplies[mood];
+    const words = ['', 'one star', 'two stars', 'three stars', 'four stars', 'five stars'];
+    const word = words[stars] || 'stars';
+    const line = bank[VA.Phone.hash(key + '|' + text + '|ja') % bank.length]
+      .replace('{STARS}', word.toUpperCase())
+      .replace('{Stars}', word[0].toUpperCase() + word.slice(1))
+      .replace('{stars}', word);
+    return { mood, style: 'japanese', text: line };
+  },
+
   helpfulFor(key, text) {
     return 1 + (VA.Phone.hash(key + '|' + text + '|helpful') % 7);
   },
@@ -348,10 +395,16 @@ VA.Reviews = {
     if (!this.draft.stars) return this.stars();
     const eligible = this.places().some(memory => memory.destId === this.draft.memory.destId && memory.eventId === this.draft.memory.eventId);
     if (!eligible) return this.picker();
-    const result = VA.Lang.evaluateReview(this.draft.text);
-    if (!result.ok) return this.writer(true, true);
+    // Japanese is never blocked; mixed text is judged by its English part
+    const language = VA.Lang.languageOf(this.draft.text);
+    const english = language === 'mixed' ? VA.Lang.englishPart(this.draft.text) : this.draft.text;
+    const result = language === 'japanese' ? { ok: false, model: null } : VA.Lang.evaluateReview(english);
+    const japaneseOnly = language === 'japanese' || (language === 'mixed' && !result.ok);
+    if (!result.ok && !japaneseOnly) return this.writer(true, true);
     const memory = this.draft.memory;
     const key = `${memory.destId}:${memory.eventId}`;
+    // a second review of the same place is never written; only Edit replaces it
+    if (VA.State.data.reviews[key] && this.draft.editing !== key) return this.viewReview(key);
     const review = {
       destId: memory.destId,
       eventId: memory.eventId,
@@ -359,9 +412,11 @@ VA.Reviews = {
       stars: this.draft.stars,
       text: this.draft.text,
       updatedAt: Date.now(),
-      helpful: this.helpfulFor(key, this.draft.text),
-      owner: this.ownerReply(key, this.draft.stars, this.draft.text, memory.evt.verb),
+      helpful: japaneseOnly ? VA.Phone.hash(key + '|' + this.draft.text) % 2 : this.helpfulFor(key, this.draft.text),
+      owner: japaneseOnly ? this.japaneseOwnerReply(key, this.draft.stars, this.draft.text)
+        : this.ownerReply(key, this.draft.stars, english, memory.evt.verb),
     };
+    if (this.draft.editing) review.editedAt = review.updatedAt;
     VA.State.data.reviews[key] = review;
     const firstReview = !VA.State.data.bedroomGuide.pcDone;
     this.justCompletedGuide = firstReview;
@@ -370,7 +425,7 @@ VA.Reviews = {
       VA.State.data.bedroomGuide.pcDone = true;
     }
     VA.State.save();
-    this.published(key, review, result.model, firstReview ? 1 : 0.6);
+    this.published(key, review, japaneseOnly ? null : result.model, firstReview ? 1 : 0.6);
   },
 
   /* ---------- review card ---------- */
@@ -417,7 +472,7 @@ VA.Reviews = {
     if (live) {
       this.setHelpful(ui, 0);
     } else {
-      status.textContent = this.date(review.updatedAt);
+      status.textContent = (review.editedAt ? 'Edited · ' : '') + this.date(review.updatedAt);
       this.setHelpful(ui, review.helpful != null ? review.helpful : this.helpfulFor(key, review.text));
       if (review.owner) this.showOwner(ui, review, false);
       card.dataset.complete = '1';
@@ -443,6 +498,7 @@ VA.Reviews = {
     const owner = this.owner(review.eventId);
     const block = VA.el('div', 'review-owner-reply' + (animate ? ' review-arrive' : ''));
     block.dataset.mood = review.owner.mood;
+    if (review.owner.style) block.dataset.style = review.owner.style;
     block.appendChild(this.ownerAvatar(owner));
     const body = VA.el('div', 'review-owner-body');
     body.appendChild(VA.el('div', 'review-owner-name', `<b>${VA.escape(this.ownerTitle(owner))}</b>` +
@@ -451,6 +507,17 @@ VA.Reviews = {
     block.appendChild(body);
     ui.ownerSlot.innerHTML = '';
     ui.ownerSlot.appendChild(block);
+    // the owner could not read it: invite (never force) an edit with English
+    if (review.owner.style === 'japanese') {
+      const invite = VA.el('div', 'review-edit-invite');
+      invite.appendChild(VA.el('p', '', 'The owner wants to understand you. Try adding some English!'));
+      if (VA.State.data.settings.jp) invite.appendChild(VA.el('small', 'writing-jp', '英語を少し足すと、オーナーに伝わるよ。'));
+      const edit = VA.el('button', 'review-edit-english', '✏️ Edit review');
+      edit.type = 'button';
+      edit.addEventListener('click', event => { event.stopPropagation(); this.edit(review); });
+      invite.appendChild(edit);
+      ui.ownerSlot.appendChild(invite);
+    }
     return block;
   },
 
@@ -551,10 +618,21 @@ VA.Reviews = {
     });
   },
 
+  viewReview(key) {
+    const review = VA.State.data.reviews[key];
+    if (!review) return this.picker();
+    const content = this.shell('history');
+    const place = this.place(review.destId, review.eventId);
+    if (place) content.appendChild(this.placeHeader(place, review.tripNo));
+    content.appendChild(VA.el('p', 'review-one-per-place', 'You already reviewed this place. You can edit your review.'));
+    const card = this.reviewCard(key, review, false);
+    if (card) content.appendChild(card);
+  },
+
   edit(review) {
     const memory = this.places().find(item => item.destId === review.destId && item.eventId === review.eventId);
     if (!memory) return this.picker();
-    this.draft = { memory, stars: review.stars, text: review.text };
+    this.draft = { memory, stars: review.stars, text: review.text, editing: `${review.destId}:${review.eventId}` };
     this.writer();
   },
 };

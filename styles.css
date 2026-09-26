@@ -386,12 +386,11 @@ body {
 .hotspot .hs-price { font-size:13px; color:var(--ink-soft); display:block; }
 .hotspot.done { animation:none; filter:grayscale(.6); opacity:.82; cursor:default; }
 .hotspot.done .hs-check { position:absolute; top:-12px; right:-10px; font-size:26px; }
-.depart-btn { position:absolute; left:50%; bottom:24px; transform:translateX(-50%); animation:hspulse 2s ease-in-out infinite; }
-/* .big-btn:hover/:active set transform:scale(...) directly, which — since transform
-   is a single property — replaces (not combines with) this button's own
-   translateX(-50%) centering, making it jump sideways on hover. Restore it. */
-.depart-btn:hover  { transform:translateX(-50%) scale(1.04); }
-.depart-btn:active { transform:translateX(-50%) scale(.94); }
+.depart-btn { position:absolute; left:0; right:0; bottom:24px; width:max-content; margin:auto; animation:hspulse 2s ease-in-out infinite; }
+/* Equal insets and auto margins keep centring independent of transform, so
+   the shared hover/active scaling and pulse animation cannot shift it. */
+.depart-btn:hover  { transform:scale(1.04); }
+.depart-btn:active { transform:scale(.94); }
 .explore-hint {
   position:absolute; top:18px; left:50%; transform:translateX(-50%);
   background:rgba(255,255,255,.92); color:var(--ink); font-size:18px; font-weight:bold;
@@ -836,13 +835,21 @@ body {
    type, white cards, restrained colour) against the illustrated game.
    Sizes are in stage pixels; the stage is scaled up on Chromebooks. */
 .phone-overlay, .reviews-overlay { --app-font: system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif; }
+/* The phone is held up from below: anchored to the stage's bottom edge, its
+   lower body continues past it and is clipped, while the whole screen (and
+   every control on it) stays inside the stage. */
+.phone-overlay { align-items:flex-end; overflow:clip; }
 .phone-device {
-  width:520px; height:580px; padding:14px 10px 12px; border-radius:36px;
-  background:#1d2733; border:4px solid #0d141d; box-shadow:0 22px 48px rgba(0,0,0,.5); position:relative;
+  --phone-chin:84px;
+  width:520px; height:648px; margin-bottom:-72px; padding:14px 10px 0; border-radius:40px;
+  background:linear-gradient(90deg, #121a24, #1f2a37 8%, #1d2733 92%, #121a24);
+  border:4px solid #0d141d; box-shadow:0 -6px 40px rgba(0,0,0,.45); position:relative;
+  animation:phone-raise .42s cubic-bezier(.2,.85,.25,1) both;
 }
+@keyframes phone-raise { from { transform:translateY(62%) rotate(-1.5deg); } to { transform:none; } }
 .phone-speaker { position:absolute; z-index:4; left:50%; top:5px; width:70px; height:5px; transform:translateX(-50%); border-radius:9px; background:#070c12; }
 #phone-screen {
-  height:100%; overflow-y:auto; overflow-x:hidden; border-radius:24px; background:#f4f5f7; scrollbar-width:thin;
+  height:calc(100% - var(--phone-chin)); overflow-y:auto; overflow-x:hidden; border-radius:26px 26px 20px 20px; background:#f4f5f7; scrollbar-width:thin;
   font:17px/1.4 var(--app-font); color:#1c1e21;
 }
 #phone-screen button, #phone-screen input, #phone-screen textarea { font-family:var(--app-font); }
@@ -911,7 +918,18 @@ body {
 .phone-comment-body { min-width:0; }
 .phone-comment-body p { margin:0; font-size:16px; overflow-wrap:anywhere; }
 .phone-comment-time { color:#8a8d91; font-size:13px; }
-.phone-comment-player { margin-left:40px; }
+/* inline threads: a reply sits indented directly under the comment it answers */
+.phone-comment.phone-reply, .social-typing.phone-reply { position:relative; margin-left:42px; }
+.phone-comment.phone-reply::before { content:'↳'; position:absolute; left:-20px; top:10px; color:#8a8d91; font-size:16px; }
+.phone-comment-meta { display:flex; align-items:center; gap:14px; }
+.phone-reply-link { min-height:30px; padding:2px 4px; border:0; background:none; color:#65676b; font-size:14px; font-weight:700; cursor:pointer; }
+.phone-reply-link:hover, .phone-reply-link:focus-visible { color:#1c1e21; text-decoration:underline; }
+.phone-follow-up.phone-reply-editor { margin:0 0 10px 42px; }
+/* friendly invitation to add English after friends could not understand */
+.phone-edit-prompt { margin:4px 14px 12px; padding:10px 12px; border-radius:12px; background:#eef4ff; border:1px solid #cddcf6; text-align:left; }
+.phone-edit-prompt p { margin:0 0 6px; font-size:16px; color:#2d3a52; }
+.phone-edit-post { min-height:40px; border:0; border-radius:99px; padding:7px 16px; background:#2f6fd6; color:#fff; font-size:16px; font-weight:700; cursor:pointer; }
+.phone-reply-cancel { margin-top:6px; min-height:36px; border:0; border-radius:99px; padding:4px 12px; background:none; color:#65676b; font-weight:600; cursor:pointer; }
 .phone-comment.pending .phone-comment-body p { padding:4px 8px; margin-left:-8px; border-radius:10px; background:#fff4d6; }
 .social-typing { color:#65676b; font-size:15px; align-items:center; }
 .social-typing-dots { display:inline-flex; gap:3px; padding:6px 8px; border-radius:12px; background:#eef0f2; }
@@ -931,6 +949,9 @@ body {
 }
 .phone-memory-option.selected { border-color:#e0584a; background:#fff3f1; }
 .phone-memory-option small { color:#2e8540; font-weight:bold; }
+.phone-memory-option.posted { background:#eceef1; box-shadow:none; color:#65676b; }
+.phone-memory-option.posted canvas { filter:saturate(.45); opacity:.8; }
+.phone-all-posted { padding:60px 24px 20px; }
 .phone-next { display:block; margin:8px auto 18px; min-width:140px; }
 .phone-title-step, .phone-caption-step { padding:16px 18px; display:flex; flex-direction:column; align-items:stretch; gap:10px; }
 .phone-title-step label, .phone-caption-step label { font-weight:bold; }
@@ -964,6 +985,11 @@ body {
 .phone-problem-lead { margin:0; font-weight:600; color:#4b4f56; }
 .phone-preview-reactions { font-size:27px; margin:8px; }
 .phone-outcome > button, .phone-published-controls > button { margin:7px 4px; }
+/* Skip and BACK TO FEED stay reachable while the reveal auto-scrolls. */
+.phone-published-controls {
+  position:sticky; bottom:0; z-index:2; padding:4px 0 6px;
+  background:linear-gradient(rgba(244,245,247,0), #f4f5f7 35%);
+}
 .phone-posting { margin:0 14px 10px; padding:10px 14px; border-radius:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.1); font-weight:600; text-align:left; }
 .social-progress { height:6px; margin-top:7px; border-radius:6px; background:#e4e6e9; overflow:hidden; }
 .social-progress i { display:block; height:100%; width:100%; background:#e0584a; transform-origin:left; animation:social-progress var(--posting-ms, 1.2s) ease-out both; }
@@ -1007,6 +1033,15 @@ body {
 .review-place-label { display:flex; flex-direction:column; padding:8px 10px 10px; font-size:16px; }
 .review-place-label small { color:#65676b; font-size:14px; }
 .review-place-label .review-place-done { color:#00664f; font-weight:600; }
+.review-place-option.reviewed { background:#f0f3f2; box-shadow:none; }
+.review-place-option.reviewed .social-photo { filter:saturate(.5); opacity:.8; }
+.review-place-stars { color:#00a67e; font-size:17px; letter-spacing:1px; }
+.review-one-per-place { margin:0 0 4px; color:#4b4f56; }
+.review-edit-invite { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-top:10px; padding:10px 12px; border-radius:10px; background:#eef4ff; border:1px solid #cddcf6; }
+.review-edit-invite p { margin:0; flex:1 1 60%; color:#2d3a52; font-size:16px; }
+.review-edit-invite .writing-jp { flex-basis:100%; }
+.review-edit-english { min-height:40px; border:0; border-radius:99px; padding:7px 16px; background:#2f6fd6; color:#fff; font-size:16px; font-weight:700; cursor:pointer; }
+.review-all-done { padding:48px 20px 12px; }
 .review-next, .review-publish { display:block; margin:12px auto 4px; min-width:160px; }
 .review-content .writing-primary { background:#00a67e; }
 .review-place-header { display:flex; align-items:center; gap:16px; padding:12px; margin-bottom:12px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.1); }
@@ -1065,7 +1100,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bedroom-hotspot.first-trip, .bedroom-guide-screen { animation:none !important; }
   .phone-reaction.arrive, .phone-comment.arrive, .phone-likes.bump .phone-heart, .social-typing-dots i,
-  .social-progress i, .review-arrive { animation:none !important; }
+  .social-progress i, .review-arrive, .phone-device { animation:none !important; }
 }
 
 /* ---------- fx overlays ---------- */

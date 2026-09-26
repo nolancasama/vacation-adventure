@@ -10,6 +10,21 @@ window.VA = {
   SAVE_KEY: 'vacation-adventure-v1',
 };
 
+/* ---------- shared stage-layout rules ---------- */
+VA.Layout = {
+  // Stage-pixel rectangle reserved for the centred departure control. It
+  // covers the bottom band, including the control's 24 px collision margin.
+  DEPART_ZONE: Object.freeze({ left: 280, top: 474, right: 680, bottom: 600, margin: 24 }),
+
+  // Rectangles use stage edges: { left, top, right, bottom }.
+  rectsOverlapWithMargin(a, b, margin = 0) {
+    return a.left < b.right + margin &&
+      a.right > b.left - margin &&
+      a.top < b.bottom + margin &&
+      a.bottom > b.top - margin;
+  },
+};
+
 /* ---------- tiny utils ---------- */
 VA.$  = sel => document.querySelector(sel);
 VA.$$ = sel => Array.from(document.querySelectorAll(sel));

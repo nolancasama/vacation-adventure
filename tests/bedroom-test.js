@@ -353,6 +353,9 @@ async function advanceDialogueTo(page, stop) {
   const question = page.locator('.phone-published .phone-comment[data-kind="question"]');
   check(await question.count() === 1 && (await question.textContent()).includes('Was it big?'), 'the friend question renders in the thread');
   check(await question.evaluate(el => el.classList.contains('pending')), 'the unanswered question is highlighted as pending');
+  check(await page.evaluate(() => !!document.querySelector('.phone-comment[data-kind="question"]').closest('.phone-thread').querySelector('.phone-reply-editor .phone-follow-input')),
+    'the follow-up question opens its reply box inline, under the question');
+  await page.evaluate(() => { VA.Timeline.scale = 1; });
   await page.fill('.phone-follow-input', 'Yes! It was very big!');
   await click(page, '.phone-follow-send');
   const reply = page.locator('.phone-published .phone-comment[data-kind="player"]');
@@ -367,42 +370,133 @@ async function advanceDialogueTo(page, stop) {
   check(!await vis(page, '.phone-follow-input') && !await vis(page, '.phone-follow-up'), 'the reply box disappears after answering');
   check(await question.isVisible() && !await question.evaluate(el => el.classList.contains('pending')),
     'the question stays as history without its pending highlight');
+  await page.screenshot({ path: SHOT('phone-reply-ordered') });
+  await page.waitForSelector('.phone-published .phone-replies .phone-typing');
+  await page.waitForFunction(() => {
+    const thread = document.querySelector('.phone-comment[data-kind="question"]').closest('.phone-thread');
+    return thread.querySelectorAll('.phone-reply').length === 2 && !thread.querySelector('.phone-typing');
+  });
   saved = await state(page);
   latest = saved.socialPosts[saved.socialPosts.length - 1];
-  const kinds = latest.comments.map(c => c.kind);
-  check(latest.followUp.status === 'answered' && kinds.indexOf('question') < kinds.indexOf('player') &&
-    kinds[kinds.length - 1] === 'friend', 'the saved thread is chronological: question, reply, friend response');
-  await page.screenshot({ path: SHOT('phone-reply-ordered') });
-  await page.waitForFunction(() => document.querySelectorAll('.phone-published .phone-comment').length >= 6 &&
-    !document.querySelector('.phone-published .phone-typing'));
+  const savedQuestion = latest.comments.find(c => c.kind === 'question');
+  check(latest.followUp.status === 'answered' && latest.comments.every(c => c.kind !== 'player') &&
+    savedQuestion.replies.map(r => r.kind).join() === 'player,friend',
+    'the saved thread nests the reply, then the friend answer, under the question');
+  check(await page.evaluate(() => {
+    const thread = document.querySelector('.phone-comment[data-kind="question"]').closest('.phone-thread');
+    const rows = Array.from(thread.querySelectorAll('.phone-comment'));
+    return rows.map(r => r.dataset.kind).join() === 'question,player,friend';
+  }), 'the friend answer appends below the reply, inside the question thread');
   await page.evaluate(() => { document.querySelector('#phone-screen').scrollTop = 1e6; });
   await page.screenshot({ path: SHOT('phone-thread-complete') });
+
+  /* Replies to any friend comment, inline and at most once. */
+  const firstFriend = page.locator('.phone-published .phone-thread:has(> .phone-comment[data-kind="friend"])').first();
+  const firstFriendId = await firstFriend.getAttribute('data-comment-id');
+  const threadOrderBefore = await page.$$eval('.phone-published .phone-thread', els => els.map(e => e.dataset.commentId));
+  const link = firstFriend.locator('.phone-reply-link');
+  check(await link.count() === 1 && (await link.textContent()) === 'Reply', 'a normal friend comment offers a Reply action');
+  check(await link.evaluate(el => !el.classList.contains('writing-primary') && parseFloat(getComputedStyle(el).fontSize) <= 15),
+    'the Reply action is a subtle text link, not a big button');
+  await link.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: SHOT('phone-reply-link') });
+  await link.click();
+  check(await firstFriend.locator('.phone-reply-editor .phone-follow-input').count() === 1 &&
+    await page.locator('.phone-published .phone-reply-editor').count() === 1, 'Reply opens one input inside THAT comment thread');
+  await firstFriend.locator('.phone-follow-input').fill('Thank you!');
+  await page.screenshot({ path: SHOT('phone-reply-editor') });
+  await firstFriend.locator('.phone-follow-send').click();
+  const replyGeo = await firstFriend.evaluate(thread => {
+    const parent = thread.querySelector(':scope > .phone-comment');
+    const mine = thread.querySelector('.phone-replies .phone-comment[data-kind="player"]');
+    return mine && { below: mine.getBoundingClientRect().top > parent.getBoundingClientRect().top,
+      after: !!(parent.compareDocumentPosition(mine) & Node.DOCUMENT_POSITION_FOLLOWING) };
+  });
+  check(!!replyGeo && replyGeo.below && replyGeo.after, 'the player reply renders beneath the comment it answers');
+  await firstFriend.locator('.phone-typing').waitFor();
+  await page.screenshot({ path: SHOT('phone-reply-typing') });
+  await firstFriend.locator('.phone-replies .phone-comment[data-kind="friend"]').waitFor();
+  await page.screenshot({ path: SHOT('phone-reply-ack') });
   check(await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('.phone-published .phone-comment'));
-    return rows[rows.length - 1].dataset.kind === 'friend' && rows[rows.length - 2].dataset.kind === 'player';
-  }), 'the friend response appends below the reply');
-
-  // Older saves stored the question outside the thread; migration restores order.
-  const migrated = await page.evaluate(() => VA.Phone.migratePosts([{
-    id: 'post-legacy', comments: [
-      { who: '🐰 Mia', text: 'Wow!' }, { who: 'Mio', text: 'Chocolate!' }, { who: '🦊 Leo', text: 'Cool! 😄' },
-    ], followUp: { q: 'What flavor?', reply: 'Chocolate!' },
-  }])[0]);
-  check(migrated.comments.map(c => c.kind).join() === 'friend,question,player,friend' &&
-    migrated.comments[1].text === 'What flavor?' && migrated.followUp.status === 'answered',
-    'a legacy answered follow-up is migrated with the question above the reply');
-
-  await publishPhonePost(page, 'france:eiffel', 'I see Eiffel Tower.');
-  await page.waitForSelector('.phone-post-card');
+    const stage = document.querySelector('#stage').getBoundingClientRect();
+    const bar = document.querySelector('.phone-app-bar').getBoundingClientRect();
+    return document.querySelector('#phone-overlay').scrollTop === 0 && bar.top >= stage.top;
+  }), 'auto-scrolling new comments never pushes the phone top bar off the stage');
+  check((await firstFriend.locator('.phone-replies .phone-comment[data-kind="friend"]').textContent()).includes('welcome'),
+    'a friend acknowledgment follows the typing indicator');
+  check(JSON.stringify(await page.$$eval('.phone-published .phone-thread', els => els.map(e => e.dataset.commentId))) === JSON.stringify(threadOrderBefore),
+    'replying leaves the order of the other comments unchanged');
+  check(await firstFriend.locator('.phone-reply-link').count() === 0, 'a comment accepts only one player reply');
   saved = await state(page);
   latest = saved.socialPosts[saved.socialPosts.length - 1];
-  check(latest.quality === 'minor', 'a relevant tense/article error publishes as minor');
-  check(latest.comments.some(c => /You saw the Eiffel Tower!/i.test(c.text)), 'the minor post has a conversational model comment');
-  check(saved.coins === coinsBeforePosts + 1, 'posting the same photo again gives no second coin');
-  check((await page.locator('.phone-bonus').textContent()).includes('Likes are just for fun!'), 'a no-bonus post uses the quiet likes message');
+  const answered = latest.comments.find(c => c.id === firstFriendId);
+  check(!!answered && answered.replies.map(r => r.kind).join() === 'player,friend' && answered.replies[0].text === 'Thank you!',
+    'the reply and acknowledgment are saved on that comment');
+  check(await page.evaluate(() => { const p = VA.State.data.socialPosts.slice(-1)[0]; const c = p.comments.find(x => x.replies && x.replies.length);
+    const before = JSON.stringify(c.replies); VA.Phone.sendReply(p, { comments: document.createElement('div') }, c, 'Again!'); return JSON.stringify(c.replies) === before; }),
+    'a second reply to the same comment is refused');
 
-  const postsBeforeContradiction = saved.socialPosts.length;
-  await publishPhonePost(page, 'france:eiffel', 'I saw the pyramids.');
+  // Closing the phone mid-acknowledgment cancels the timer; the thread is saved complete.
+  const secondFriend = page.locator('.phone-published .phone-thread:has(.phone-reply-link)').first();
+  const secondId = await secondFriend.getAttribute('data-comment-id');
+  await secondFriend.locator('.phone-reply-link').click();
+  await secondFriend.locator('.phone-follow-input').fill('Thanks!');
+  await secondFriend.locator('.phone-follow-send').click();
+  await closePhone(page);
+  check(await page.evaluate(() => VA.Timeline.active().length === 0), 'closing the phone cancels an active reply timeline');
+  await page.evaluate(() => { VA.Timeline.scale = 0.05; });
+  await openPhone(page);
+  const reopenedThread = page.locator(`.phone-thread[data-comment-id="${secondId}"]`);
+  check(await reopenedThread.locator('.phone-reply').count() === 2 && await reopenedThread.locator('.phone-typing').count() === 0,
+    'the interrupted reply thread reopens in its final state');
+
+  // Older saves stored the question outside the thread; migration restores
+  // order, nests the reply, adds stable ids, and is idempotent.
+  const migration = await page.evaluate(() => {
+    const asker = VA.Phone.friends[VA.Phone.hash('post-legacy') % VA.Phone.friends.length];
+    const other = VA.Phone.friends.find(f => f !== asker);
+    const legacy = () => [{
+      id: 'post-legacy', comments: [
+        { who: `${other.avatar} ${other.name}`, text: 'Wow!' }, { who: 'Mio', text: 'Chocolate!' },
+        { who: `${asker.avatar} ${asker.name}`, text: 'Cool! 😄' },
+      ], followUp: { q: 'What flavor?', reply: 'Chocolate!' },
+    }];
+    const once = VA.Phone.migratePosts(legacy());
+    const twice = VA.Phone.migratePosts(JSON.parse(JSON.stringify(once)));
+    const current = VA.Phone.migratePosts(JSON.parse(JSON.stringify(VA.State.data.socialPosts)));
+    return {
+      top: once[0].comments.map(c => c.kind).join(),
+      nested: (once[0].comments[1].replies || []).map(r => r.kind + ':' + r.text).join('|'),
+      ids: once[0].comments.every(c => c.id && (c.replies || []).every(r => r.id)),
+      status: once[0].followUp.status,
+      idempotent: JSON.stringify(once) === JSON.stringify(twice),
+      currentStable: JSON.stringify(current) === JSON.stringify(VA.State.data.socialPosts),
+    };
+  });
+  check(migration.top === 'friend,question' && migration.nested === 'player:Chocolate!|friend:Cool! 😄' && migration.status === 'answered',
+    'a legacy answered follow-up is migrated with the reply nested under the question');
+  check(migration.ids && migration.idempotent && migration.currentStable, 'migration adds stable ids and is idempotent');
+
+  /* One post per earned photo. */
+  await click(page, '.phone-new-post');
+  await page.waitForSelector('.phone-memory-option');
+  const postedEiffel = page.locator('.phone-memory-option[data-key="france:eiffel"]');
+  check(await postedEiffel.evaluate(el => el.classList.contains('posted')) && (await postedEiffel.textContent()).includes('✓ Posted'),
+    'a posted photo shows ✓ Posted');
+  await page.screenshot({ path: SHOT('phone-picker-posted') });
+  const postsBeforeRepost = (await state(page)).socialPosts.length;
+  await postedEiffel.click();
+  check(await vis(page, '.phone-view-post') && !await vis(page, '.phone-next'), 'tapping a posted photo opens its post instead of selecting it');
+  await page.locator('.phone-view-post button').filter({ hasText: 'BACK TO PHOTOS' }).click();
+  await page.waitForSelector('.phone-memory-option');
+  check(await page.locator('.phone-memory-option.selected').count() === 0 && await page.locator('.phone-next').isDisabled(),
+    'a posted photo never enables NEXT');
+  check((await state(page)).socialPosts.length === postsBeforeRepost, 'a posted photo cannot start another post');
+  await click(page, '.phone-close');
+
+  await openPhone(page);
+  const postsBeforeContradiction = (await state(page)).socialPosts.length;
+  await publishPhonePost(page, 'france:crepe', 'I saw the pyramids.');
   await page.waitForSelector('.phone-outcome');
   check(await vis(page, '.phone-edit') && await vis(page, '.phone-anyway'), 'a contradiction offers EDIT POST and POST ANYWAY');
   check((await page.locator('.phone-outcome').textContent()).includes('🤔'), 'the contradiction preview includes a confused reaction');
@@ -411,25 +505,31 @@ async function advanceDialogueTo(page, stop) {
   await page.screenshot({ path: SHOT('phone-post-confused') });
   await click(page, '.phone-edit');
   check(await page.inputValue('.phone-caption-input') === 'I saw the pyramids.', 'EDIT POST keeps the caption text');
+  await page.fill('.phone-caption-input', 'I eat crepe.');
   await click(page, '.phone-post');
-  await page.waitForSelector('.phone-outcome');
+  await page.waitForFunction(count => JSON.parse(localStorage.getItem('vacation-adventure-v1')).socialPosts.length > count, postsBeforeContradiction);
+  saved = await state(page);
+  latest = saved.socialPosts[saved.socialPosts.length - 1];
+  check(latest.quality === 'minor', 'a relevant tense/article error publishes as minor');
+  check(latest.comments.some(c => /You ate a crepe!/i.test(c.text)), 'the minor post has a conversational model comment');
+  check(saved.coins === coinsBeforePosts + 2, 'a second photo from the same trip earns its one coin');
+
+  const postsBeforeAnyway = saved.socialPosts.length;
+  await publishPhonePost(page, 'australia:icecream', 'I saw the Eiffel Tower.');
+  await page.waitForSelector('.phone-anyway');
   await click(page, '.phone-anyway');
-  await page.waitForFunction(count => {
-    const saved = JSON.parse(localStorage.getItem('vacation-adventure-v1') || '{}');
-    return (saved.socialPosts || []).length > count;
-  }, postsBeforeContradiction);
+  await page.waitForFunction(count => JSON.parse(localStorage.getItem('vacation-adventure-v1')).socialPosts.length > count, postsBeforeAnyway);
   await page.waitForSelector('.phone-post-card');
   saved = await state(page);
   latest = saved.socialPosts[saved.socialPosts.length - 1];
   check(latest.quality === 'contradiction' && !latest.rewardClaimed, 'POST ANYWAY stores the contradiction with no bonus');
 
   const postsBeforeUnclear = saved.socialPosts.length;
-  await publishPhonePost(page, 'france:eiffel', 'asdfgh');
+  await publishPhonePost(page, 'australia:kangaroo', 'asdfgh');
   await page.waitForSelector('.phone-outcome');
   check(await vis(page, '.phone-edit') && await vis(page, '.phone-cancel'), 'an unclear post offers EDIT POST and CANCEL');
   check(!await vis(page, '.phone-anyway'), 'an unclear post never offers POST ANYWAY');
   check((await page.locator('.phone-outcome').textContent()).includes("friends aren't sure what you mean"), 'unclear recovery explains the problem gently');
-  // EDIT POST returns to the composer with the sentence starters already open
   await click(page, '.phone-edit');
   await page.waitForSelector('.phone-caption-step');
   check(await vis(page, '.phone-help-rung1.show'), 'unclear recovery opens rung 1 of help automatically on EDIT');
@@ -438,14 +538,10 @@ async function advanceDialogueTo(page, stop) {
   await click(page, '.phone-cancel');
   check((await state(page)).socialPosts.length === postsBeforeUnclear, 'CANCEL exits without publishing an unclear post');
 
-  // Identical normalised text cannot earn again, even on another eligible photo.
-  await publishPhonePost(page, 'france:crepe', 'It was delicious!');
+  await publishPhonePost(page, 'australia:kangaroo', 'It was great!');
   await page.waitForSelector('.phone-post-card');
-  const afterCrepe = await state(page);
-  check(afterCrepe.coins === coinsBeforePosts + 2, 'a new photo in the same trip can earn its one coin');
-  await publishPhonePost(page, 'australia:icecream', 'It was delicious!');
-  await page.waitForSelector('.phone-post-card');
-  check((await state(page)).coins === afterCrepe.coins, 'an identical normalised caption earns no second coin');
+  const afterKangaroo = await state(page);
+  check(afterKangaroo.coins === coinsBeforePosts + 3, 'a clear post on a new trip earns its coin');
   // Skipping a follow-up keeps the question as history.
   await phoneComplete(page);
   await click(page, '.phone-follow-skip');
@@ -455,13 +551,12 @@ async function advanceDialogueTo(page, stop) {
     !await vis(page, '.phone-follow-up') && await vis(page, '.phone-published .phone-comment[data-kind="question"]'),
     'Skip removes the reply box but keeps the question');
 
-  // Three different Australian photos can earn at most the trip cap of three.
-  await publishPhonePost(page, 'australia:icecream', 'I ate ice cream.');
-  await page.waitForSelector('.phone-post-card');
-  // Closing mid-reveal cancels every timer; the saved outcome shows complete.
+  // Identical normalised text earns nothing; closing mid-reveal cancels timers.
   await page.evaluate(() => { VA.Timeline.scale = 1; });
-  await publishPhonePost(page, 'australia:kangaroo', 'I saw a kangaroo.');
+  await publishPhonePost(page, 'australia:volleyball', 'It was great!');
   await page.waitForSelector('.phone-posting');
+  check((await page.locator('.phone-bonus').textContent()).includes('Likes are just for fun!'), 'a no-bonus post uses the quiet likes message');
+  check((await state(page)).coins === afterKangaroo.coins, 'an identical normalised caption earns no second coin');
   await closePhone(page);
   check(await page.evaluate(() => VA.Timeline.active().length === 0), 'closing the phone mid-animation cancels its timeline');
   await openPhone(page);
@@ -473,13 +568,27 @@ async function advanceDialogueTo(page, stop) {
     await reopened.locator('.phone-comment').count() === latest.comments.length,
     'a post interrupted mid-reveal reopens in its saved final state');
   await page.evaluate(() => { VA.Timeline.scale = 0.05; });
-  await publishPhonePost(page, 'australia:volleyball', 'I played volleyball.');
-  await page.waitForSelector('.phone-post-card');
-  const atCap = await state(page);
-  check(!!atCap.socialBonus['1'], 'the Australian trip has a persisted social-bonus record');
-  await publishPhonePost(page, 'australia:volleyball', 'It was really fun.');
-  await page.waitForSelector('.phone-post-card');
-  check((await state(page)).coins === atCap.coins, 'posting after the per-trip cap cannot add a fourth coin');
+  const capCheck = await page.evaluate(() => {
+    const cap = VA.Data.SOCIAL_BONUS_CAP;
+    const fake = { tripNo: 99, destId: 'egypt', eventId: 'x' };
+    VA.State.data.socialBonus['99'] = { count: cap, memories: [] };
+    const refused = VA.Phone.claimBonus(fake, 'A brand new sentence here.') === false;
+    delete VA.State.data.socialBonus['99'];
+    return refused;
+  });
+  check(capCheck && !!(await state(page)).socialBonus['1'], 'the per-trip bonus cap still refuses coins at the cap');
+
+  // Every earned photo is now posted exactly once.
+  saved = await state(page);
+  const photoKeys = saved.socialPosts.map(p => `${p.tripNo}:${p.destId}:${p.eventId}`);
+  check(photoKeys.length === 5 && new Set(photoKeys).size === 5, 'each earned photo produced exactly one post');
+  await click(page, '.phone-new-post');
+  await page.waitForSelector('.phone-all-posted');
+  check((await page.locator('.phone-all-posted').textContent()).includes("You've shared all your vacation photos!"),
+    'with every photo posted, the picker shows the all-shared message');
+  await page.screenshot({ path: SHOT('phone-all-posted') });
+  await page.locator('#phone-screen button').filter({ hasText: 'BACK TO FEED' }).click();
+
   const postCount = (await state(page)).socialPosts.length;
   await closePhone(page);
   await openPhone(page);
@@ -502,32 +611,104 @@ async function advanceDialogueTo(page, stop) {
   check(!replay.posting && !replay.live && !replay.incomplete &&
     replay.likes.every(([id, n]) => reloadedPosts.find(p => p.id === id).reactions['❤️'] === n),
     'reloaded posts render completed with final counts and never replay');
-  const threadOk = await page.evaluate(() => Array.from(document.querySelectorAll('.phone-post-card')).every(card => {
-    const kinds = Array.from(card.querySelectorAll('.phone-comment')).map(r => r.dataset.kind);
-    const q = kinds.indexOf('question');
-    return q < 0 || kinds.indexOf('player') < 0 || kinds.indexOf('player') > q;
+  const threadOk = await page.evaluate(() => Array.from(document.querySelectorAll('.phone-thread')).every(thread => {
+    const rows = Array.from(thread.querySelectorAll('.phone-comment'));
+    return !rows[0].classList.contains('phone-reply') && rows.slice(1).every(r => r.classList.contains('phone-reply'));
   }));
-  check(threadOk, 'after reload, every reply still sits below its question');
+  check(threadOk, 'after reload, every reply still sits directly under its own comment');
+  check(await page.locator(`.phone-thread[data-comment-id="${firstFriendId}"] .phone-reply`).count() === 2,
+    'a completed reply thread persists across reload');
   await page.evaluate(() => { VA.Timeline.scale = 0.05; });
 
-  // Chromebook readability: the wide phone fits with no horizontal overflow.
+  /* A new photo from a later trip may be posted once more. */
+  await closePhone(page);
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('vacation-adventure-v1'));
+    save.tripCount = 3;
+    save.book.france.trip = 3;
+    Object.values(save.book.france.photos).forEach(p => { p.trip = 3; });
+    localStorage.setItem('vacation-adventure-v1', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.waitForTimeout(900);
+  await resume(page);
+  await openPhone(page);
+  await click(page, '.phone-new-post');
+  await page.waitForSelector('.phone-memory-option');
+  const newEiffel = page.locator('.phone-memory-option[data-key="france:eiffel"]');
+  check(!await newEiffel.evaluate(el => el.classList.contains('posted')) && await newEiffel.getAttribute('data-trip') === '3',
+    'the Eiffel Tower photo from a later trip is a new, unposted photo');
+  await newEiffel.click();
+  check(!await page.locator('.phone-next').isDisabled(), 'the later-trip photo can be selected');
+  await page.locator('.phone-memory-option.posted').first().click();
+  check(await vis(page, '.phone-view-post'), 'an earlier trip’s posted photo still opens its post');
+  await page.locator('.phone-view-post button').filter({ hasText: 'BACK TO PHOTOS' }).click();
+  await page.locator('.phone-memory-option[data-key="france:eiffel"]:not(.posted)').click();
+
+  /* Presentation: the phone rises from below the stage; controls stay on screen. */
+  const phoneShape = () => page.evaluate(() => {
+    const stage = document.querySelector('#stage').getBoundingClientRect();
+    const device = document.querySelector('.phone-device').getBoundingClientRect();
+    const screen = document.querySelector('#phone-screen');
+    const s = screen.getBoundingClientRect();
+    return {
+      belowStage: device.bottom > stage.bottom + 20,
+      topInside: device.top > stage.top + 4,
+      bottomAnchored: (device.top + device.bottom) / 2 > (stage.top + stage.bottom) / 2 + 20,
+      screenInside: s.top >= stage.top && s.bottom <= stage.bottom + 0.5 && s.left >= stage.left && s.right <= stage.right,
+      noOverflow: screen.scrollWidth <= screen.clientWidth && document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight,
+    };
+  });
+  const controlOnScreen = sel => page.evaluate(s => {
+    const el = Array.from(document.querySelectorAll(s)).find(e => e.offsetParent);
+    if (!el) return false;
+    el.scrollIntoView({ block: 'nearest' });
+    const stage = document.querySelector('#stage').getBoundingClientRect();
+    const screen = document.querySelector('#phone-screen').getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return r.top >= screen.top - 0.5 && r.bottom <= screen.bottom + 0.5 && r.bottom <= stage.bottom;
+  }, sel);
+  const controls = [];
+  controls.push(['NEXT (picker)', await controlOnScreen('.phone-next')]);
+  await click(page, '.phone-next');
+  controls.push(['NEXT (title)', await controlOnScreen('.phone-title-step .phone-next')]);
+  await click(page, '.phone-title-step .phone-next');
+  await page.fill('.phone-caption-input', 'I saw the Eiffel Tower again.');
+  controls.push(['POST', await controlOnScreen('.phone-post')]);
+  await page.evaluate(() => { VA.Timeline.scale = 1; });
+  await click(page, '.phone-post');
+  await page.waitForSelector('.phone-skip:not([hidden])');
+  controls.push(['Skip', await controlOnScreen('.phone-skip')]);
+  controls.push(['BACK TO FEED', await controlOnScreen('.phone-published-controls .writing-primary')]);
+  await click(page, '.phone-skip');
+  await page.evaluate(() => { VA.Timeline.scale = 0.05; });
+  controls.push(['REPLY link', await controlOnScreen('.phone-published .phone-reply-link')]);
+  await page.locator('.phone-published .phone-reply-link').first().click();
+  controls.push(['SEND', await controlOnScreen('.phone-published .phone-follow-send')]);
+  check(controls.every(([, ok]) => ok), 'every phone control can be brought fully on screen: ' +
+    controls.map(([n, ok]) => n + (ok ? ' ✓' : ' ✗')).join(', '));
+  saved = await state(page);
+  latest = saved.socialPosts[saved.socialPosts.length - 1];
+  check(latest.tripNo === 3 && latest.eventId === 'eiffel', 'the later-trip photo publishes as its own post');
+  await page.locator('#phone-screen button').filter({ hasText: 'BACK TO FEED' }).click();
+  check(await page.evaluate(() => { const s = document.querySelector('#phone-screen'); s.scrollTop = 400; return s.scrollHeight > s.clientHeight && s.scrollTop > 0; }),
+    'the feed scrolls inside the phone screen');
+
+  // Chromebook readability: wide, bottom-anchored phone, no overflow.
   for (const [w, h] of [[1366, 768], [1280, 800]]) {
     await page.setViewportSize({ width: w, height: h });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
+    const shape = await phoneShape();
+    check(shape.belowStage && shape.topInside && shape.bottomAnchored,
+      `phone is anchored to the bottom and its body extends below the stage at ${w}x${h}`);
+    check(shape.screenInside && shape.noOverflow, `the whole phone screen stays on stage with no overflow at ${w}x${h}`);
     const fit = await page.evaluate(() => {
-      const device = document.querySelector('.phone-device').getBoundingClientRect();
-      const screen = document.querySelector('#phone-screen');
-      const text = document.querySelector('.phone-post-text');
-      const scale = device.width / document.querySelector('.phone-device').offsetWidth;
-      return {
-        inside: device.left >= 0 && device.top >= 0 && device.right <= innerWidth && device.bottom <= innerHeight,
-        noOverflow: screen.scrollWidth <= screen.clientWidth,
-        width: device.width,
-        textPx: parseFloat(getComputedStyle(text).fontSize) * scale,
-      };
+      const device = document.querySelector('.phone-device');
+      const scale = device.getBoundingClientRect().width / device.offsetWidth;
+      return { width: device.getBoundingClientRect().width, textPx: parseFloat(getComputedStyle(document.querySelector('.phone-post-text')).fontSize) * scale };
     });
-    check(fit.inside && fit.noOverflow, `phone fits the ${w}x${h} viewport without horizontal overflow`);
     check(fit.width >= 560 && fit.textPx >= 18, `phone is wide (${Math.round(fit.width)}px) with large post text (${fit.textPx.toFixed(1)}px) at ${w}x${h}`);
+    await page.evaluate(() => { document.querySelector('#phone-screen').scrollTop = 0; });
     await page.screenshot({ path: SHOT(`phone-wide-${w}`) });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -592,12 +773,15 @@ async function advanceDialogueTo(page, stop) {
   await click(page, '.review-tab-history');
   await page.waitForSelector('.review-card');
   await page.screenshot({ path: SHOT('pc-history') });
+  const reviewCountBeforeEdit = Object.keys((await state(page)).reviews).length;
   await click(page, '.review-card[data-key="france:eiffel"] .review-edit');
   await page.waitForSelector('.review-text-input');
   await page.fill('.review-text-input', 'It was boring.');
+  await page.screenshot({ path: SHOT('pc-edit') });
   await click(page, '.review-publish');
   saved = await state(page);
   check(saved.reviews['france:eiffel'].text === 'It was boring.' && saved.reviews['france:eiffel'].stars === 1, 'a negative review publishes and Edit replaces the existing entry');
+  check(Object.keys(saved.reviews).length === reviewCountBeforeEdit, 'editing updates the same review key instead of adding one');
   await pcComplete(page);
   check(saved.reviews['france:eiffel'].owner.mood === 'negative' && saved.reviews['france:eiffel'].owner.topic === 'boring',
     'a 1-star "boring" review gets a reply about being boring');
@@ -649,6 +833,42 @@ async function advanceDialogueTo(page, stop) {
     Number(await roo.locator('.review-helpful-count').getAttribute('data-count')) === saved.reviews['australia:kangaroo'].helpful &&
     !await roo.locator('.review-posting, .review-owner-typing').count(), 'an interrupted review opens completed in history');
   await page.evaluate(() => { VA.Timeline.scale = 0.05; });
+
+  /* One review per place: reviewed places are completed and open their review. */
+  await click(page, '.review-tab-write');
+  await page.waitForSelector('.review-place-option');
+  const reviewedEiffel = page.locator('.review-place-option[data-key="france:eiffel"]');
+  check(await reviewedEiffel.evaluate(el => el.classList.contains('reviewed')) &&
+    (await reviewedEiffel.textContent()).includes('✓ Reviewed') && await reviewedEiffel.locator('.review-place-stars').count() === 1,
+    'a reviewed place appears completed with its stars');
+  check(!await page.locator('.review-place-option[data-key="australia:icecream"]').evaluate(el => el.classList.contains('reviewed')),
+    'an unreviewed place stays open for a new review');
+  await page.screenshot({ path: SHOT('pc-picker-reviewed') });
+  const reviewKeysBefore = Object.keys((await state(page)).reviews).length;
+  await reviewedEiffel.click();
+  check(await vis(page, '.review-one-per-place') && !await vis(page, '.review-star') && !await vis(page, '.review-text-input') &&
+    await vis(page, '.review-card[data-key="france:eiffel"] .review-edit'),
+    'tapping a reviewed place opens the existing review (with Edit), not a new one');
+  const guarded = await page.evaluate(() => {
+    const memory = VA.Reviews.places().find(m => m.eventId === 'eiffel');
+    VA.Reviews.draft = { memory, stars: 5, text: 'It was great.' };
+    VA.Reviews.publish();
+    return VA.State.data.reviews['france:eiffel'].text;
+  });
+  check(guarded === 'It was boring.' && Object.keys((await state(page)).reviews).length === reviewKeysBefore,
+    'a second review of the same place is never written');
+  for (const key of ['australia:icecream', 'australia:volleyball']) {
+    await startReview(page, key, 5);
+    await page.fill('.review-text-input', 'It was fun.');
+    await click(page, '.review-publish');
+    await pcComplete(page);
+  }
+  await click(page, '.review-tab-write');
+  await page.waitForSelector('.review-all-done');
+  check((await page.locator('.review-all-done').textContent()).includes("You've reviewed every place you've visited!") &&
+    await page.locator('.review-place-option').count() === 0, 'with every place reviewed, the site shows the all-reviewed message');
+  await page.screenshot({ path: SHOT('pc-all-reviewed') });
+  saved = await state(page);
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.waitForTimeout(300);
   const pcFit = await page.evaluate(() => {
@@ -667,6 +887,22 @@ async function advanceDialogueTo(page, stop) {
   await resume(page);
   check(JSON.stringify((await state(page)).reviews) === reviewSnapshot, 'reviews persist after a page reload');
   await openPc(page);
+  await closePc(page);
+
+  // Revisiting France on a later trip does not open a second Eiffel Tower review.
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('vacation-adventure-v1'));
+    save.tripCount = 4;
+    save.book.france.trip = 4;
+    Object.values(save.book.france.photos).forEach(p => { p.trip = 4; });
+    localStorage.setItem('vacation-adventure-v1', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.waitForTimeout(900);
+  await resume(page);
+  await openPc(page);
+  check(await vis(page, '.review-all-done') && Object.keys((await state(page)).reviews).length === Object.keys(JSON.parse(reviewSnapshot)).length,
+    'a revisited place keeps its one review and gets no second review slot');
   await closePc(page);
 
   /* ---------- suitcase: No returns without money; Yes gives allowance ---------- */
