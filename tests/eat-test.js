@@ -1,7 +1,7 @@
 /* Pretend-eating contract (ice cream, crepe, kebab).
 
    - Pure bite detector: hysteresis, no repeats while open, debounce, face loss.
-   - Tap path: always available, 3 taps finish the food.
+   - Tap path: available while camera eating is starting, unavailable or stalled.
    - Camera path through VA.CameraMouth._setProviderForTest(): a real canvas
      MediaStream (so <video> plays) and a fake landmarker whose mouth openness
      the test scripts over time. The camera is never requested unasked.
@@ -209,10 +209,15 @@ let server;
   check(await vis(page, '.eat-camera-area') && await vis(page, '.eat-tutorial') && await vis(page, '.eat-mouth-demo'), 'starting camera shows first-time Japanese tutorial and mouth demo');
   await page.screenshot({ path: SHOT('01-camera-starting') });
   await page.screenshot({ path: SHOT('02-first-time-tutorial-demo') });
-  await page.locator('.eat-tap').click();
-  check((await eatState(page)).taps === 1, 'tap bite counts before the model is ready while tutorial remains visible');
+  check((await eatState(page)).tapFallback && await vis(page, '.eat-tap:not([disabled])'), 'starting camera keeps the tap fallback visible');
+  await page.locator('.eat-tap').click(); await page.waitForTimeout(320);
+  check((await eatState(page)).taps === 1, 'tap counts before the model is ready while tutorial remains visible');
   await page.evaluate(() => { window.__mouth = 0.05; window.__resolveModel(); });
   await precondition(page, () => VA.EatGame.state().camera === 'on' && VA.EatGame.state().faceSeen, undefined, 'slow camera became active');
+  const beforeBlockedKeys = await eatState(page);
+  check(!beforeBlockedKeys.tapFallback && !(await vis(page, '.eat-tap')), 'active camera hides the tap fallback');
+  await page.keyboard.press('Space'); await page.keyboard.press('Enter'); await page.waitForTimeout(320);
+  check((await eatState(page)).bites === beforeBlockedKeys.bites, 'Space and Enter do not add bites while camera eating is active');
   const layout = await page.evaluate(() => {
     const preview = document.querySelector('.eat-cam').getBoundingClientRect();
     const food = document.querySelector('.eat-food-stage').getBoundingClientRect();
@@ -223,8 +228,8 @@ let server;
   const stageScale = layout.stage.width / 960;
   const previewStageWidth = layout.preview.width / stageScale;
   check(previewStageWidth >= 130 && previewStageWidth <= 150 && layout.preview.width < layout.food.width, 'preview is 130-150 stage px and smaller than food');
-  check(layout.preview.right > layout.food.right && layout.preview.bottom <= layout.tap.top, 'preview is bottom-right above tap bar and does not cover food');
-  check(layout.tap.width > layout.stage.width * .9 && layout.tap.bottom > layout.stage.bottom - 20, 'TAP TO EAT is a full-width bottom bar');
+  check(layout.preview.right > layout.food.right && layout.preview.bottom <= layout.stage.bottom, 'preview is bottom-right and does not cover food');
+  check(layout.tap.width === 0 && layout.tap.height === 0, 'TAP TO EAT has no layout while camera eating is active');
   check(layout.transform !== 'none', 'live preview is mirrored');
   await page.screenshot({ path: SHOT('03-active-preview-and-tap-bar') });
   await page.evaluate(() => { window.__mouth = 0.22; });
@@ -235,14 +240,18 @@ let server;
   await page.screenshot({ path: SHOT('04-mouth-open-indicator') });
   await page.evaluate(() => { window.__mouth = 0.05; });
   await precondition(page, () => VA.EatGame.state().cameraBites === 1, undefined, 'camera bite counted while tutorial visible');
+  check(!(await eatState(page)).tapFallback && !(await vis(page, '.eat-tap')), 'camera bite keeps fallback hidden and restarts its stall window');
   check(await page.evaluate(() => VA.State.data.guides.eating), 'first camera bite persists guides.eating');
   check((await page.locator('.eat-pop').textContent()) === 'CHOMP!', 'camera bite feedback is CHOMP!');
   await page.screenshot({ path: SHOT('05-chomp') });
   await page.screenshot({ path: SHOT('06-second-bite') });
-  await precondition(page, () => document.querySelector('.eat-tutorial').hidden, undefined, 'tutorial faded away');
-  await precondition(page, () => document.querySelector('.eat-title').textContent.includes('EAT!'), undefined, 'prompt returned to EAT');
-  await page.locator('.eat-tap').click();
+  await mouthCycle(page);
+  await precondition(page, () => VA.EatGame.state().cameraBites === 2, undefined, 'second camera bite finished the meal');
   await precondition(page, () => document.querySelector('.eat-title').textContent.includes('All gone!'), undefined, 'finished-food state visible');
+  check(!(await eatState(page)).tapFallback && !(await vis(page, '.eat-tap')) && await page.locator('.eat-tap').isDisabled(), 'finished meal hides and disables tap fallback');
+  const finishedBites = (await eatState(page)).bites;
+  await page.keyboard.press('Space'); await page.keyboard.press('Enter');
+  check((await eatState(page)).bites === finishedBites, 'Space and Enter add no bite after the meal is done');
   await page.screenshot({ path: SHOT('07-finished-food') });
   await precondition(page, () => window.__eatDone, undefined, 'mixed tap and camera food finished');
   const stoppedAfterFinish = await page.evaluate(() => ({ tracks: window.__tracks.map(t => t.readyState), running: VA.CameraMouth.state().running, n: VA.CameraMouth.state().inferenceCount }));
@@ -250,36 +259,44 @@ let server;
   await page.waitForTimeout(400);
   check(await page.evaluate(() => VA.CameraMouth.state().inferenceCount) === stoppedAfterFinish.n, 'inference stops at food finish');
 
-  console.log('later food reminder and tap suppression');
+  console.log('later food reminder and camera-stall fallback');
   await installProvider(page, 'ok');
   await resetState(page, 'egypt');
   await page.evaluate(async () => {
-    VA.State.data.guides.eating = true; VA.EatGame.REMINDER_MS = 350;
+    VA.State.data.guides.eating = true; VA.EatGame.REMINDER_MS = 350; VA.EatGame.STALL_MS = 500;
     const d = VA.Data.destById('egypt'); const e = d.events.find(x => x.id === 'kebab');
     await VA.Cine.setup(e, d); await VA.Screens.show('cine'); window.__eatDone = false;
     VA.EatGame.play(e.steps.find(x => x.eatGame).eatGame, VA.Cine).then(() => { window.__eatDone = true; });
   });
   await precondition(page, () => VA.EatGame.state().camera === 'on', undefined, 'later food camera on');
+  check(!(await eatState(page)).tapFallback && !(await vis(page, '.eat-tap')), 'later food hides tap while camera is actively eating');
   check(!(await vis(page, '.eat-tutorial')), 'later food does not show the full tutorial immediately');
   await page.screenshot({ path: SHOT('08-later-food-without-tutorial') });
   await precondition(page, () => VA.EatGame.state().reminder, undefined, 'stuck reminder appeared', 2000);
   await page.screenshot({ path: SHOT('09-stuck-reminder') });
+  await precondition(page, () => VA.EatGame.state().tapFallback, undefined, 'camera stall restored tap fallback', 2000);
+  check(await vis(page, '.eat-tap:not([disabled])'), 'camera stall shows the usable tap fallback while camera keeps running');
   await page.locator('.eat-tap').click();
   check(!(await eatState(page)).reminder, 'tap hides the reminder');
-  await page.waitForTimeout(700);
-  check(!(await eatState(page)).reminder, 'tap suppresses the reminder for the rest of this food');
-  await tapBites(page, 2);
+  await mouthCycle(page);
+  await precondition(page, () => VA.EatGame.state().cameraBites === 1 && !VA.EatGame.state().tapFallback,
+    undefined, 'camera bite hides the restored fallback again');
+  await precondition(page, () => VA.EatGame.state().tapFallback, undefined, 'second camera stall restores fallback', 2000);
+  await tapBites(page, 1);
   await precondition(page, () => window.__eatDone, undefined, 'later food finished');
-  await page.evaluate(() => { VA.EatGame.REMINDER_MS = 6000; });
+  await page.evaluate(() => { VA.EatGame.REMINDER_MS = 6000; VA.EatGame.STALL_MS = 10000; });
 
   console.log('no face and quiet camera failures');
   await installProvider(page, 'ok');
+  await page.evaluate(() => { VA.EatGame.STALL_MS = 300; });
   await startSynthetic(page, 'australia', 'icecream');
   await precondition(page, () => VA.EatGame.state().camera === 'on', undefined, 'no-face camera is running');
   check((await page.locator('.eat-status').textContent()).includes('Show your face'), 'no-face state gives gentle local guidance');
-  check(await vis(page, '.eat-tap:not([disabled])'), 'tap remains usable with no face');
+  await precondition(page, () => VA.EatGame.state().tapFallback, undefined, 'no-face camera stall restores tap fallback', 2000);
+  check(await vis(page, '.eat-tap:not([disabled])'), 'tap becomes usable when the no-face camera stalls');
   await tapBites(page, 3);
   await precondition(page, () => window.__eatDone, undefined, 'no-face food finished by tapping');
+  await page.evaluate(() => { VA.EatGame.STALL_MS = 10000; });
 
   for (const mode of ['denied', 'unavailable', 'model-fail']) {
     await installProvider(page, mode);
@@ -310,6 +327,9 @@ let server;
   });
   check(await page.evaluate(() => window.__gum) === 0, 'settings.camera false never requests camera');
   check(!(await vis(page, '.eat-camera-area')) && !(await vis(page, '.eat-tutorial')), 'camera-off mode has no preview or camera tutorial');
+  check((await eatState(page)).tapFallback && await vis(page, '.eat-tap:not([disabled])'), 'camera-off mode keeps the tap fallback visible');
+  await page.keyboard.press('Space'); await page.waitForTimeout(320); await page.keyboard.press('Enter'); await page.waitForTimeout(320);
+  check((await eatState(page)).taps === 2, 'camera-off mode accepts both Space and Enter');
   await page.screenshot({ path: SHOT('11-camera-disabled-settings') });
   await page.evaluate(() => { VA.State.data.guides.eating = true; VA.State.save(); VA.State.load(); });
   check(await page.evaluate(() => VA.State.data.guides.eating), 'guides.eating survives save and reload');

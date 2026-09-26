@@ -39,7 +39,8 @@ Vercel).
   Australia and Egypt use its full-screen `observe` presentation over approved
   panoramas, with moving/attracting character sprites and silent fallback to
   the original in-scene searches if panorama loading fails. France keeps the
-  existing Eiffel Tower crop. `VA.Look.state()` is the read-only semantic
+  existing Eiffel Tower crop. The ranger and Amira stay at their conversation
+  positions while observe owns the looking. `VA.Look.state()` is the read-only semantic
   harness surface, including presentation/panorama/load/fallback state.
 - France soccer uses the legacy 3-tap `game` step ("TAP to kick!" / KICK! ⚽).
   The new soccer minigames are parked, uncommitted and not loaded:
@@ -53,8 +54,10 @@ Vercel).
 - `js/eat-game.js` (`VA.EatGame`) provides the `eatGame` step after the food
   reward in the ice cream, crepe and kebab events: 3 bites, each cutting
   mask holes from per-food geometry in `VA.EatGame.SHAPES` (empty cone, clean
-  plate and bare skewer are redrawn underneath in CSS). TAP TO EAT always
-  works (full-width bar at the bottom). "EAT! 😋" is the prompt; each bite
+  plate and bare skewer are redrawn underneath in CSS). TAP TO EAT is the
+  fallback (full-width bar at the bottom) while camera eating is starting,
+  disabled, unavailable, failed, or has stalled for 10 seconds; it hides while
+  a working camera is registering eating. "EAT! 😋" is the prompt; each bite
   pops CHOMP!. The front webcam (`facingMode: 'user'`) starts by default
   unless Settings → `settings.camera` is off, shown as a small mirrored
   preview bottom-right with a ○/◔/● mouth indicator; any failure quietly

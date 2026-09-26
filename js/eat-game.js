@@ -4,10 +4,10 @@
    Cinematic step: {eatGame:{shape:'icecream', illustration:'icecream.webp', bites:3}}
 
    The food is shown large; every bite cuts a visible piece out of
-   it (CSS mask holes).  TAP TO EAT always works from the first
-   frame.  The front webcam (VA.CameraMouth) starts by default
-   unless Settings turns it off; any camera failure quietly leaves
-   tapping.  Mouth bites and taps count toward the same total.
+   it (CSS mask holes).  TAP TO EAT is the reliable fallback until
+   webcam eating is active, and returns if it stalls.  The front webcam
+   (VA.CameraMouth) starts by default unless Settings turns it off.
+   Mouth bites and taps count toward the same total.
    ============================================================ */
 'use strict';
 
@@ -43,9 +43,10 @@ VA.EatGame = {
   WORDS: ['CHOMP!'],
   START_TIMEOUT_MS: 8000,
   REMINDER_MS: 6000,
+  STALL_MS: 10000,
 
   _session: null,
-  _snapshot: { active: false, bites: 0, needed: 0, taps: 0, cameraBites: 0, camera: 'off', message: '', faceSeen: false, mouth: 'unknown', tutorial: false, reminder: false, done: false },
+  _snapshot: { active: false, bites: 0, needed: 0, taps: 0, cameraBites: 0, camera: 'off', message: '', faceSeen: false, mouth: 'unknown', tutorial: false, reminder: false, tapFallback: false, done: false },
 
   state() {
     const s = this._session ? this._session.publicState : this._snapshot;
@@ -65,13 +66,14 @@ VA.EatGame = {
 
     const publicState = {
       active: true, bites: 0, needed, taps: 0, cameraBites: 0,
-      camera: 'off', message: '', faceSeen: false, mouth: 'unknown', tutorial: false, reminder: false, done: false,
+      camera: 'off', message: '', faceSeen: false, mouth: 'unknown', tutorial: false, reminder: false, tapFallback: true, done: false,
     };
 
     return new Promise(resolve => {
       const s = {
         cfg, cine, screen, ui, shape, needed, publicState, resolve,
         active: true, lastBiteAt: -Infinity, timers: new Set(), holes: [], reminderDisabled: false,
+        tapFallbackEnabled: true, stallTimer: null,
       };
       s.cleanup = done => this._cleanup(s, done);
       this._session = s;
@@ -135,12 +137,24 @@ VA.EatGame = {
     return VA.CameraMouth.isSupported() && !(settings && settings.camera === false);
   },
 
+  _setTapFallback(s, enabled) {
+    if (!s || !s.ui || !s.ui.tap) return;
+    s.tapFallbackEnabled = !!enabled;
+    s.publicState.tapFallback = s.tapFallbackEnabled;
+    s.ui.tap.hidden = !s.tapFallbackEnabled;
+    s.ui.tap.disabled = !s.tapFallbackEnabled || s.publicState.done;
+  },
+
   _bind(s) {
-    s.onTap = () => this._bite(s, 'tap');
+    s.onTap = () => {
+      if (!s.tapFallbackEnabled) return;
+      this._bite(s, 'tap');
+    };
     s.onKey = event => {
       if (event.repeat || (event.key !== ' ' && event.key !== 'Enter')) return;
       // A focused button already turns Space/Enter into its own click.
       if (event.target && event.target.tagName === 'BUTTON') return;
+      if (!s.tapFallbackEnabled) return;
       event.preventDefault();
       this._bite(s, 'tap');
     };
@@ -195,6 +209,8 @@ VA.EatGame = {
     p.bites++;
     if (source === 'camera') {
       p.cameraBites++;
+      this._setTapFallback(s, false);
+      this._scheduleStallFallback(s);
       if (!VA.State.data.guides.eating) {
         VA.State.data.guides.eating = true;
         VA.State.save();
@@ -264,8 +280,8 @@ VA.EatGame = {
 
   _finish(s) {
     s.publicState.done = true;
+    this._setTapFallback(s, false);
     this._stopCamera(s, '');
-    s.ui.tap.disabled = true;
     this._hideTutorial(s);
     s.ui.title.textContent = 'All gone! 😋';
     s.ui.root.classList.add('is-done');
@@ -282,12 +298,14 @@ VA.EatGame = {
     if (!s.active || s.publicState.done || s.publicState.camera !== 'off') return;
     const p = s.publicState;
     p.camera = 'starting';
+    this._setTapFallback(s, true);
     s.ui.cameraArea.hidden = false;
     this._status(s, '📷 Camera starting…');
     if (!VA.State.data.guides.eating) this._showTutorial(s);
     const timeout = this._later(s, this.START_TIMEOUT_MS, () => {
       if (p.camera !== 'starting') return;
       p.camera = 'failed';
+      this._setTapFallback(s, true);
       VA.CameraMouth.stop();
       s.ui.cameraArea.hidden = true;
       this._hideTutorial(s);
@@ -319,6 +337,7 @@ VA.EatGame = {
     } catch (reason) {
       if (!s.active || reason === 'cancelled') return;
       p.camera = 'failed';
+      this._setTapFallback(s, true);
       s.timers.delete(timeout); clearTimeout(timeout);
       s.ui.cameraArea.hidden = true;
       this._hideTutorial(s);
@@ -327,15 +346,29 @@ VA.EatGame = {
     }
     if (!s.active || p.done || p.camera !== 'starting') { VA.CameraMouth.stop(); return; }
     p.camera = 'on';
+    this._setTapFallback(s, false);
     s.timers.delete(timeout); clearTimeout(timeout);
     if (!p.faceSeen) this._status(s, 'Show your face 🙂');
     this._scheduleReminder(s);
+    this._scheduleStallFallback(s);
+  },
+
+  _scheduleStallFallback(s) {
+    if (s.stallTimer) {
+      s.timers.delete(s.stallTimer);
+      clearTimeout(s.stallTimer);
+    }
+    s.stallTimer = this._later(s, this.STALL_MS, () => {
+      s.stallTimer = null;
+      if (s.publicState.camera === 'on' && !s.publicState.done) this._setTapFallback(s, true);
+    });
   },
 
   _stopCamera(s, message) {
     VA.CameraMouth.stop();
     const p = s.publicState;
     if (p.camera === 'starting' || p.camera === 'on') p.camera = 'off';
+    if (!p.done) this._setTapFallback(s, true);
     s.ui.cameraArea.hidden = true;
     if (message != null) this._status(s, message);
   },

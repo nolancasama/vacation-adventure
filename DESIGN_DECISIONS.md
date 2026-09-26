@@ -483,3 +483,19 @@ not accepted (keyboard play could not reach the shooting line) and the user
 did not want the top-down fallback live on its own either.
 
 **Rejected.** Shipping the 2D top-down game alone as France's soccer.
+
+## 2026-09-26 - Observation positions and webcam fallback
+
+**What.** The Australia ranger and Egypt guide stay in their conversation
+positions when their dedicated observe screens open; the observe presentation
+owns the act of looking. Webcam eating is the active eating method once it is
+successfully running. TAP TO EAT remains the fallback while camera startup is
+pending, unavailable, disabled or failed, and returns after 10 seconds with no
+camera bite; the camera continues running during that fallback.
+
+**Why.** A dedicated observation screen no longer needs a guide to move out of
+the way. A student must never be stranded by a camera that is technically on
+but cannot register a bite.
+
+**Rejected.** Hiding TAP TO EAT for as long as the camera is merely on, which
+can strand a student.

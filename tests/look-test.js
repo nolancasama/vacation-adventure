@@ -39,6 +39,10 @@ const visible = (page, selector) => page.evaluate(sel => {
   return !!(el && el.offsetParent);
 }, selector).catch(() => false);
 const jsClick = (page, selector) => page.$eval(selector, el => el.click()).catch(() => {});
+const actorX = (page, actorId) => page.evaluate(id => {
+  const actor = VA.Cine.ctx && VA.Cine.ctx.actors[id];
+  return actor ? Number.parseFloat(actor.style.left) : null;
+}, actorId);
 
 async function pulse(page, key, ms = 90) {
   await page.keyboard.down(key);
@@ -183,9 +187,12 @@ async function startRealEvent(page, destId, eventId) {
   }, { destId, eventId });
 }
 
-async function advanceToLook(page, label, seenDialogue = null) {
+async function advanceToLook(page, label, seenDialogue = null, actorTelemetry = null) {
   for (let i = 0; i < 240; i++) {
-    if (await page.evaluate(() => VA.Look.state().active).catch(() => false)) return;
+    if (await page.evaluate(() => VA.Look.state().active).catch(() => false)) {
+      if (actorTelemetry) actorTelemetry.observe = await actorX(page, actorTelemetry.id);
+      return;
+    }
     if (await visible(page, '#choices')) {
       const choice = page.locator('#choices .choice-btn:not([disabled])').first();
       if (await choice.count()) {
@@ -195,10 +202,9 @@ async function advanceToLook(page, label, seenDialogue = null) {
       }
     }
     if (await visible(page, '#dialogue')) {
-      if (seenDialogue) {
-        const text = await page.locator('#dlg-text').textContent().catch(() => '');
-        if (text) seenDialogue.push(text);
-      }
+      const text = await page.locator('#dlg-text').textContent().catch(() => '');
+      if (seenDialogue && text) seenDialogue.push(text);
+      if (actorTelemetry && text.includes(actorTelemetry.line)) actorTelemetry.lineX = await actorX(page, actorTelemetry.id);
       await jsClick(page, '#dialogue');
       await page.waitForTimeout(100);
       continue;
@@ -330,8 +336,11 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
 
   console.log('real sightseeing events');
   await startRealEvent(page, 'australia', 'kangaroo');
-  await advanceToLook(page, 'kangaroo observe');
+  const rangerTelemetry = { id: 'au_ranger', line: 'Look over there!' };
+  await advanceToLook(page, 'kangaroo observe', null, rangerTelemetry);
   await observeContract(page, 'look_australia_park.webp', 'Australia');
+  check(rangerTelemetry.lineX === rangerTelemetry.observe && rangerTelemetry.observe === 480,
+    'Australia: ranger stays at the conversation position when observe starts (never x 170)');
   let australia = await lookState(page);
   check(Math.abs(australia.target.x - australia.view.x) > 500,
     'Australia: kangaroo is not initially centred');
@@ -372,6 +381,9 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await page.screenshot({ path: OBSERVE_SHOT('04-australia-centred-found') });
   await armActorTelemetry(page, 'roo');
   await precondition(page, () => !VA.Look.state().active, undefined, 'Australia observe returned to cinematic', 2500);
+  rangerTelemetry.returned = await actorX(page, 'au_ranger');
+  check(rangerTelemetry.returned === rangerTelemetry.lineX,
+    'Australia: ranger is still at that position when observe returns');
   await page.screenshot({ path: OBSERVE_SHOT('05-australia-returned-cinematic') });
   await precondition(page, () => window.__lookSfx.includes('boing') && window.__lookSawAnim,
     undefined, 'Australia following hop and boing ran', 6000);
@@ -411,8 +423,11 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     'France: photo uses the unchanged Eiffel artwork and composition');
 
   await startRealEvent(page, 'egypt', 'pyramids');
-  await advanceToLook(page, 'pyramids observe');
+  const amiraTelemetry = { id: 'eg_guide', line: 'Look! The pyramids!' };
+  await advanceToLook(page, 'pyramids observe', null, amiraTelemetry);
   await observeContract(page, 'look_egypt_desert.webp', 'Egypt pyramids');
+  check(amiraTelemetry.lineX === amiraTelemetry.observe && amiraTelemetry.observe === 480,
+    'Egypt: Amira stays at the conversation position when pyramids observe starts (never x 250)');
   await page.screenshot({ path: OBSERVE_SHOT('12-egypt-search') });
   await finishCurrentLook(page, 'xy', 'pyramid dwell at reachable left edge');
   await precondition(page, () => VA.Look.state().active && VA.Look.state().found,
@@ -420,11 +435,17 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   const pyramidEndView = { ...(await lookState(page)).view };
   await page.screenshot({ path: OBSERVE_SHOT('13-egypt-pyramids-found') });
   await precondition(page, () => !VA.Look.state().active, undefined, 'pyramid observe returned', 2500);
+  amiraTelemetry.pyramidsReturned = await actorX(page, 'eg_guide');
+  check(amiraTelemetry.pyramidsReturned === amiraTelemetry.lineX,
+    'Egypt: Amira stays in place when pyramids observe returns');
   const betweenLooks = [];
-  await advanceToLook(page, 'Coco observe', betweenLooks);
+  const cocoTelemetry = { id: 'eg_guide', line: 'Now find my camel, Coco!' };
+  await advanceToLook(page, 'Coco observe', betweenLooks, cocoTelemetry);
   check(betweenLooks.some(text => text.includes('4,500 years old')),
     'Egypt: pyramid fact dialogue remains between the searches');
   await observeContract(page, 'look_egypt_desert.webp', 'Egypt Coco');
+  check(cocoTelemetry.observe === amiraTelemetry.lineX && cocoTelemetry.observe === 480,
+    'Egypt: Amira also stays in conversation position for the Coco observe search');
   const cocoStart = await lookState(page);
   check(Math.abs(cocoStart.view.x - pyramidEndView.x) < 3 && Math.abs(cocoStart.view.y - pyramidEndView.y) < 3,
     'Egypt: Coco search starts from the previous panorama view');
@@ -438,6 +459,9 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await page.screenshot({ path: OBSERVE_SHOT('15-egypt-coco-found') });
   await armActorTelemetry(page, 'coco');
   await precondition(page, () => !VA.Look.state().active, undefined, 'Coco observe returned to cinematic', 2500);
+  cocoTelemetry.returned = await actorX(page, 'eg_guide');
+  check(cocoTelemetry.returned === amiraTelemetry.lineX,
+    'Egypt: Amira remains there after the Coco observe return');
   await page.screenshot({ path: OBSERVE_SHOT('16-egypt-returned-cinematic') });
   await precondition(page, () => window.__lookSfx.includes('camel') && window.__lookSawAnim,
     undefined, 'Egypt following camel sound and wiggle ran', 6000);

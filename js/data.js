@@ -243,8 +243,6 @@ VA.Data.DESTS = [
           { coins: -3 },
           { say: ['au_ranger', 'Thank you!', 'ありがとう！'] },
           { say: ['au_ranger', 'Look over there!', 'あそこを見て！'] },
-          // The ranger steps aside so the park is open while the student looks.
-          { move: { id: 'au_ranger', x: 170, dur: 600 } },
           { move: { id: 'roo', x: 760, y: 545, dur: 1000 } },
           { look: {
             presentation: 'observe', panorama: 'look_australia_park.webp',
@@ -559,9 +557,6 @@ VA.Data.DESTS = [
           { coins: -3 },
           { say: ['eg_guide', 'Thank you!', 'ありがとう！'] },
           { say: ['eg_guide', 'Look! The pyramids!', '見て！ピラミッドだよ！'] },
-          // Amira steps aside for both searches, so she never stands in front
-          // of the pyramid the student is looking for.
-          { move: { id: 'eg_guide', x: 250, dur: 600 } },
           { look: {
             presentation: 'observe', panorama: 'look_egypt_desert.webp',
             size: { w: 3000, h: 1000 }, window: { w: 1280, h: 800 },
