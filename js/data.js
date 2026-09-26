@@ -565,9 +565,9 @@ VA.Data.DESTS = [
           { look: {
             presentation: 'observe', panorama: 'look_egypt_desert.webp',
             size: { w: 3000, h: 1000 }, window: { w: 1280, h: 800 },
-            targetRect: { x: 2130, y: 240, w: 860, h: 290 },
+            targetRect: { x: 2200, y: 240, w: 790, h: 270 },
             axis: 'xy', start: { x: 640, y: 500 },
-            radius: 60, hold: 600,
+            radius: 15, hold: 600,
             prompt: 'Find the pyramids!', promptJP: 'ピラミッドをさがして！', found: 'Found it!',
             fallback: {
               targetRect: { x: 360, y: 80, w: 240, h: 170 },

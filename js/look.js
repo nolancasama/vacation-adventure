@@ -496,6 +496,7 @@ VA.Look = {
   },
 
   _updateAssists(s, now) {
+    if (s.completing) return;
     const scale = VA.Timeline ? VA.Timeline.scale : 1;
     const elapsed = now - s.startedAt;
     const hintAt = (Number(s.cfg.hintAfter) || 5000) * scale;
@@ -593,6 +594,7 @@ VA.Look = {
     }
     this._observeSparkles(s, at);
     s.completing = true;
+    s.ui.hint.hidden = true;
     cancelAnimationFrame(s.raf);
     const found = VA.el('div', 'look-observe-found', VA.escape(s.cfg.found || 'Found it!'));
     s.ui.root.appendChild(found);

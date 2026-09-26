@@ -191,7 +191,8 @@ No people, no player, no guide, no camel or any other animal, no birds, no tents
 
 Code placement (image px, measured on the approved art): the three pyramids
 span x≈2140–2990, tips y≈245, bases y≈515 (largest x≈2320–2865), Sphinx at
-x≈2895; pyramids target rect ≈ x 2130–2990, y 240–530. The horizon sits at
+x≈2895; pyramids target rect ≈ x 2200–2990, y 240–510 with a 15 px dwell
+radius, so the crosshair must be on a pyramid, not the sand beside it. The horizon sits at
 ≈45% height. Coco (camel sprite ≈300 px tall) stands on the open sand at
 x≈1350, feet y≈880, and wiggles.
 
