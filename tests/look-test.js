@@ -14,10 +14,13 @@ const { chromium } = require('playwright');
 const PAGE_URL = 'file:///' + path.join(__dirname, '..', 'index.html').replace(/\\/g, '/');
 const OUT = path.join(__dirname, '..', '.shots', 'look');
 const OBSERVE_OUT = path.join(OUT, 'observe');
+const EGYPT_OBSERVE_OUT = path.join(OBSERVE_OUT, 'egypt');
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(OBSERVE_OUT, { recursive: true });
+fs.mkdirSync(EGYPT_OBSERVE_OUT, { recursive: true });
 const SHOT = name => path.join(OUT, name + '.png');
 const OBSERVE_SHOT = name => path.join(OBSERVE_OUT, name + '.png');
+const EGYPT_SHOT = name => path.join(EGYPT_OBSERVE_OUT, name + '.png');
 const failures = [];
 const errors = [];
 const check = (ok, msg) => {
@@ -43,6 +46,11 @@ const actorX = (page, actorId) => page.evaluate(id => {
   const actor = VA.Cine.ctx && VA.Cine.ctx.actors[id];
   return actor ? Number.parseFloat(actor.style.left) : null;
 }, actorId);
+const backdropFile = page => page.evaluate(() => {
+  const layers = document.querySelectorAll('.scene-art .art-layer');
+  const layer = layers[layers.length - 1];
+  return layer && layer.dataset.assetPath;
+});
 
 async function pulse(page, key, ms = 90) {
   await page.keyboard.down(key);
@@ -50,15 +58,24 @@ async function pulse(page, key, ms = 90) {
   await page.keyboard.up(key);
 }
 
-function keyToward(state, point, axis = 'xy') {
+// `pinned` names an axis the view could not move along last time (it is at a
+// pan limit), so steering switches to the other axis instead of pressing the
+// same dead key forever — e.g. Coco's centre sits below the lowest view.
+function keyToward(state, point, axis = 'xy', pinned = null) {
   const dx = point.x - state.view.x;
   const dy = point.y - state.view.y;
-  if (axis === 'x') return dx >= 0 ? 'ArrowRight' : 'ArrowLeft';
-  if (axis === 'y') return dy >= 0 ? 'ArrowDown' : 'ArrowUp';
-  return Math.abs(dx) >= Math.abs(dy)
-    ? (dx >= 0 ? 'ArrowRight' : 'ArrowLeft')
-    : (dy >= 0 ? 'ArrowDown' : 'ArrowUp');
+  const horizontal = dx >= 0 ? 'ArrowRight' : 'ArrowLeft';
+  const vertical = dy >= 0 ? 'ArrowDown' : 'ArrowUp';
+  if (axis === 'x') return horizontal;
+  if (axis === 'y') return vertical;
+  if (pinned === 'y') return horizontal;
+  if (pinned === 'x') return vertical;
+  return Math.abs(dx) >= Math.abs(dy) ? horizontal : vertical;
 }
+
+const pinnedAxis = (before, after, key) =>
+  before && after && before.view.x === after.view.x && before.view.y === after.view.y
+    ? (/Up|Down/.test(key) ? 'y' : 'x') : null;
 
 async function moveViewNear(page, point, axis = 'xy', tolerance = 12, label = 'move view') {
   for (let i = 0; i < 180; i++) {
@@ -73,16 +90,21 @@ async function moveViewNear(page, point, axis = 'xy', tolerance = 12, label = 'm
 }
 
 async function finishCurrentLook(page, axis = 'xy', label = 'finish look') {
+  let last = null, lastKey = null;
   for (let i = 0; i < 320; i++) {
     const st = await lookState(page);
     if (!st.active || st.found) return;
-    if (st.distance <= 20) {
+    // distance is 0 exactly when the reticle is inside the accepted target.
+    if (st.distance === 0) {
       await page.waitForTimeout(70);
+      last = null;
       continue;
     }
-    await pulse(page, keyToward(st, st.target, axis), 75);
+    lastKey = keyToward(st, st.target, axis, pinnedAxis(last, st, lastKey));
+    last = st;
+    await pulse(page, lastKey, 75);
   }
-  throw new Error('HARNESS_PRECONDITION_FAILED: ' + label);
+  throw new Error('HARNESS_PRECONDITION_FAILED: ' + label + ' ' + JSON.stringify(await lookState(page)));
 }
 
 async function dragTowardTarget(page, axis = 'xy', label = 'drag toward target') {
@@ -93,7 +115,7 @@ async function dragTowardTarget(page, axis = 'xy', label = 'drag toward target')
   for (let i = 0; i < 80; i++) {
     const st = await lookState(page);
     if (!st.active || st.found) return;
-    if (st.distance <= 24) {
+    if (st.distance === 0) {
       await page.waitForTimeout(80);
       continue;
     }
@@ -445,18 +467,29 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     'France: photo uses the unchanged Eiffel artwork and composition');
 
   await startRealEvent(page, 'egypt', 'pyramids');
+  check(await backdropFile(page) === 'assets/backgrounds/event_egypt_arrival.webp' &&
+    await actorX(page, 'coco') === 1120,
+  'Egypt: arrival starts without pyramid art or Coco on stage');
+  await page.screenshot({ path: EGYPT_SHOT('01-arrival') });
   const amiraTelemetry = { id: 'eg_guide', line: 'Look! The pyramids!' };
   await advanceToLook(page, 'pyramids observe', null, amiraTelemetry);
   await observeContract(page, 'look_egypt_desert.webp', 'Egypt pyramids');
+  check(await backdropFile(page) === 'assets/backgrounds/event_egypt_arrival.webp' && await actorX(page, 'coco') === 1120,
+    'Egypt: pyramid observation keeps the arrival scene and Coco offscreen');
   check(amiraTelemetry.lineX === amiraTelemetry.observe && amiraTelemetry.observe === 480,
     'Egypt: Amira stays at the conversation position when pyramids observe starts (never x 250)');
-  await page.screenshot({ path: OBSERVE_SHOT('12-egypt-search') });
+  await page.screenshot({ path: EGYPT_SHOT('02-pyramid-observe') });
   await finishCurrentLook(page, 'xy', 'pyramid dwell at reachable left edge');
   await precondition(page, () => VA.Look.state().active && VA.Look.state().found,
     undefined, 'pyramid dwell reached found hold', 3000);
   const pyramidEndView = { ...(await lookState(page)).view };
-  await page.screenshot({ path: OBSERVE_SHOT('13-egypt-pyramids-found') });
+  await page.screenshot({ path: EGYPT_SHOT('03-pyramids-found') });
   await precondition(page, () => !VA.Look.state().active, undefined, 'pyramid observe returned', 2500);
+  await precondition(page, () => document.querySelector('.scene-art .art-layer:last-child')?.dataset.assetPath === 'assets/backgrounds/event_egypt_pyramid.webp',
+    undefined, 'pyramid backdrop revealed before Wow');
+  check(await actorX(page, 'coco') === 1120,
+    'Egypt: Coco remains offscreen after the pyramid reveal');
+  await page.screenshot({ path: EGYPT_SHOT('04-pyramid-revealed-no-coco') });
   amiraTelemetry.pyramidsReturned = await actorX(page, 'eg_guide');
   check(amiraTelemetry.pyramidsReturned === amiraTelemetry.lineX,
     'Egypt: Amira stays in place when pyramids observe returns');
@@ -466,6 +499,8 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   check(betweenLooks.some(text => text.includes('4,500 years old')),
     'Egypt: pyramid fact dialogue remains between the searches');
   await observeContract(page, 'look_egypt_desert.webp', 'Egypt Coco');
+  check(await actorX(page, 'coco') === 1120,
+    'Egypt: Coco stays offscreen through the pyramid fact and Coco observation');
   check(cocoTelemetry.observe === amiraTelemetry.lineX && cocoTelemetry.observe === 480,
     'Egypt: Amira also stays in conversation position for the Coco observe search');
   const cocoStart = await lookState(page);
@@ -474,24 +509,65 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await precondition(page, () => VA.Look.state().decoyShown, undefined, 'Coco pyramid decoy appeared', 2500);
   check((await lookState(page)).active && (await page.locator('.look-decoy').textContent()).includes("That's a pyramid!"),
     'Egypt: pyramid decoy is friendly and does not fail the search');
-  await page.screenshot({ path: OBSERVE_SHOT('14-egypt-coco-search') });
+  await page.screenshot({ path: EGYPT_SHOT('05-coco-observe') });
   await finishCurrentLook(page, 'xy', 'Coco dwell');
   await precondition(page, () => VA.Look.state().active && VA.Look.state().found,
     undefined, 'Coco dwell reached found hold', 3000);
-  await page.screenshot({ path: OBSERVE_SHOT('15-egypt-coco-found') });
+  await page.screenshot({ path: EGYPT_SHOT('06-coco-found') });
   await armActorTelemetry(page, 'coco');
+  await page.evaluate(() => {
+    window.__cocoEntry = null;
+    const tick = () => {
+      const actor = VA.Cine.ctx && VA.Cine.ctx.actors.coco;
+      const x = actor ? Number.parseFloat(actor.style.left) : null;
+      if (x != null && x !== 1120) {
+        window.__cocoEntry = { x, lookActive: VA.Look.state().active, wiggled: window.__lookSawAnim };
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
   await precondition(page, () => !VA.Look.state().active, undefined, 'Coco observe returned to cinematic', 2500);
   cocoTelemetry.returned = await actorX(page, 'eg_guide');
   check(cocoTelemetry.returned === amiraTelemetry.lineX,
     'Egypt: Amira remains there after the Coco observe return');
-  await page.screenshot({ path: OBSERVE_SHOT('16-egypt-returned-cinematic') });
+  await precondition(page, () => {
+    const actor = VA.Cine.ctx && VA.Cine.ctx.actors.coco;
+    return actor && Number.parseFloat(actor.style.left) < 1120;
+  }, undefined, 'Coco started walking in');
+  await page.screenshot({ path: EGYPT_SHOT('07-coco-entering') });
   await precondition(page, () => window.__lookSfx.includes('camel') && window.__lookSawAnim,
     undefined, 'Egypt following camel sound and wiggle ran', 6000);
-  check(true, 'Egypt: following camel sound and Coco wiggle still run');
-  const cocoPhoto = await finishEventAndCapturePhoto(page, 'pyramids', 'observe/17-egypt-photo-toast');
+  const cocoEntry = await page.evaluate(() => window.__cocoEntry);
+  check(!!cocoEntry && !cocoEntry.lookActive && !cocoEntry.wiggled,
+    'Egypt: Coco enters only after observation closes, before camel sound and wiggle');
+  check(await actorX(page, 'coco') === 700, 'Egypt: Coco settles at x 700 before the camel reveal');
+  await page.screenshot({ path: EGYPT_SHOT('08-coco-settled') });
+  const cocoPhoto = await finishEventAndCapturePhoto(page, 'pyramids', 'observe/egypt/09-final-photo');
   const cocoActor = cocoPhoto && cocoPhoto.actors.find(actor => actor.char === 'camel');
-  check(!!cocoPhoto && !!cocoActor && cocoActor.x >= 650 && cocoActor.x <= 750,
-    'Egypt: event continues to the normal Coco photo');
+  check(!!cocoPhoto && cocoPhoto.caption === 'I saw the pyramids.' && cocoPhoto.backdrop === 'event_egypt_pyramid.webp' &&
+    !!cocoActor && cocoActor.x >= 650 && cocoActor.x <= 750,
+    'Egypt: final photo keeps the revealed pyramids and Coco');
+
+  await page.evaluate(() => VA.Look._setPanoramaForTest(
+    'look_egypt_desert.webp', 'assets/backgrounds/__guaranteed_missing_observe__.webp'));
+  await startRealEvent(page, 'egypt', 'pyramids');
+  await advanceToLook(page, 'Egypt pyramid fallback');
+  check((await lookState(page)).usedFallback && await backdropFile(page) === 'assets/backgrounds/event_egypt_pyramid.webp',
+    'Egypt fallback reveals pyramids before its in-scene search');
+  await finishCurrentLook(page, 'xy', 'Egypt pyramid fallback completion');
+  await advanceToLook(page, 'Egypt Coco fallback');
+  check((await lookState(page)).usedFallback && await actorX(page, 'coco') === 700,
+    'Egypt fallback brings Coco on stage before its in-scene search');
+  await finishCurrentLook(page, 'xy', 'Egypt Coco fallback completion');
+  const fallbackPhoto = await finishEventAndCapturePhoto(page, 'pyramids', 'observe/egypt/fallback-final-photo');
+  check(!!fallbackPhoto, 'Egypt fallback completes with a photo');
+  await page.evaluate(() => VA.Look._setPanoramaForTest('look_egypt_desert.webp', null));
+
+  await setupScene(page, 'egypt', 'pyramids');
+  check(await backdropFile(page) === 'assets/backgrounds/event_egypt_arrival.webp' && await actorX(page, 'coco') === 1120,
+    'Egypt replay starts fresh on the arrival backdrop with Coco offscreen');
 
   console.log('observe fallback and cleanup');
   await page.evaluate(() => VA.Look._setPanoramaForTest(

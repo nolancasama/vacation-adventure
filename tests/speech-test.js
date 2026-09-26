@@ -67,18 +67,27 @@ const say = (page, entry) => page.evaluate(e => window.__speechQueue.push(e), en
 const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('vacation-adventure-v1')));
 
 async function finishLook(page, label) {
+  let prev = null, lastKey = null;
   for (let i = 0; i < 160; i++) {
     const st = await page.evaluate(() => VA.Look && VA.Look.state()).catch(() => null);
     if (!st || !st.active) return;
     const dx = st.target.x - st.view.x;
     const dy = st.target.y - st.view.y;
-    if (st.distance <= 28) {
+    // distance is 0 exactly when the reticle is inside the accepted target.
+    if (st.distance === 0) {
       await page.waitForTimeout(80);
+      prev = null;
       continue;
     }
-    const key = Math.abs(dx) >= Math.abs(dy)
-      ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft')
-      : (dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    // If the last key did not move the view (it is at a pan limit, e.g. Coco's
+    // centre sits below the lowest view), steer along the other axis instead.
+    const pinned = prev && prev.view.x === st.view.x && prev.view.y === st.view.y
+      ? (/Up|Down/.test(lastKey) ? 'y' : 'x') : null;
+    const horizontal = dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+    const vertical = dy > 0 ? 'ArrowDown' : 'ArrowUp';
+    const key = pinned === 'y' ? horizontal : pinned === 'x' ? vertical
+      : Math.abs(dx) >= Math.abs(dy) ? horizontal : vertical;
+    prev = st; lastKey = key;
     await page.keyboard.down(key);
     await page.waitForTimeout(140);
     await page.keyboard.up(key);

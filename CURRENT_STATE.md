@@ -40,7 +40,10 @@ Vercel).
   panoramas, with moving/attracting character sprites and silent fallback to
   the original in-scene searches if panorama loading fails. France keeps the
   existing Eiffel Tower crop. The ranger and Amira stay at their conversation
-  positions while observe owns the looking. `VA.Look.state()` is the read-only semantic
+  positions while observe owns the looking. Egypt's pyramid event starts on the
+  arrival art, swaps to the pyramid art after its first discovery, then brings
+  Coco in after the second; its saved photo records the displayed backdrop.
+  `VA.Look.state()` is the read-only semantic
   harness surface, including presentation/panorama/load/fallback state.
 - France soccer uses the legacy 3-tap `game` step ("TAP to kick!" / KICK! ⚽).
   The new soccer minigames are parked, uncommitted and not loaded:
@@ -147,9 +150,11 @@ Vercel).
 - The phone attention work (item 3 below) is live but unfinished:
   `npm run test:guide` fails 4 checks (phone-new dot, glow/hint alignment at
   800x600, pc-new gold star screen, no effects once done).
-- `npm run test:speech` once crashed at the Egypt pyramids look ("active look
-  did not finish") and passed on rerun; the helper now prints
-  `VA.Look.state()` if it recurs.
+- The intermittent LOOK harness crashes ("Coco dwell", "active look did not
+  finish: pyramids") were harness steering bugs, fixed 2026-09-26: helpers
+  switch axis when the view is pinned at a pan limit, and wait for dwell only
+  at `distance === 0` (inside the target). Both helpers print
+  `VA.Look.state()` if a look ever fails to finish.
 
 ## Codex / Delegated Work
 

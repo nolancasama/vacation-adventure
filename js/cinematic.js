@@ -115,7 +115,7 @@ VA.Cine = {
 
     VA.Art.layer(art, { painter: evt.painter, file: evt.backdrop, kind: 'backgrounds' });
 
-    const ctx = { event: evt, dest, actors: {}, props: {} };
+    const ctx = { event: evt, dest, actors: {}, props: {}, backdrop: evt.backdrop };
     // Start decoding the volleyball payoff while the player is still talking.
     // showVolleyballFinale waits on this promise only if three very quick taps
     // beat the local image decoder.
@@ -173,6 +173,27 @@ VA.Cine = {
     return this.ctx.actors[id] || this.ctx.props[id];
   },
 
+  async setBackdrop(file) {
+    if (file === this.ctx.backdrop) return;
+    const art = this.world.querySelector('.scene-art');
+    if (!art) return;
+    const oldLayer = art.querySelector('.art-layer:last-child');
+    const nextLayer = VA.Art.layer(art, {
+      painter: this.ctx.event.painter, file, kind: 'backgrounds',
+    });
+    this.ctx.backdrop = file;
+    if (VA.reducedMotion) {
+      oldLayer?.remove();
+      return;
+    }
+    nextLayer.style.opacity = '0';
+    nextLayer.style.transition = 'opacity 350ms ease';
+    void nextLayer.offsetWidth;
+    nextLayer.style.opacity = '1';
+    await VA.wait(350);
+    oldLayer?.remove();
+  },
+
   /* camera: focus point (x,y) in stage px at scale s.
      The art fills exactly VA.W x VA.H at scale 1, so once scaled up by s
      the valid translate range is [VA.W - VA.W*s, 0] / [VA.H - VA.H*s, 0] —
@@ -226,6 +247,7 @@ VA.Cine = {
     for (const st of steps) {
       if (st.cam)     { await this.cam(st.cam); continue; }
       if (st.towerPan){ await this.towerPan(st.towerPan); continue; }
+      if (st.setBackdrop) { await this.setBackdrop(st.setBackdrop); continue; }
       if (st.look)    { await VA.Look.run(st.look, this); continue; }
       if (st.soccerGame) {
         let soccer = null;
@@ -788,7 +810,7 @@ VA.Cine = {
       jp: evt.captionJP,
       icon: evt.photoIcon,
       painter: evt.painter,
-      backdrop: evt.backdrop, // real background asset, if it's loaded — see VA.Art.polaroid
+      backdrop: this.ctx.backdrop || evt.backdrop, // real background asset, if it's loaded — see VA.Art.polaroid
       // plain (JSON-safe) snapshot of actors' CURRENT on-stage position, not their
       // starting definition — actors that walk/hop into frame mid-scene (e.g. the
       // kangaroo entering from off-stage) must be captured where they ended up

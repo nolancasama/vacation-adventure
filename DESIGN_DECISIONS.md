@@ -514,3 +514,17 @@ right after the find makes the normal scene the payoff.
 **Rejected.** Moving the old pre-search `roo → 760` step to after the search:
 followed by the existing `roo → 660` move it made the kangaroo stop and
 shuffle mid-entrance.
+
+## 2026-09-26 — Egypt is a discovery sequence
+
+**What.** Egypt opens on the arrival desert without pyramids or Coco. Finding
+the pyramids changes the cinematic backdrop to the pyramid art; finding Coco
+then brings the cinematic camel in from offscreen. The saved photo uses the
+backdrop currently on screen.
+
+**Why.** Each discovery earns its normal-scene reveal, mirroring the kangaroo
+entrance. The memory must preserve the discovered pyramids.
+
+**Rejected.** Keeping `evt.backdrop` for the photo, which would drop the
+pyramids from every Egypt memory. Fallback searches reveal their targets first
+because the in-scene target must be visible.

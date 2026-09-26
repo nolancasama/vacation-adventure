@@ -542,14 +542,15 @@ VA.Data.DESTS = [
         title: 'The Pyramids', titleJP: 'ピラミッド', icon: '🔺', price: 3,
         // Alongside the central pyramid.
         hotspot: { x: 690, y: 285 },
-        backdrop: 'event_egypt_pyramid.webp', painter: 'ev_eg_pyramid',
+        backdrop: 'event_egypt_arrival.webp', painter: 'ev_eg_pyramid',
+        initialAssets: ['assets/backgrounds/event_egypt_pyramid.webp'],
         photoFile: 'photo_egypt_pyramids.webp', photoIcon: '🐪',
         caption: 'I saw the pyramids.', captionJP: 'ピラミッドを見たよ。',
         photoPlayerPose: { x: 300, y: 610, scale: 1.18 },
         actors: [
           { id: 'eg_guide', char: 'eg_guide', x: 250, y: 595, scale: 1.12, conversation: { x: 480, y: 595, scale: 1.15 } },
           { id: 'player', char: 'player', x: 365, y: 610, scale: 1.05 },
-          { id: 'coco', char: 'camel', x: 700, y: 610, scale: 1.05 },
+          { id: 'coco', char: 'camel', x: 1120, y: 610, scale: 1.05 },
         ],
         amb: [{ type: 'birds', band: [0.08, 0.2], every: [7, 14], size: 1.1, color: 'rgba(90,60,40,.8)' }],
         steps: [
@@ -568,12 +569,14 @@ VA.Data.DESTS = [
             radius: 15, hold: 600,
             prompt: 'Find the pyramids!', promptJP: 'ピラミッドをさがして！', found: 'Found it!',
             fallback: {
+              before: [{ setBackdrop: 'event_egypt_pyramid.webp' }],
               targetRect: { x: 360, y: 80, w: 240, h: 170 },
               axis: 'xy', s: 1.35, start: { x: 360, y: 380 },
               radius: 60, hold: 600,
               prompt: 'Look! The pyramids!', promptJP: '見て！ピラミッドだよ！', found: 'Found it!',
             },
           } },
+          { setBackdrop: 'event_egypt_pyramid.webp' },
           { fx: ['sparkles', 480, 130, { n: 8 }] },
           { mood: ['player', 'wow'] },
           { auto: ['player', 'Wow!', 'わあ！'] },
@@ -594,6 +597,7 @@ VA.Data.DESTS = [
               say: "That's a pyramid! 😄",
             }],
             fallback: {
+              before: [{ move: { id: 'coco', x: 700, y: 610, dur: 900 } }],
               target: 'coco', axis: 'xy', s: 1.35,
               start: { x: 300, y: 220 }, radius: 140, hold: 600,
               prompt: 'Now find my camel, Coco!', promptJP: 'ラクダのココをさがして！', found: 'Found it!',
@@ -603,6 +607,7 @@ VA.Data.DESTS = [
               }],
             },
           } },
+          { move: { id: 'coco', x: 700, y: 610, dur: 900 } },
           { cam: { x: 620, y: 400, s: 1.12, dur: 900 } },
           { move: { id: 'eg_guide', x: 480, dur: 600 } },
           { sfx: 'camel' },
