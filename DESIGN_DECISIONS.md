@@ -708,3 +708,33 @@ presentation to ranger dialogue or closing and reopening the panorama.
 
 **Rejected.** Ranger dialogue for the transition, multiple kangaroos,
 teleporting between positions, misses, lives, scores or other penalties.
+
+## 2026-09-28 — Egypt sand play becomes a drag-build
+
+**What.** The TAP x3 sand pyramid is replaced by `VA.SandGame`
+(`js/sand-game.js`, `sandGame` step): SCOOP 3 piles → PACK 3 times →
+LIFT the bucket → SMOOTH 3 rough patches → drag the FLAG to the top. Pointer
+Events only (mouse, touch, pen, touchpad click-drag), no timer, score or
+failure; misses slide back. Tolerances: pile snap 115 stage px, pack when
+the bucket bottom reaches the mound (±105 px), reveal after a 120 px upward
+drag (520 ms lift), 60 px cumulative rub per patch (nearest patch within
+30 px, any direction, pointer down), flag snap 95 px. One subtle assist
+after 4.5 s idle per phase. The finished pyramid and flag are the existing
+props at the old final size/position, so the photo is unchanged.
+
+**Why.** Physically building the pyramid is more satisfying and readable
+than tapping a button, and drags work the same on Chromebook touchpads,
+mice and touchscreens.
+
+**Rejected.** Extending the generic `game` tap step with sand branches;
+new art assets (the bucket is inline SVG, sand is CSS); a hand/finger hint
+graphic; one pack per drag *release* (one continuous press counts once,
+then the bucket returns); requiring back-and-forth rubbing.
+
+## 2026-09-28 — `#stage` never flex-shrinks
+
+**What.** `#stage` has `flex-shrink:0`. Below 960 CSS px of viewport the
+flex `#app` was squeezing its layout width while `VA.Stage.fit()` also
+scaled it, so the right side of every screen was clipped and hit points
+drifted (found by the sand game's 700 px alignment test; it also fixed the
+bedroom guide's 800x600 glow/hint alignment check).

@@ -652,10 +652,9 @@ VA.Data.DESTS = [
           { say: ['eg_kid', 'Hi!', 'ハーイ！'] },
           { say: ['eg_kid', "Let's make a sand pyramid!", 'すなのピラミッドを作ろう！'], jpMode: 'visible' },
           { offer: { who: 'eg_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
-          { show: 'pyr' },
-          { caption: 'TAP the sand!' },
-          { game: { n: 3, label: 'TAP! 🏖️', propId: 'pyr', anim: 'grow', growTo: 2.5, flagId: 'flag', flagEmbed: 54, flagOffsetX: 12, sfx: 'pop' } },
-          { show: 'flag' }, { sfx: 'chime' },
+          // SCOOP → PACK → LIFT → SMOOTH → FLAG by dragging (js/sand-game.js);
+          // it leaves the full-size pyramid and planted flag for the photo.
+          { sandGame: { pyramidId: 'pyr', flagId: 'flag' } },
           { caption: 'Wow!' },
           { anim: { id: 'eg_kid', name: 'cheer', wait: false } },
           { say: ['eg_kid', 'A great pyramid!', 'すごいピラミッド！'] },

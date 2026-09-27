@@ -175,6 +175,10 @@ async function talk(page, label, stop, answers = {}, log = []) {
     if (await vis(page, '#hint-photo')) { log.push({ q: '(hint)', kind: 'hint' }); await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn')) { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
     if (await vis(page, '.eat-tap:not([disabled])')) { await jsClick(page, '.eat-tap'); await page.waitForTimeout(350); continue; }
+    // The sand drag-build has its own harness (sand-test.js); skip it here.
+    if (await page.evaluate(() => !!(VA.SandGame && VA.SandGame.state().active)).catch(() => false)) {
+      await page.evaluate(() => VA.SandGame.finishNow()); await page.waitForTimeout(200); continue;
+    }
     if (await page.evaluate(() => !!(VA.Look && VA.Look.state().active)).catch(() => false)) {
       await finishLook(page, label);
       continue;

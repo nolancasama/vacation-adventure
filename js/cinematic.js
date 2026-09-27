@@ -15,6 +15,7 @@
      {soccerVoice:{ballId,playerId,teammateId,goal}} say PASS → PASS → SHOOT
      {volleyballAR:{sequence}} BUMP → SET → SPIKE with the front camera (volleyball-ar.js)
      {eatGame:{shape,illustration,bites}} take bites by tapping or (opt-in) webcam
+     {sandGame:{pyramidId,flagId}} drag-build the sand pyramid: SCOOP → PACK → LIFT → SMOOTH → FLAG
      {wait:ms}               hold the moment
      {say:['vendor','One ice cream?','アイスはいかが？']}   tap to continue
      {auto:['player','Yummy!','おいしい！',2200]}           auto-advances (optional hold ms)
@@ -262,6 +263,7 @@ VA.Cine = {
       if (st.soccerVoice) { await this._soccerVoice(st.soccerVoice); continue; }
       if (st.volleyballAR) { await VA.VolleyballAR.start(st.volleyballAR, this); continue; }
       if (st.eatGame) { await VA.EatGame.play(st.eatGame, this); continue; }
+      if (st.sandGame) { await VA.SandGame.play(st.sandGame, this); continue; }
       if (st.wait)    { await VA.wait(st.wait); continue; }
       if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3], jpMode: st.jpMode }); continue; }
       if (st.auto)    { await VA.Dialogue.auto(st.auto[0], st.auto[1], { jp: st.auto[2], dur: st.auto[3], jpMode: st.jpMode }); continue; }

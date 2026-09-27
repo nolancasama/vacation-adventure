@@ -57,6 +57,17 @@ Vercel).
   `assets/vendor/three/` + `soccer3d.css`) and its top-down fallback
   `js/soccer.js` (`VA.Soccer`). `js/cinematic.js` still dispatches the
   `soccerGame` step, but nothing uses it.
+- `js/sand-game.js` (`VA.SandGame`) provides the `sandGame` step for Egypt
+  sand play: pointer-drag SCOOP (3 piles) → PACK (3 presses) → LIFT the
+  bucket → SMOOTH (3 rough patches) → drag the FLAG to the top; no timer or
+  failure, idle assists, safe finish on any internal error. Its layer lives
+  inside `#cine-world` (stage px, follows the camera); `clientToWorld` /
+  `worldToClient` convert pointers. It leaves the existing `pyr`/`flag`
+  props at the old final size/position for the photo. `state()` and
+  `finishNow()` are the harness surface. The generic `game` tap step is
+  still used by other events.
+- `#stage` has `flex-shrink:0` (below 960 CSS px the flex `#app` used to
+  squeeze and clip it).
 - `js/eat-game.js` (`VA.EatGame`) provides the `eatGame` step after the food
   reward in the ice cream, crepe and kebab events: 3 bites, each cutting
   mask holes from per-food geometry in `VA.EatGame.SHAPES` (empty cone, clean
@@ -149,6 +160,12 @@ Vercel).
   `.shots/look/observe/` screenshot set.
 - `tests/soccer-test.js`, `tests/soccer3d-test.js` — parked with the soccer
   minigames (uncommitted); they fail while soccer uses the legacy step.
+- `tests/sand-test.js` — real mouse drags (plus one synthetic touch drag)
+  through each phase: radius in/out, one pack per continuous press, lift
+  threshold, per-patch rubbing, flag return/snap, assist, cleanup on leave,
+  rescue, pile visual-vs-hit alignment at 1366x768 and 700x470, and the real
+  Egypt event through Wow!/cheer/A great pyramid!/Yay!/photo; `.shots/sand/`.
+  `speech-test.js` skips the sand game with `VA.SandGame.finishNow()`.
 - `tests/eat-test.js` — pure bite-detector units, tap path, camera path via
   a canvas stream + scripted fake landmarker (camera by default, off in Settings, tutorial/reminder, denied /
   unavailable / no-face fallbacks, tracks and loop stopped), settings, the
@@ -195,8 +212,12 @@ Vercel).
   needs the hosted (http/https) build; opening `index.html` from disk is
   tap-only.
 - The phone attention work (item 3 below) is live but unfinished:
-  `npm run test:guide` fails 4 checks (phone-new dot, glow/hint alignment at
-  800x600, pc-new gold star screen, no effects once done).
+  `npm run test:guide` fails 3 checks (phone-new dot, pc-new gold star
+  screen, no effects once done). The 800x600 glow/hint alignment check was
+  the `#stage` flex-shrink bug, fixed 2026-09-28.
+- `npm run test:speech` fails 1 check on HEAD as of 2026-09-28 (before the
+  sand game too): "passport uses the fallback handoff, then the player
+  auto-says 'Here you are.'" — not yet investigated.
 - The intermittent LOOK harness crashes ("Coco dwell", "active look did not
   finish: pyramids") were harness steering bugs, fixed 2026-09-26: helpers
   switch axis when the view is pinned at a pan limit, and wait for dwell only
@@ -240,6 +261,9 @@ after review (that order was told not to edit docs).
   thresholds (`VA.VolleyballAR.TUNING`, hit window 430 ms) for children;
   camera permission in managed Chrome.
 
+- Play the Egypt sand drag-build on a real Chromebook touchpad: click-drag
+  comfort for piles/bucket/flag, the 120 px lift, and whether 60 px of rubbing
+  per rough patch feels right (tolerances at the top of `js/sand-game.js`).
 - Try webcam eating on a real Chromebook (hosted build) and tune the
   open/close thresholds if bites are missed or doubled.
 - Add the painted bedroom background while preserving the procedural fallback.
