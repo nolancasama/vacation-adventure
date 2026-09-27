@@ -2,7 +2,7 @@
    screens.js — screen/UI builders (the parts you can touch).
 
    VA.UI.*  builds each screen's contents from data
-   VA.HUD   coins pill + album/passport/scrapbook/settings
+   VA.HUD   coins pill + passport/settings (photos/scrapbook: bedroom)
    ============================================================ */
 'use strict';
 

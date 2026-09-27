@@ -229,8 +229,11 @@ const dialogueHidden = `document.querySelector('#dialogue').style.display === 'n
     `() => { const c = document.querySelector('#scr-map'); return c && c.classList.contains('active') && document.querySelector('.dest-card [class="dc-done"], .dest-card .dc-done') && ${dialogueHidden}; }`);
   await page.screenshot({ path: SHOT('13-map-visited') });
 
-  // album + passport modals
-  await jsClick(page, '#btn-album');
+  // HUD keeps only passport + settings (photos/scrapbook live in the bedroom)
+  const hudIds = await page.evaluate(() => [...document.querySelectorAll('#hud .hud-btn')].map(b => b.id));
+  if (hudIds.join() !== 'btn-passport,btn-settings') errors.push('ASSERT: HUD buttons are ' + hudIds.join());
+  // album modal (opened from the bedroom corkboard in play) + passport modal
+  await page.evaluate(() => VA.UI.openAlbum());
   await page.waitForTimeout(500);
   await page.screenshot({ path: SHOT('14-album') });
   await jsClick(page, '.modal-close');

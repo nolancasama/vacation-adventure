@@ -165,21 +165,10 @@ VA.Main = {
   },
 
   wireHud() {
-    // modals are fine any time; switching screens is only safe while
-    // nothing is being said (no dialogue box on screen)
-    const uiFree = () => VA.$('#dialogue').style.display === 'none';
-
-    VA.$('#btn-album').addEventListener('click', () => { VA.Audio.sfx('click'); VA.UI.openAlbum(); });
+    // Photos and the scrapbook are opened from the bedroom's corkboard and
+    // scrapbook, not from the HUD (see bedroom.js).
     VA.$('#btn-passport').addEventListener('click', () => { VA.Audio.sfx('click'); VA.UI.openPassport(); });
     VA.$('#btn-settings').addEventListener('click', () => { VA.Audio.sfx('click'); VA.UI.openSettings(); });
-    VA.$('#btn-book').addEventListener('click', () => {
-      if (!uiFree() || VA.Screens.current === 'cine' || VA.Screens.current === 'scrapbook') return;
-      VA.Audio.sfx('page');
-      const trip = VA.State.data.trip;
-      VA.UI.scrapbook(trip ? trip.dest : VA.Data.DESTS[0].id, false);
-      VA.UI.modalScrapbookReturn = VA.Screens.current;
-      VA.Screens.show('scrapbook');
-    });
 
     let closingBook = false;
     VA.$('#btn-book-close').addEventListener('click', async () => {
@@ -188,7 +177,7 @@ VA.Main = {
       setTimeout(() => { closingBook = false; }, 2500);
       VA.Audio.sfx('click');
       // if the scrapbook was opened as a celebration, continue the story;
-      // if it was opened from the HUD, just go back
+      // if it was opened from the bedroom, just go back
       const ret = VA.UI.modalScrapbookReturn;
       VA.UI.modalScrapbookReturn = null;
       if (ret && ret !== 'scrapbook') {

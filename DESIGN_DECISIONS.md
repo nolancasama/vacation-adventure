@@ -574,3 +574,23 @@ The tap fallback gets its own tapping instruction instead of gesture copy.
 
 **Rejected.** Tutorial screens, Next/Skip buttons, images/GIFs, live skeleton
 overlays, full-body tracking, and a demo centred under the command.
+
+## 2026-09-27 — Volleyball countdown; memories live in the bedroom
+
+**What.** Every volleyball ball (first try and retries, camera and tap
+fallback) is preceded by a quick 3 → 2 → 1 → GO! (500 ms each, GO 400 ms) so
+a seated child can reset their arms; nothing is hittable until the ball
+launches after GO. The gesture demo still plays only on a move's first
+appearance, before the countdown. A lost pose cancels the countdown (or holds
+one that was about to start) and it restarts from 3 when the child is back.
+Soccer has no countdown — it waits for speech.
+
+The HUD no longer has Photo Album 📷 or Scrapbook 📖 buttons: photos are seen
+on the bedroom corkboard and the scrapbook on the bedroom's scrapbook object,
+making the bedroom the place to look back on a trip. Passport and Settings
+stay global. The saved-photo animation now rises and fades instead of flying
+into the (removed) album button.
+
+**Rejected.** A slower dramatic countdown, resuming a cancelled countdown
+mid-way, hiding the HUD buttons with CSS, and a new bedroom album object (the
+corkboard already is one).

@@ -197,7 +197,7 @@ VA.Flows = {
 
   async _runEventInner(evt, dest) {
 
-    VA.HUD.show(); // stays visible: coins + the photo flying into the album
+    VA.HUD.show(); // stays visible: coins + the saved photo floating away
     // Start loading before the screen switch so the cinematic is already
     // covered by its loading overlay when it becomes visible.
     const sceneReady = VA.Cine.setup(evt, dest);

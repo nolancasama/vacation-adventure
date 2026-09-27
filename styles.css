@@ -1762,6 +1762,20 @@ body {
 .volleyball-ar-demo.demo-spike .volleyball-ar-demo-ball { animation-name:vb-demo-spike-ball; }
 @keyframes vb-demo-spike-arm { 0% { transform:rotate(-18deg); } 30%,55% { transform:rotate(-180deg); } 65% { transform:rotate(-112deg); } 100% { transform:rotate(-80deg); } }
 @keyframes vb-demo-spike-ball { 0% { left:132px; top:-14px; opacity:0; } 20% { opacity:1; } 55%,63% { left:132px; top:40px; opacity:1; } 100% { left:190px; top:150px; opacity:0; } }
+/* 3 → 2 → 1 → GO! before every ball: huge, centred, below the command stack */
+.volleyball-ar-countdown {
+  position:absolute; z-index:6; left:50%; top:50%; transform:translate(-50%,-50%);
+  min-width:150px; text-align:center; color:#fff; pointer-events:none;
+  font:1000 120px/1 var(--font); -webkit-text-stroke:4px #0d2b3d;
+  text-shadow:0 6px 0 rgba(13,43,61,.75),0 10px 26px rgba(0,0,0,.45);
+}
+.volleyball-ar-countdown.is-go { color:#ffe156; font-size:108px; }
+.volleyball-ar-countdown.pop { animation:volleyball-ar-count-pop .42s ease-out; }
+@keyframes volleyball-ar-count-pop {
+  0% { opacity:0; transform:translate(-50%,-50%) scale(1.5); }
+  25% { opacity:1; }
+  100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
 @keyframes volleyball-ar-hit-pop { 0% { transform:translate(-50%,-50%) scale(1); } 50% { transform:translate(-50%,-50%) scale(1.28) rotate(-8deg); } 100% { transform:translate(-50%,-50%) scale(1); } }
 @keyframes volleyball-ar-window { from { filter:brightness(1); } to { filter:brightness(1.16); } }
 
@@ -1784,7 +1798,7 @@ body {
   .scene-art.drift, .hotspot, .depart-btn, #tap-btn, .map-pin, .actor.bob { animation:none !important; }
   .player-ground-shadow, .environment-light { animation:none !important; }
   .volleyball-finale-shot, .volleyball-finale-shot *, .volleyball-finale-shot::before, .volleyball-finale-shot::after { animation:none !important; transition:none !important; }
-  .volleyball-ar-ball, .volleyball-ar-hit { animation:none !important; }
+  .volleyball-ar-ball, .volleyball-ar-hit, .volleyball-ar-countdown { animation:none !important; }
   .volleyball-ar-demo i, .volleyball-ar-demo span { animation-duration:.01ms !important; } /* end pose only */
   .bedroom-hotspot.first-trip { animation:none; }
 }

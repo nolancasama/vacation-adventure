@@ -384,7 +384,23 @@ let server;
   await page.waitForTimeout(450);
   await page.screenshot({ path: SHOT('bump-tutorial') });
   check(await page.evaluate(() => VA.VolleyballAR.state().ball === null), 'ball still waiting mid-demo');
+  // Demo → 3 → 2 → 1 → GO! → ball. A correct BUMP pose is already held, but
+  // nothing is hittable until the ball launches.
+  const seen = await page.evaluate(() => new Promise(resolve => {
+    const log = [];
+    const tick = () => {
+      const st = VA.VolleyballAR.state();
+      if (st.countdown != null && log[log.length - 1] !== st.countdown) log.push(st.countdown);
+      if (st.countdown != null && (st.ball || st.hittable || st.lastHit)) return resolve({ log, early: true });
+      if (st.ball) return resolve({ log, early: false, afterGoTutorial: st.tutorial });
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  check(seen.log.join() === '3,2,1,GO', 'first BUMP counts 3, 2, 1, GO! after the demo (' + seen.log.join() + ')');
+  check(!seen.early && seen.afterGoTutorial === null, 'no ball, hit window or hit during the countdown');
   await precondition(page, () => { const st = VA.VolleyballAR.state(); return st.tutorial === null && st.ball; }, undefined, 'BUMP demo ended and ball launched', 3000);
+  check(await page.evaluate(() => document.querySelector('.volleyball-ar-countdown').hidden), 'countdown hidden once the ball is live');
   check(!(await vis(page, '.volleyball-ar-demo')), 'demo hidden once the ball is live');
   await page.waitForTimeout(700);
   await page.screenshot({ path: SHOT('bump-live') });
@@ -408,6 +424,8 @@ let server;
   check(setTut.st.tutorial === 'set' && setTut.st.ball === null && setTut.demo && setTut.hint === 'りょうてを上にあげてね！', 'first SET: Japanese + demo, ball waits');
   await page.waitForTimeout(500);
   await page.screenshot({ path: SHOT('set-tutorial') });
+  await precondition(page, () => { const st = VA.VolleyballAR.state(); return st.phase === 'set' && st.tutorial === null && st.countdown === 3 && !st.ball; },
+    undefined, 'SET demo is followed by the countdown, ball still waiting', 3000);
   check(await contact('set'), 'SET contact reached');
   await page.screenshot({ path: SHOT('set') });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'spike', undefined, 'SPIKE followed SET', 10000);
@@ -416,6 +434,8 @@ let server;
   check(spikeTut.st.tutorial === 'spike' && spikeTut.st.ball === null && spikeTut.demo && spikeTut.hint === 'うでを上からふってね！', 'first SPIKE: Japanese + demo, ball waits');
   await page.waitForTimeout(650);
   await page.screenshot({ path: SHOT('spike-tutorial') });
+  await precondition(page, () => { const st = VA.VolleyballAR.state(); return st.phase === 'spike' && st.tutorial === null && st.countdown === 3 && !st.ball; },
+    undefined, 'SPIKE demo is followed by the countdown, ball still waiting', 3000);
   check(await contact('spike'), 'SPIKE contact reached');
   await page.screenshot({ path: SHOT('spike') });
   await precondition(page, () => (window.__finaleCalls || 0) > 0, undefined, 'finale started after SPIKE', 10000);
@@ -432,6 +452,14 @@ let server;
   await installProvider(page, 'ok');
   await startSynthetic(page, { camera: false });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'bump', undefined, 'fallback BUMP began');
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 3, undefined, 'fallback BUMP counts down first', 2000);
+  await page.keyboard.press('Space');
+  await page.locator('.volleyball-ar-hit').click({ force: true }).catch(() => {});
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 'GO', undefined, 'fallback countdown reached GO', 3000);
+  await page.keyboard.press('Space');
+  const fbCount = await volleyState(page);
+  check(!fbCount.lastHit && !fbCount.ball && !fbCount.hittable, 'fallback: Space/tap during 3-2-1-GO do nothing, no ball yet');
+  await precondition(page, () => !!VA.VolleyballAR.state().ball, undefined, 'fallback ball launched after GO', 2000);
   const beforeMiss = await volleyState(page);
   await precondition(page, before => {
     const state = VA.VolleyballAR.state();
@@ -478,13 +506,52 @@ let server;
   await page.evaluate(() => { window.__poseKind = 'apart'; });
   await precondition(page, () => VA.VolleyballAR.state().tutorial === 'bump', undefined, 'retry test: BUMP demo shown');
   await precondition(page, () => (VA.VolleyballAR.state().attempts || {}).bump === 1, undefined, 'camera BUMP missed once', 8000);
-  const retry = await page.evaluate(() => new Promise(resolve => setTimeout(() => resolve({
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 3, undefined, 'BUMP retry countdown started', 3000);
+  const retry = await page.evaluate(() => ({
     st: VA.VolleyballAR.state(), demo: !!document.querySelector('.volleyball-ar-demo').offsetParent,
     hint: document.querySelector('.volleyball-ar-hint').textContent,
-  }), 500)));
-  check(retry.st.phase === 'bump' && retry.st.tutorial === null && !retry.demo, 'a BUMP retry does not replay the demo');
-  check(!!retry.st.ball && retry.hint === '', 'a BUMP retry sends the ball at once without the Japanese tutorial');
+  }));
+  check(retry.st.phase === 'bump' && retry.st.tutorial === null && !retry.demo && retry.hint === '', 'a BUMP retry does not replay the demo or Japanese tutorial');
+  check(retry.st.ball === null && !retry.st.hittable, 'a BUMP retry replays the countdown before any ball');
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: SHOT('retry-countdown') });
+  await precondition(page, () => { const st = VA.VolleyballAR.state(); return st.countdown === null && st.ball; }, undefined, 'retry ball launched after GO', 3000);
   await page.evaluate(() => VA.Screens.show('explore'));
+
+  console.log('pose lost during the countdown cancels it; it restarts from 3');
+  await installProvider(page, 'ok');
+  await startSynthetic(page);
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 2, undefined, 'countdown reached 2', 5000);
+  await page.evaluate(() => { window.__poseKind = 'none'; });
+  await precondition(page, () => VA.VolleyballAR.state().paused, undefined, 'pose loss during countdown paused', 3000);
+  await page.waitForTimeout(1500);
+  const cdLost = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), shown: !document.querySelector('.volleyball-ar-countdown').hidden,
+    msg: document.querySelector('.volleyball-ar-message').textContent }));
+  check(cdLost.st.countdown === null && !cdLost.shown && cdLost.st.ball === null, 'lost pose stops the countdown and launches no ball');
+  check(cdLost.msg === 'Show your arms! 🙂', 'lost pose during countdown shows the arms message');
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 3, undefined, 'countdown restarted from 3 after recovery', 3000);
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: SHOT('bump-countdown-3') });
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 'GO', undefined, 'restarted countdown reached GO', 3000);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('bump-countdown-go') });
+  check(await page.evaluate(() => VA.VolleyballAR.state().tutorial === null && !document.querySelector('.volleyball-ar-demo').offsetParent),
+    'recovery does not replay the gesture demo');
+  await precondition(page, () => VA.VolleyballAR.state().ball, undefined, 'ball launched after restarted countdown', 3000);
+  await page.evaluate(() => VA.Screens.show('explore'));
+
+  console.log('leaving during the countdown never launches a late ball');
+  await installProvider(page, 'ok');
+  await startSynthetic(page);
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => VA.VolleyballAR.state().countdown === 2, undefined, 'exit test: countdown at 2', 5000);
+  await page.evaluate(() => VA.Screens.show('explore'));
+  await precondition(page, () => !VA.VolleyballAR.state().active, undefined, 'exit during countdown cleaned up');
+  await page.waitForTimeout(1500);
+  const cdExit = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), dom: !!document.querySelector('.volleyball-ar, .volleyball-ar-countdown') }));
+  check(!cdExit.st.ball && cdExit.st.countdown === null && !cdExit.dom, 'no GO, ball or countdown DOM after leaving mid-countdown');
 
   console.log('leaving during the tutorial never launches a late ball');
   await installProvider(page, 'ok');

@@ -552,6 +552,22 @@ async function dialogueChoice(page, text) {
   await click(page, '#modal .modal-close');
   await page.screenshot({ path: SHOT('guide-accumulated') });
 
+  // Memories live in the room: the HUD has no album/scrapbook shortcuts, and
+  // the scrapbook object opens the scrapbook and returns to the bedroom.
+  const hud = await page.evaluate(() => ({
+    ids: [...document.querySelectorAll('#hud .hud-btn')].map(b => b.id),
+    album: !!document.querySelector('#btn-album'), book: !!document.querySelector('#btn-book'),
+  }));
+  check(!hud.album && !hud.book && hud.ids.join() === 'btn-passport,btn-settings', 'HUD keeps only Passport and Settings (' + hud.ids.join() + ')');
+  await page.screenshot({ path: SHOT('bedroom-hud'), clip: { x: 0, y: 0, width: 1366, height: 140 } });
+  await click(page, '.bedroom-hotspot[data-action="scrapbook"]');
+  await page.waitForFunction(() => document.querySelector('#scr-scrapbook').classList.contains('active'), null, { timeout: 5000 });
+  check(true, 'the bedroom scrapbook object opens the scrapbook');
+  await click(page, '#btn-book-close');
+  await page.waitForFunction(() => document.querySelector('#scr-bedroom').classList.contains('active'), null, { timeout: 5000 })
+    .then(() => check(true, 'scrapbook OK returns to the bedroom'))
+    .catch(() => check(false, 'scrapbook OK returns to the bedroom'));
+
   // Pure stage precedence: completing PC out of order never skips the phone.
   const pureStages = await page.evaluate(() => {
     const book = { australia: { done: true, photos: { icecream: {} } } };

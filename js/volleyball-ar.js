@@ -80,6 +80,8 @@
       retryPause: 300,
       readyMs: 500,
       tutorialMs: 1200, // first appearance of each move: demo before the ball
+      countdownMs: 500, // each of 3, 2, 1 before every ball
+      goMs: 400,
       startTimeout: 10000,
       lostPoseMs: 8000,
     },
@@ -110,7 +112,7 @@
         active: true, mode: 'starting', phase: 'ready', phaseIndex: -1,
         sequence: PHASES.slice(), attempts: { bump: 0, set: 0, spike: 0 },
         forgiveness: 1, paused: false, poseSeen: false, ball: null,
-        hittable: false, lastHit: null, lastMiss: null, done: false, tutorial: null,
+        hittable: false, lastHit: null, lastMiss: null, done: false, tutorial: null, countdown: null,
       };
 
       return new Promise(resolve => {
@@ -119,6 +121,7 @@
           phaseIndex: -1, pose: null, prevPose: null, ballRun: null,
           timers: new Set(), shownHints: new Set(), raf: 0, lastFrame: performance.now(),
           startupTimer: 0, lostTimer: 0, readyTimer: 0, tutorialTimer: 0, hitButton: null,
+          countdownTimer: 0, countdownPhase: null,
           cameraStopped: false,
         };
         this._session = s;
@@ -160,8 +163,11 @@
         VA.el('i', 'volleyball-ar-demo-arm demo-right'),
         VA.el('span', 'volleyball-ar-demo-ball', '🏐'),
       );
-      root.append(video, shade, command, hint, message, demo, ball);
-      return { root, video, command, hint, message, demo, ball };
+      const countdown = VA.el('div', 'volleyball-ar-countdown');
+      countdown.setAttribute('aria-live', 'polite');
+      countdown.hidden = true;
+      root.append(video, shade, command, hint, message, demo, ball, countdown);
+      return { root, video, command, hint, message, demo, ball, countdown };
     },
 
     _bind(s) {
@@ -254,6 +260,9 @@
         // Back in view: restore the move's own instruction, not the lost-pose one.
         s.ui.root.classList.remove('pose-lost');
         s.ui.hint.textContent = HINTS[p.phase] && !p.attempts[p.phase] ? HINTS[p.phase] : '';
+        s.ui.message.textContent = '';
+        // A countdown cancelled (or not yet started) while away restarts from 3.
+        if (s.countdownPhase && !s.countdownTimer && !p.tutorial) this._startCountdown(s, s.countdownPhase);
       }
       s.ui.message.textContent = '';
 
@@ -284,6 +293,8 @@
       p.paused = true;
       s.prevPose = null;
       this._clearTimer(s, 'readyTimer');
+      // Never count down (or launch) while the student is out of view.
+      if (s.countdownPhase) this._stopCountdown(s);
       s.ui.root.classList.add('pose-lost');
       if (s.phaseIndex < 0) {
         // Not found yet (before READY): keep the framing instruction.
@@ -311,11 +322,12 @@
       s.ui.root.classList.remove('is-camera', 'camera-running', 'pose-lost');
       s.ui.root.classList.add('is-fallback');
       s.ui.message.textContent = '';
-      // Gesture demos do not apply to tapping: end one in flight and send its ball.
-      const tutorialPhase = p.tutorial;
+      // Gesture demos do not apply to tapping: end one in flight; a demo or a
+      // camera countdown continues as a fresh fallback countdown.
+      const pendingPhase = p.tutorial || s.countdownPhase;
       this._clearTimer(s, 'tutorialTimer');
       this._hideDemo(s);
-      if (tutorialPhase) this._launchPhaseBall(s, tutorialPhase);
+      if (pendingPhase) this._startCountdown(s, pendingPhase);
       s.ui.hint.textContent = COPY.fallbackJP;
       s.fallbackHintPending = true;
       if (!s.hitButton) {
@@ -390,16 +402,64 @@
         // Tapping needs no gesture demo; one tap instruction on the first ball.
         s.ui.hint.textContent = s.fallbackHintPending ? COPY.fallbackJP : '';
         s.fallbackHintPending = false;
-        this._launchPhaseBall(s, phase);
+        this._startCountdown(s, phase);
         return;
       }
       if (!firstAppearance) {
-        // Retries and later balls start at once — no tutorial replay.
+        // Retries and later balls: no tutorial replay, just the countdown.
         s.ui.hint.textContent = '';
-        this._launchPhaseBall(s, phase);
+        this._startCountdown(s, phase);
         return;
       }
-      this._showGestureTutorial(s, phase, () => this._launchPhaseBall(s, phase));
+      this._showGestureTutorial(s, phase, () => this._startCountdown(s, phase));
+    },
+
+    /* 3 → 2 → 1 → GO! before every ball (first try and retries, camera and
+       fallback) so a seated child can reset their arms. Nothing is hittable
+       until the ball launches after GO. A lost pose cancels it; it restarts
+       from 3 when the student is back (see _receivePose). */
+    _startCountdown(s, phase) {
+      if (!s.active) return;
+      const p = s.publicState;
+      this._stopCountdown(s);
+      s.countdownPhase = phase;
+      s.ballRun = null;
+      p.ball = null;
+      p.hittable = false;
+      s.ui.ball.hidden = true;
+      this._syncHitButton(s);
+      if (p.mode !== 'fallback' && p.paused) return; // waits for the pose to return
+      const steps = [3, 2, 1, 'GO'];
+      const show = i => {
+        if (i >= steps.length) {
+          this._stopCountdown(s);
+          s.countdownPhase = null;
+          this._launchPhaseBall(s, phase);
+          return;
+        }
+        const value = steps[i];
+        const el = s.ui.countdown;
+        p.countdown = value;
+        el.textContent = value === 'GO' ? 'GO!' : String(value);
+        el.classList.toggle('is-go', value === 'GO');
+        el.hidden = false;
+        el.classList.remove('pop');
+        void el.offsetWidth; // restart the pop for each number
+        el.classList.add('pop');
+        VA.Audio.sfx(value === 'GO' ? 'ting' : 'click');
+        s.countdownTimer = this._later(s, value === 'GO' ? this.TUNING.goMs : this.TUNING.countdownMs, () => {
+          s.countdownTimer = 0;
+          show(i + 1);
+        });
+      };
+      show(0);
+    },
+
+    _stopCountdown(s) {
+      this._clearTimer(s, 'countdownTimer');
+      s.publicState.countdown = null;
+      s.ui.countdown.hidden = true;
+      s.ui.countdown.classList.remove('pop', 'is-go');
     },
 
     /* First appearance of a move: its Japanese instruction plus the tiny demo
@@ -558,6 +618,8 @@
       s.active = false;
       s.publicState.active = false;
       s.publicState.paused = false;
+      s.publicState.countdown = null;
+      s.publicState.tutorial = null;
       cancelAnimationFrame(s.raf);
       clearInterval(s.watch);
       s.timers.forEach(clearTimeout);

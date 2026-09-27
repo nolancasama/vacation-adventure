@@ -492,7 +492,8 @@ VA.Fx = {
     }
   },
 
-  /* fly a polaroid clone from stage center to the album HUD button */
+  /* the saved polaroid rises and fades away ("kept for home") — there is no
+     album HUD button to fly into; photos are seen on the bedroom corkboard */
   flyPolaroidToHud(polaroidEl) {
     const layer = VA.$('#fly-layer');
     const fly = VA.el('div', 'fly-polaroid');
@@ -501,9 +502,9 @@ VA.Fx = {
     fly.style.transform = 'scale(1)';
     layer.appendChild(fly);
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      fly.style.left = '822px'; fly.style.top = '10px';
-      fly.style.transform = 'scale(0.12)';
-      fly.style.opacity = '0.25';
+      fly.style.left = '430px'; fly.style.top = '-40px';
+      fly.style.transform = 'scale(0.35)';
+      fly.style.opacity = '0';
     }));
     setTimeout(() => fly.remove(), 900);
     return VA.wait(850);
