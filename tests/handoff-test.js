@@ -100,7 +100,7 @@ async function start(page, mode, options = {}) {
   await reset(page, options.camera !== false);
   await page.evaluate(({ kind, illustration, npcId }) => {
     const cfg = kind === 'present'
-      ? { kind: 'passport', label: 'Passport', npcId: npcId || 'officer', instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' }
+      ? { kind: 'passport', label: 'Passport', npcId: npcId || 'officer', instruction: 'TAKE THE PASSPORT!', instructionJP: '手でパスポートをとってね！' }
       : { illustration: illustration || 'souvenir_koala.webp', label: 'Koala', npcId: npcId || 'fr_vendor', instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' };
     VA.ARHandoff[kind](cfg).then(() => {
       window.__handoffDone++;
@@ -118,6 +118,12 @@ const pose = (left, right, shoulders = { left: { x: .4, y: .4 }, right: { x: .6,
   leftWrist: left, rightWrist: right,
 });
 const setPose = (page, value) => page.evaluate(next => { window.__handoffPose = next; }, value);
+const copy = page => page.evaluate(() => ({ command: document.querySelector('.ar-handoff-command').textContent,
+  jp: document.querySelector('.ar-handoff-jp').textContent }));
+const TAKE = { command: 'TAKE THE PASSPORT!', jp: '手でパスポートをとってね！' };
+const GIVE = { command: 'GIVE IT!', jp: '係の人にわたしてね！' };
+const same = (a, b) => a.command === b.command && a.jp === b.jp;
+const dwellVar = page => page.evaluate(() => document.querySelector('.ar-handoff').style.getPropertyValue('--handoff-dwell'));
 const PASSPORT_TARGET = { x: .79, y: .64 }; // must match VA.ARHandoff.PASSPORT_TARGET (checked below)
 const RECEIVE_START = { x: .73, y: .58 }; // must match VA.ARHandoff.RECEIVE_START (checked below)
 const RS = (dx = 0, dy = 0) => ({ x: +(RECEIVE_START.x + dx).toFixed(3), y: +(RECEIVE_START.y + dy).toFixed(3) });
@@ -163,13 +169,21 @@ let browser;
   await setPose(page, pose({ x: .2, y: .75 }, { x: .8, y: .75 }));
   await waitFor(page, () => VA.ARHandoff.state().inputMode === 'camera' && VA.ARHandoff.state().poseSeen, 'present camera ready');
   await page.screenshot({ path: SHOT('passport-camera-ready') });
+  const readyCopy = await copy(page);
+  check(same(readyCopy, TAKE), 'pose found: framing hint becomes TAKE THE PASSPORT! (' + readyCopy.command + ')');
+  check(await page.evaluate(() => getComputedStyle(document.querySelector('.ar-handoff-object')).animationName) === 'ar-passport-ready',
+    'passport pulses while waiting to be taken');
   await setPose(page, pose({ x: .5, y: .68 }, { x: .85, y: .75 }));
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(100);
   check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'one pickup frame / partial dwell does not attach');
+  check(await dwellVar(page) === '180ms', 'passport pickup uses the short 180 ms dwell');
   await page.screenshot({ path: SHOT('passport-pickup') });
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'left pickup dwell');
   let st = await page.evaluate(() => VA.ARHandoff.state());
   check(st.hand === 'left' && st.object.attached, 'left wrist attaches the passport');
+  check(same(await copy(page), GIVE), 'after pickup the instruction is GIVE IT! / 係の人にわたしてね！');
+  check(await page.evaluate(() => getComputedStyle(document.querySelector('.ar-handoff-object')).animationName) === 'none',
+    'the ready pulse stops once the passport is carried');
   await page.screenshot({ path: SHOT('passport-carry') });
   const officerUi = await page.evaluate(() => {
     const npc = document.querySelector('.ar-handoff-npc');
@@ -195,6 +209,7 @@ let browser;
   await page.waitForTimeout(340);
   check(!(await page.evaluate(() => VA.ARHandoff.state().done)), 'one-frame target touch does not complete');
   await finishAt(page, 'left', PASSPORT_TARGET, 130);
+  check(await dwellVar(page) === '300ms', 'officer target keeps the normal dwell (TUNING.dwellMs)');
   await page.screenshot({ path: SHOT('passport-target-hover') });
   await waitFor(page, () => VA.ARHandoff.state().done, 'passport target dwell');
   await page.screenshot({ path: SHOT('passport-success') });
@@ -223,6 +238,9 @@ let browser;
     jp: document.querySelector('.ar-handoff-jp').textContent }));
   check(lostCopy.message === 'Show your arms! 🙂' && lostCopy.jp === 'りょううでが見えるようにしてね！',
     'lost pose uses the waist-up arms copy in the message and Japanese instruction');
+  await setPose(page, pose({ x: .2, y: .75 }, { x: .8, y: .75 }));
+  await waitFor(page, () => !VA.ARHandoff.state().paused, 'pose back before pickup');
+  check(same(await copy(page), TAKE), 'pose back before pickup restores TAKE THE PASSPORT!');
   await setPose(page, pose({ x: .5, y: .68 }, { x: .85, y: .75 }));
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'pickup after resume');
   const attached = await page.evaluate(() => VA.ARHandoff.state().object);
@@ -231,6 +249,9 @@ let browser;
   st = await page.evaluate(() => VA.ARHandoff.state());
   check(st.stage === 'carry' && st.object.attached && st.object.x === attached.x && st.object.y === attached.y,
     'loss while attached keeps hand, object and carry stage');
+  await setPose(page, pose({ x: .3, y: .7 }, { x: .85, y: .75 }));
+  await waitFor(page, () => !VA.ARHandoff.state().paused, 'pose back while carrying');
+  check(same(await copy(page), GIVE), 'pose back while carrying restores GIVE IT!');
   await finishAt(page, 'left', PASSPORT_TARGET, 140);
   await setPose(page, null);
   await waitFor(page, () => VA.ARHandoff.state().paused, 'paused near target');
@@ -370,6 +391,8 @@ let browser;
     await waitFor(page, () => VA.ARHandoff.state().inputMode === 'fallback', name + ' fallback', 4000);
     check(await vis(page, '.ar-handoff-fallback'), name + ': fallback button visible');
     check(await vis(page, '.ar-handoff-npc'), name + ': the NPC stays visible in fallback');
+    const label = await page.locator('.ar-handoff-fallback').textContent();
+    check(label === (name.includes('souvenir') ? 'TAKE' : 'GIVE PASSPORT'), name + ': fallback button reads ' + label);
     if (shot) await page.screenshot({ path: SHOT(shot) });
     if (key) await page.keyboard.press(key);
     else await page.locator('.ar-handoff-fallback').click();

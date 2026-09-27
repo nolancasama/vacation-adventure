@@ -33,6 +33,8 @@
     frameJP: '上半身とうでが見えるようにしてね！',
     lost: 'Show your arms! 🙂',
     lostJP: 'りょううでが見えるようにしてね！',
+    presentCarry: 'GIVE IT!',
+    presentCarryJP: '係の人にわたしてね！',
     receiveCarry: 'Bring it back!',
     receiveCarryJP: '手をもどしてね！',
   };
@@ -46,6 +48,7 @@
   VA.ARHandoff = {
     TUNING: {
       pickupRadius: 0.13, // passport: dwell to pick up
+      passportPickupDwellMs: 180, // short, so a touch visibly works at once
       receivePickupRadius: 0.17, // souvenir: touch = instant pickup
       targetRadius: 0.15,
       chestRadius: 0.18,
@@ -157,7 +160,7 @@
       const target = VA.el('div', 'ar-handoff-target');
       target.setAttribute('aria-hidden', 'true');
       target.hidden = true;
-      const fallback = VA.el('button', 'ar-handoff-fallback', mode === 'present' ? 'SHOW PASSPORT' : 'TAKE');
+      const fallback = VA.el('button', 'ar-handoff-fallback', mode === 'present' ? 'GIVE PASSPORT' : 'TAKE');
       fallback.type = 'button';
       fallback.hidden = true;
       fallback.setAttribute('aria-keyshortcuts', 'Space Enter');
@@ -250,7 +253,7 @@
           if (nearest.side && nearest.distance <= this.TUNING.receivePickupRadius) this._attach(s, nearest.side, pose);
         } else {
           this._dwell(s, nearest.distance <= this.TUNING.pickupRadius, 'pickup', nearest.side,
-            () => this._attach(s, nearest.side, pose));
+            () => this._attach(s, nearest.side, pose), this.TUNING.passportPickupDwellMs);
         }
       } else if (p.stage === 'carry') {
         const radius = s.mode === 'present' ? this.TUNING.targetRadius : this.TUNING.chestRadius;
@@ -278,7 +281,7 @@
       this._setInstruction(s);
     },
 
-    _dwell(s, touching, zone, hand, complete) {
+    _dwell(s, touching, zone, hand, complete, duration = this.TUNING.dwellMs) {
       const now = performance.now();
       const p = s.publicState;
       if (!touching || !hand) {
@@ -289,10 +292,10 @@
         s.dwell = { zone, hand, since: now };
         p.dwelling = true;
         s.ui.root.classList.add('is-dwelling');
-        s.ui.root.style.setProperty('--handoff-dwell', this.TUNING.dwellMs + 'ms');
+        s.ui.root.style.setProperty('--handoff-dwell', duration + 'ms');
         return;
       }
-      if (now - s.dwell.since >= this.TUNING.dwellMs) {
+      if (now - s.dwell.since >= duration) {
         this._resetDwell(s);
         complete();
       }
@@ -322,11 +325,12 @@
 
     _setInstruction(s) {
       if (s.publicState.paused) return;
-      if (s.mode === 'receive' && s.publicState.stage === 'carry') {
-        s.ui.command.textContent = COPY.receiveCarry;
-        s.ui.jp.textContent = COPY.receiveCarryJP;
+      if (s.publicState.stage === 'carry') {
+        const present = s.mode === 'present';
+        s.ui.command.textContent = present ? COPY.presentCarry : COPY.receiveCarry;
+        s.ui.jp.textContent = present ? COPY.presentCarryJP : COPY.receiveCarryJP;
       } else {
-        s.ui.command.textContent = s.cfg.instruction || (s.mode === 'present' ? 'Show your passport!' : 'Take it!');
+        s.ui.command.textContent = s.cfg.instruction || (s.mode === 'present' ? 'TAKE THE PASSPORT!' : 'Take it!');
         s.ui.jp.textContent = s.cfg.instructionJP || '';
       }
     },

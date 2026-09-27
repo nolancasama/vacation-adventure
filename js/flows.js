@@ -136,7 +136,7 @@ VA.Flows = {
     await D.say('officer', 'Passport, please.', { jp: 'パスポートを見せてください。' });
     D.hide();
     await VA.ARHandoff.present({ kind: 'passport', label: 'Passport', npcId: 'officer',
-      instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' });
+      instruction: 'TAKE THE PASSPORT!', instructionJP: '手でパスポートをとってね！' });
     await D.auto('player', 'Here you are.', { jp: 'はい、どうぞ。' });
     await VA.Fx.stampSlam(destId);
     VA.State.addStamp(destId);

@@ -674,3 +674,21 @@ Incoming paths, hit windows and recognition are unchanged.
 **Rejected.** Hand graphics, per-destination anchors where one shared point
 works, a full-screen flash, large shakes, and reusing the `.is-hit` pop for
 SPIKE (it animates transform and would fight the shrink).
+
+## 2026-09-27 — Passport handoff says TAKE, then GIVE
+
+**Decision.** The passport instruction names each physical step: before
+pickup `TAKE THE PASSPORT!` / 手でパスポートをとってね！ with a gentle glow on
+the passport; once it attaches, `GIVE IT!` / 係の人にわたしてね！ (the officer
+is already on screen). `_setInstruction` picks the copy from mode + stage, so
+a lost-and-found pose restores the right step. Passport pickup dwell is
+180 ms (`TUNING.passportPickupDwellMs`, passed to the shared `_dwell`); the
+officer target keeps `dwellMs`. The fallback button reads `GIVE PASSPORT`.
+
+**Why.** "Show your passport!" did not tell children to touch the virtual
+passport and carry it to the officer, and a 350 ms pickup with no visible
+change read as "I'm doing it wrong".
+
+**Rejected.** An arrow, dotted path or hand graphic (wait for classroom
+evidence); enlarging the pickup radius at the same time as shortening the
+dwell (one sensitivity change at a time); "Grab it!" (less familiar word).
