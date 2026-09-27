@@ -50,10 +50,19 @@
     });
   };
 
+  // Waist-up, desk-friendly copy: it teaches the controls the detector needs,
+  // never asks the student to stand or move back.
   const HINTS = {
-    bump: 'うでをそろえて、ボールをうってね！',
-    set: 'りょうてを上にあげて！',
-    spike: 'うでをふって、ボールをたたいてね！',
+    bump: 'うでをそろえてね！',
+    set: 'りょうてを上にあげてね！',
+    spike: 'うでを上からふってね！',
+  };
+  const COPY = {
+    frame: 'Show your upper body!',
+    frameJP: '上半身とうでが見えるようにしてね！',
+    lost: 'Show your arms! 🙂',
+    lostJP: 'りょううでが見えるようにしてね！',
+    fallbackJP: 'ボールが光ったら「HIT!」をおしてね！',
   };
   const PHASES = ['bump', 'set', 'spike'];
 
@@ -69,11 +78,14 @@
       contactPause: 180,
       returnMs: 650,
       retryPause: 300,
-      readyMs: 650,
+      readyMs: 500,
+      tutorialMs: 1200, // first appearance of each move: demo before the ball
       startTimeout: 10000,
       lostPoseMs: 8000,
     },
 
+    HINTS,
+    COPY,
     _geom: { dist, pointSegmentDistance, midpoint, isBump, isSet, isSpike },
     _session: null,
     _snapshot: {
@@ -98,7 +110,7 @@
         active: true, mode: 'starting', phase: 'ready', phaseIndex: -1,
         sequence: PHASES.slice(), attempts: { bump: 0, set: 0, spike: 0 },
         forgiveness: 1, paused: false, poseSeen: false, ball: null,
-        hittable: false, lastHit: null, lastMiss: null, done: false,
+        hittable: false, lastHit: null, lastMiss: null, done: false, tutorial: null,
       };
 
       return new Promise(resolve => {
@@ -106,7 +118,7 @@
           cfg, cine, screen, ui, publicState, resolve, active: true, resolved: false,
           phaseIndex: -1, pose: null, prevPose: null, ballRun: null,
           timers: new Set(), shownHints: new Set(), raf: 0, lastFrame: performance.now(),
-          startupTimer: 0, lostTimer: 0, readyTimer: 0, hitButton: null,
+          startupTimer: 0, lostTimer: 0, readyTimer: 0, tutorialTimer: 0, hitButton: null,
           cameraStopped: false,
         };
         this._session = s;
@@ -131,13 +143,25 @@
       video.playsInline = true;
       video.setAttribute('playsinline', '');
       const shade = VA.el('div', 'volleyball-ar-shade');
-      const command = VA.el('div', 'volleyball-ar-command', 'Stand where we can see you!');
-      const hint = VA.el('div', 'volleyball-ar-hint', '「からだが見えるところに立ってね！」');
+      const command = VA.el('div', 'volleyball-ar-command', COPY.frame);
+      const hint = VA.el('div', 'volleyball-ar-hint', COPY.frameJP);
       const message = VA.el('div', 'volleyball-ar-message');
       const ball = VA.el('div', 'volleyball-ar-ball', '🏐');
       ball.hidden = true;
-      root.append(video, shade, command, hint, message, ball);
-      return { root, video, command, hint, message, ball };
+      // A tiny waist-up gesture demo shown beside the command the first time
+      // each move appears. Instruction only — never detector feedback.
+      const demo = VA.el('div', 'volleyball-ar-demo');
+      demo.setAttribute('aria-hidden', 'true');
+      demo.hidden = true;
+      demo.append(
+        VA.el('i', 'volleyball-ar-demo-head'),
+        VA.el('i', 'volleyball-ar-demo-body'),
+        VA.el('i', 'volleyball-ar-demo-arm demo-left'),
+        VA.el('i', 'volleyball-ar-demo-arm demo-right'),
+        VA.el('span', 'volleyball-ar-demo-ball', '🏐'),
+      );
+      root.append(video, shade, command, hint, message, demo, ball);
+      return { root, video, command, hint, message, demo, ball };
     },
 
     _bind(s) {
@@ -204,8 +228,8 @@
       this._clearTimer(s, 'startupTimer');
       p.mode = 'camera';
       s.ui.root.classList.add('camera-running');
-      s.ui.command.textContent = 'Stand where we can see you!';
-      s.ui.hint.textContent = '「からだが見えるところに立ってね！」';
+      s.ui.command.textContent = COPY.frame;
+      s.ui.hint.textContent = COPY.frameJP;
       this._poseLost(s);
     },
 
@@ -226,7 +250,11 @@
       if (p.mode !== 'camera') return;
       this._clearTimer(s, 'lostTimer');
       p.paused = false;
-      s.ui.root.classList.remove('pose-lost');
+      if (s.ui.root.classList.contains('pose-lost')) {
+        // Back in view: restore the move's own instruction, not the lost-pose one.
+        s.ui.root.classList.remove('pose-lost');
+        s.ui.hint.textContent = HINTS[p.phase] && !p.attempts[p.phase] ? HINTS[p.phase] : '';
+      }
       s.ui.message.textContent = '';
 
       if (s.phaseIndex < 0 && !s.readyTimer) {
@@ -257,8 +285,15 @@
       s.prevPose = null;
       this._clearTimer(s, 'readyTimer');
       s.ui.root.classList.add('pose-lost');
-      s.ui.message.textContent = 'Move back into the camera 🙂';
-      s.ui.hint.textContent = '「カメラにうつってね！」';
+      if (s.phaseIndex < 0) {
+        // Not found yet (before READY): keep the framing instruction.
+        s.ui.command.textContent = COPY.frame;
+        s.ui.message.textContent = '';
+        s.ui.hint.textContent = COPY.frameJP;
+      } else {
+        s.ui.message.textContent = COPY.lost;
+        s.ui.hint.textContent = COPY.lostJP;
+      }
       if (!s.lostTimer) {
         s.lostTimer = this._later(s, this.TUNING.lostPoseMs, () => {
           s.lostTimer = 0;
@@ -276,6 +311,13 @@
       s.ui.root.classList.remove('is-camera', 'camera-running', 'pose-lost');
       s.ui.root.classList.add('is-fallback');
       s.ui.message.textContent = '';
+      // Gesture demos do not apply to tapping: end one in flight and send its ball.
+      const tutorialPhase = p.tutorial;
+      this._clearTimer(s, 'tutorialTimer');
+      this._hideDemo(s);
+      if (tutorialPhase) this._launchPhaseBall(s, tutorialPhase);
+      s.ui.hint.textContent = COPY.fallbackJP;
+      s.fallbackHintPending = true;
       if (!s.hitButton) {
         const button = VA.el('button', 'volleyball-ar-hit', 'GET READY');
         button.type = 'button';
@@ -310,7 +352,8 @@
       const pose = s.pose;
       if (pose && this._poseComplete(pose)) {
         const shoulders = midpoint(pose.leftShoulder, pose.rightShoulder);
-        if (phase === 'bump') return { x: shoulders.x, y: Math.min(0.82, shoulders.y + 0.30) };
+        // Lower chest / upper abdomen: above the desk edge for seated students.
+        if (phase === 'bump') return { x: shoulders.x, y: Math.min(0.74, shoulders.y + 0.23) };
         // High balls stay below the command pill (top ~12% of the stage).
         if (phase === 'set') return { x: shoulders.x, y: Math.max(0.22, (pose.nose ? pose.nose.y : shoulders.y) - 0.13) };
         return { x: pose.rightShoulder.x, y: Math.max(0.22, pose.rightShoulder.y - 0.24) };
@@ -335,6 +378,59 @@
       p.lastMiss = null;
       p.forgiveness = this._forgiveness(p.attempts[phase]);
       p.hittable = false;
+      p.ball = null;
+      s.ballRun = null;
+      s.ui.ball.hidden = true;
+      s.ui.command.textContent = phase.toUpperCase() + '!';
+      s.ui.message.textContent = '';
+      const firstAppearance = !s.shownHints.has(phase);
+      if (firstAppearance) s.shownHints.add(phase);
+
+      if (p.mode === 'fallback') {
+        // Tapping needs no gesture demo; one tap instruction on the first ball.
+        s.ui.hint.textContent = s.fallbackHintPending ? COPY.fallbackJP : '';
+        s.fallbackHintPending = false;
+        this._launchPhaseBall(s, phase);
+        return;
+      }
+      if (!firstAppearance) {
+        // Retries and later balls start at once — no tutorial replay.
+        s.ui.hint.textContent = '';
+        this._launchPhaseBall(s, phase);
+        return;
+      }
+      this._showGestureTutorial(s, phase, () => this._launchPhaseBall(s, phase));
+    },
+
+    /* First appearance of a move: its Japanese instruction plus the tiny demo
+       while the ball waits, then the real ball. Tracked by _later, so leaving
+       the scene cancels the launch. */
+    _showGestureTutorial(s, phase, done) {
+      const p = s.publicState;
+      p.tutorial = phase;
+      s.ui.hint.textContent = HINTS[phase];
+      const demo = s.ui.demo;
+      demo.className = 'volleyball-ar-demo';
+      demo.hidden = false;
+      void demo.offsetWidth; // restart the CSS animation
+      demo.classList.add('demo-' + phase);
+      this._clearTimer(s, 'tutorialTimer');
+      s.tutorialTimer = this._later(s, this.TUNING.tutorialMs, () => {
+        s.tutorialTimer = 0;
+        this._hideDemo(s);
+        done();
+      });
+    },
+
+    _hideDemo(s) {
+      s.publicState.tutorial = null;
+      s.ui.demo.hidden = true;
+      s.ui.demo.className = 'volleyball-ar-demo';
+    },
+
+    _launchPhaseBall(s, phase) {
+      if (!s.active) return;
+      const p = s.publicState;
       const path = this._path(phase, this._target(s, phase));
       s.ballRun = {
         phase, stage: 'incoming', elapsed: 0, path,
@@ -343,11 +439,6 @@
       };
       p.ball = { x: path.start.x, y: path.start.y, hittable: false, stage: 'incoming' };
       s.ui.ball.hidden = false;
-      s.ui.command.textContent = phase.toUpperCase() + '!';
-      const firstAppearance = !s.shownHints.has(phase);
-      if (firstAppearance) s.shownHints.add(phase);
-      s.ui.hint.textContent = firstAppearance ? HINTS[phase] : '';
-      s.ui.message.textContent = '';
       this._renderBall(s);
       this._syncHitButton(s);
     },

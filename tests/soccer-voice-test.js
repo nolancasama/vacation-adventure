@@ -156,6 +156,8 @@ const phaseIs = (page, p, label) => precondition(page, want => VA.Cine.soccerVoi
     let st = await sv(page);
     check(st.active && st.expected === 'pass' && !st.fallback, 'accepting starts phase pass1 expecting PASS');
     check(await page.evaluate(() => document.querySelector('#soccer-game .soccer-voice-word').textContent) === 'PASS!', 'prompt shows PASS!');
+    const hintNow = () => page.evaluate(() => { const h = document.querySelector('.soccer-voice-hint'); return h && h.offsetParent ? h.textContent : ''; });
+    check(await hintNow() === '「PASS!」と言ってね！' && st.misses === 0, 'first PASS shows the Japanese instruction before any miss');
     check(!(await vis(page, '#tap-btn')) && !(await page.evaluate(() => document.body.innerText.includes('TAP to kick'))), 'no TAP to kick / tap button');
     check(!(await vis(page, '.soccer-voice-fallback')), 'working STT shows no fallback button');
     await page.waitForTimeout(300);
@@ -175,6 +177,7 @@ const phaseIs = (page, p, label) => precondition(page, want => VA.Cine.soccerVoi
     check(near(await ballAt(page), await handAt(page, 'fr_kid')), 'PASS #1 moves the ball player → fr_kid');
     st = await sv(page);
     check(st.misses === 0 && !st.fallback, 'new command starts with a clean retry ladder');
+    check(await hintNow() === '', 'second PASS starts without the Japanese instruction');
     check(await page.evaluate(() => window.__recLog.maxActive) === 1, 'only one recognizer is ever live');
 
     // A stale recognizer from PASS #1 must never answer PASS #2.
@@ -193,6 +196,7 @@ const phaseIs = (page, p, label) => precondition(page, want => VA.Cine.soccerVoi
     await phaseIs(page, 'shoot', 'final pass advanced to shoot');
     check(near(await ballAt(page), await handAt(page, 'player')), 'PASS #2 moves the ball fr_kid → player');
     check(await page.evaluate(() => document.querySelector('#soccer-game .soccer-voice-word').textContent) === 'SHOOT!', 'prompt shows SHOOT!');
+    check(await hintNow() === '「SHOOT!」と言ってね！', 'SHOOT shows the Japanese instruction at once');
     await say(page, { final: 'pass' });
     await precondition(page, () => VA.Cine.soccerVoiceState().misses === 1, undefined, 'pass during SHOOT is a miss');
     check((await sv(page)).phase === 'shoot', 'PASS does not satisfy SHOOT');

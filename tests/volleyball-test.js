@@ -109,6 +109,8 @@ async function installProvider(page, mode = 'ok') {
       if (window.__poseKind === 'none') return [];
       const pose = base();
       if (window.__poseKind === 'mirror') pose.leftShoulder = { x: 0.8, y: 0.42 };
+      // arms wide apart and low: visible, but never a BUMP/SET/SPIKE
+      if (window.__poseKind === 'apart') { pose.leftWrist = { x: 0.2, y: 0.72 }; pose.rightWrist = { x: 0.8, y: 0.72 }; }
       if (window.__poseKind !== 'follow') return [screenPose(pose)];
       const state = VA.VolleyballAR && VA.VolleyballAR.state();
       const ball = state && state.ball;
@@ -303,6 +305,33 @@ let server;
   check(geom.setYes && !geom.setNoWindow && !geom.setNoRaised, 'SET requires window, raised wrists and ball contact');
   check(geom.spikeYes && !geom.spikeNoWindow && !geom.spikeNoMotion, 'SPIKE requires window, motion toward the ball and contact');
 
+  console.log('classroom copy, waist-up pose, BUMP target (pure)');
+  const pure = await page.evaluate(() => {
+    const V = VA.VolleyballAR;
+    const all = Object.values(V.HINTS).concat(Object.values(V.COPY)).join('\n');
+    const waistUp = {
+      nose: { x: 0.5, y: 0.2 },
+      leftShoulder: { x: 0.4, y: 0.42 }, rightShoulder: { x: 0.6, y: 0.42 },
+      leftElbow: { x: 0.42, y: 0.58 }, rightElbow: { x: 0.58, y: 0.58 },
+      leftWrist: { x: 0.45, y: 0.7 }, rightWrist: { x: 0.55, y: 0.7 },
+    };
+    const low = JSON.parse(JSON.stringify(waistUp));
+    low.leftShoulder.y = low.rightShoulder.y = 0.62;
+    return {
+      hints: V.HINTS, copy: V.COPY,
+      banned: ['立って', 'Move back', 'Stand', 'step back', 'Step back'].filter(w => all.includes(w)),
+      waistUp: V._poseComplete(waistUp),
+      bump: V._target({ pose: waistUp }, 'bump'),
+      bumpLow: V._target({ pose: low }, 'bump'),
+    };
+  });
+  check(pure.hints.bump === 'うでをそろえてね！' && pure.hints.set === 'りょうてを上にあげてね！' && pure.hints.spike === 'うでを上からふってね！', 'move hints use the short control copy');
+  check(pure.copy.frameJP === '上半身とうでが見えるようにしてね！' && pure.copy.lostJP === 'りょううでが見えるようにしてね！', 'framing and lost-pose Japanese copy');
+  check(pure.banned.length === 0, 'no volleyball copy asks to stand or move back (' + pure.banned.join(',') + ')');
+  check(pure.waistUp, 'nose + shoulders + elbows + wrists alone is a complete pose (no hips/legs)');
+  check(Math.abs(pure.bump.y - 0.65) < 0.005 && pure.bump.y < 0.72, 'BUMP target is shoulders + 0.23 (above the old +0.30)');
+  check(Math.abs(pure.bumpLow.y - 0.74) < 0.005, 'BUMP target is capped at 0.74 for a low-framed student');
+
   console.log('camera pose seam, front camera and one mirror conversion');
   await installProvider(page, 'ok');
   const cameraProbe = await page.evaluate(async () => {
@@ -328,10 +357,37 @@ let server;
   console.log('camera phase order and finale cleanup');
   await installProvider(page, 'ok');
   await startSynthetic(page);
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'camera', undefined, 'camera mode before a pose');
+  const frameUi = await page.evaluate(() => ({
+    command: document.querySelector('.volleyball-ar-command').textContent,
+    hint: document.querySelector('.volleyball-ar-hint').textContent,
+  }));
+  check(frameUi.command === 'Show your upper body!' && frameUi.hint === '上半身とうでが見えるようにしてね！',
+    'camera start asks for the upper body (no standing, no moving back) ' + JSON.stringify(frameUi));
   await page.screenshot({ path: SHOT('ready') });
   check(!(await vis(page, '.volleyball-ar-hit')), 'fallback button is absent while camera mode works');
   await page.evaluate(() => { window.__poseKind = 'base'; });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'bump', undefined, 'BUMP began');
+  // First BUMP: instruction + demo while the real ball waits.
+  const tut = await page.evaluate(() => {
+    const hint = document.querySelector('.volleyball-ar-hint');
+    const cmd = document.querySelector('.volleyball-ar-command').getBoundingClientRect();
+    const h = hint.getBoundingClientRect();
+    const demo = document.querySelector('.volleyball-ar-demo');
+    return { st: VA.VolleyballAR.state(), hint: hint.textContent, demo: !!(demo && demo.offsetParent) && demo.classList.contains('demo-bump'),
+      ballHidden: document.querySelector('.volleyball-ar-ball').hidden, hintBelowCommand: h.top >= cmd.bottom - 2 && h.top - cmd.bottom < 30,
+      stageH: document.querySelector('.volleyball-ar').getBoundingClientRect().height, hintTop: h.top - document.querySelector('.volleyball-ar').getBoundingClientRect().top };
+  });
+  check(tut.st.tutorial === 'bump' && tut.demo && tut.hint === 'うでをそろえてね！', 'first BUMP shows its Japanese and the gesture demo');
+  check(tut.st.ball === null && tut.ballHidden, 'the real ball waits during the BUMP demo');
+  check(tut.hintBelowCommand && tut.hintTop < tut.stageH * 0.25, 'Japanese instruction sits directly under the command, not at the bottom');
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: SHOT('bump-tutorial') });
+  check(await page.evaluate(() => VA.VolleyballAR.state().ball === null), 'ball still waiting mid-demo');
+  await precondition(page, () => { const st = VA.VolleyballAR.state(); return st.tutorial === null && st.ball; }, undefined, 'BUMP demo ended and ball launched', 3000);
+  check(!(await vis(page, '.volleyball-ar-demo')), 'demo hidden once the ball is live');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: SHOT('bump-live') });
   const videoTransform = await page.evaluate(() => {
     const video = document.querySelector('.volleyball-ar video');
     return video && getComputedStyle(video).transform;
@@ -347,9 +403,19 @@ let server;
   check(await contact('bump'), 'BUMP contact reached');
   await page.screenshot({ path: SHOT('bump') });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'set', undefined, 'SET followed BUMP', 10000);
+  const setTut = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), hint: document.querySelector('.volleyball-ar-hint').textContent,
+    demo: document.querySelector('.volleyball-ar-demo').classList.contains('demo-set') }));
+  check(setTut.st.tutorial === 'set' && setTut.st.ball === null && setTut.demo && setTut.hint === 'りょうてを上にあげてね！', 'first SET: Japanese + demo, ball waits');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: SHOT('set-tutorial') });
   check(await contact('set'), 'SET contact reached');
   await page.screenshot({ path: SHOT('set') });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'spike', undefined, 'SPIKE followed SET', 10000);
+  const spikeTut = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), hint: document.querySelector('.volleyball-ar-hint').textContent,
+    demo: document.querySelector('.volleyball-ar-demo').classList.contains('demo-spike') }));
+  check(spikeTut.st.tutorial === 'spike' && spikeTut.st.ball === null && spikeTut.demo && spikeTut.hint === 'うでを上からふってね！', 'first SPIKE: Japanese + demo, ball waits');
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: SHOT('spike-tutorial') });
   check(await contact('spike'), 'SPIKE contact reached');
   await page.screenshot({ path: SHOT('spike') });
   await precondition(page, () => (window.__finaleCalls || 0) > 0, undefined, 'finale started after SPIKE', 10000);
@@ -393,12 +459,43 @@ let server;
   await page.waitForTimeout(800);
   const duringLoss = await volleyState(page);
   check(attemptFor(duringLoss) === attemptFor(beforeLoss), 'pose loss does not count as a miss');
+  const lostUi = await page.evaluate(() => ({ msg: document.querySelector('.volleyball-ar-message').textContent,
+    hint: document.querySelector('.volleyball-ar-hint').textContent }));
+  check(lostUi.msg === 'Show your arms! 🙂' && lostUi.hint === 'りょううでが見えるようにしてね！', 'lost pose asks to show the arms, not to move back');
+  await page.screenshot({ path: SHOT('pose-lost') });
   await page.evaluate(() => { window.__poseKind = 'base'; });
   await precondition(page, () => {
     const state = VA.VolleyballAR.state();
     return !(state.paused || state.poseLost || state.status === 'lost');
   }, undefined, 'pose recovery resumed play', 3000);
+  check(await page.evaluate(() => document.querySelector('.volleyball-ar-hint').textContent) === 'うでをそろえてね！',
+    'recovery restores the BUMP instruction instead of the lost-pose text');
   await page.evaluate(() => VA.Screens.show('explore'));
+
+  console.log('camera miss retries without replaying the tutorial');
+  await installProvider(page, 'ok');
+  await startSynthetic(page);
+  await page.evaluate(() => { window.__poseKind = 'apart'; });
+  await precondition(page, () => VA.VolleyballAR.state().tutorial === 'bump', undefined, 'retry test: BUMP demo shown');
+  await precondition(page, () => (VA.VolleyballAR.state().attempts || {}).bump === 1, undefined, 'camera BUMP missed once', 8000);
+  const retry = await page.evaluate(() => new Promise(resolve => setTimeout(() => resolve({
+    st: VA.VolleyballAR.state(), demo: !!document.querySelector('.volleyball-ar-demo').offsetParent,
+    hint: document.querySelector('.volleyball-ar-hint').textContent,
+  }), 500)));
+  check(retry.st.phase === 'bump' && retry.st.tutorial === null && !retry.demo, 'a BUMP retry does not replay the demo');
+  check(!!retry.st.ball && retry.hint === '', 'a BUMP retry sends the ball at once without the Japanese tutorial');
+  await page.evaluate(() => VA.Screens.show('explore'));
+
+  console.log('leaving during the tutorial never launches a late ball');
+  await installProvider(page, 'ok');
+  await startSynthetic(page);
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => VA.VolleyballAR.state().tutorial === 'bump', undefined, 'exit test: BUMP demo shown');
+  await page.evaluate(() => VA.Screens.show('explore'));
+  await precondition(page, () => !VA.VolleyballAR.state().active, undefined, 'exit during tutorial cleaned up');
+  await page.waitForTimeout(1600);
+  const afterExit = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), dom: !!document.querySelector('.volleyball-ar'), cam: VA.CameraPose.state().running }));
+  check(!afterExit.st.active && !afterExit.st.ball && !afterExit.dom && !afterExit.cam, 'no tutorial timer launches a ball after leaving');
 
   console.log('camera failures and camera-off setting use fallback');
   const fallbackCase = async (mode, camera, input, shot) => {
@@ -407,6 +504,9 @@ let server;
     await startSynthetic(page, { camera });
     await precondition(page, () => VA.VolleyballAR.state().mode === 'fallback', undefined, mode + ' reached fallback', 5000);
     check(await vis(page, '.volleyball-ar-hit'), mode + ': fallback button is visible');
+    const fbUi = await page.evaluate(() => ({ hint: document.querySelector('.volleyball-ar-hint').textContent,
+      demo: !!document.querySelector('.volleyball-ar-demo').offsetParent }));
+    check(fbUi.hint === 'ボールが光ったら「HIT!」をおしてね！' && !fbUi.demo, mode + ': fallback explains tapping, no gesture demo');
     if (shot) await page.screenshot({ path: SHOT(shot) });
     await finishFallback(page, input);
     check(await page.evaluate(() => window.__volleyDone), mode + ': fallback completes with ' + input);

@@ -556,3 +556,21 @@ command button at once. Speech controls soccer; the body controls volleyball
 
 **Rejected.** Reviving the parked 3D / top-down soccer, accepting vague words
 (go, kick, play, yes), and a generic skip.
+
+## 2026-09-27 — Sports instructions for seated classrooms
+
+**What.** Soccer: a new spoken word shows 「PASS!」と言ってね！ /
+「SHOOT!」と言ってね！ at once (first PASS and SHOOT; the repeated PASS starts
+bare) — a child must know the word is *said* before failing, so this
+overrides the English-first ladder for these two beats. Volleyball is a
+waist-up, desk-friendly camera game: copy never says stand or move back
+("Show your upper body!", "Show your arms!"), move hints are short control
+instructions directly under the command, and the first appearance of each
+move plays a ~1.2 s CSS gesture demo (waist-up figure, no legs) while the
+ball waits; retries never replay it. The demo sits beside the command, not
+under it, so it does not cover the student's face. The BUMP ball meets the
+lower chest (shoulders + 0.23, max 0.74) so a desk edge does not hide it.
+The tap fallback gets its own tapping instruction instead of gesture copy.
+
+**Rejected.** Tutorial screens, Next/Skip buttons, images/GIFs, live skeleton
+overlays, full-body tracking, and a demo centred under the command.

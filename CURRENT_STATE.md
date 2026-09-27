@@ -47,7 +47,8 @@ Vercel).
   harness surface, including presentation/panorama/load/fallback state.
 - France soccer is spoken: the `soccerVoice` step (`VA.Cine._soccerVoice` in
   `js/cinematic.js`, prompt card in `#soccer-game`) asks PASS → PASS → SHOOT,
-  reusing `_volleyPass` / `_goalShot` and `VA.Speech.listen`; a command button
+  reusing `_volleyPass` / `_goalShot` and `VA.Speech.listen`; the first PASS
+  and SHOOT show 「…」と言ってね！ immediately; a command button
   appears only with the mic off, a hard error, or after three misses.
   `VA.Cine.soccerVoiceState()` is the test surface. The older soccer
   minigames are parked, uncommitted and not loaded:
@@ -80,6 +81,9 @@ Vercel).
   phase with hidden adaptive forgiveness. When camera use is disabled,
   unsupported or fails, the same ball sequence becomes a HIT-window timing
   game. Camera inference and tracks stop before the existing finale begins.
+  It is a waist-up (seated) game: each move's first appearance shows its
+  Japanese under the command plus a CSS gesture demo while the ball waits
+  (`TUNING.tutorialMs`); copy lives in `VA.VolleyballAR.HINTS` / `.COPY`.
 - `js/timeline.js` (`VA.Timeline`) runs every reveal. Outcomes are saved
   before animating, and a reveal is never persisted or replayed.
   `window.VA_TIMELINE_SCALE` speeds it up for tests.

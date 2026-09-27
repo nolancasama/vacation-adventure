@@ -673,7 +673,9 @@ VA.Cine = {
     card.dataset.command = word;
     const icon = VA.el('div', 'soccer-voice-icon', '🎤');
     const text = VA.el('div', 'soccer-voice-word', label);
-    const hint = VA.el('div', 'soccer-voice-hint');
+    // A new word (first PASS, SHOOT) says in Japanese that it is spoken;
+    // the repeated PASS starts bare.
+    const hint = VA.el('div', 'soccer-voice-hint', phase === 'pass2' ? '' : `「${label}」と言ってね！`);
     const btn = VA.el('button', 'soccer-voice-fallback', label);
     btn.type = 'button';
     btn.hidden = true;
