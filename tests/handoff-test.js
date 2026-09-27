@@ -98,17 +98,17 @@ async function reset(page, camera = true) {
 
 async function start(page, mode, options = {}) {
   await reset(page, options.camera !== false);
-  await page.evaluate(({ kind, illustration }) => {
+  await page.evaluate(({ kind, illustration, npcId }) => {
     const cfg = kind === 'present'
-      ? { kind: 'passport', label: 'Passport', instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' }
-      : { illustration: illustration || 'souvenir_koala.webp', label: 'Koala', instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' };
+      ? { kind: 'passport', label: 'Passport', npcId: npcId || 'officer', instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' }
+      : { illustration: illustration || 'souvenir_koala.webp', label: 'Koala', npcId: npcId || 'au_vendor', instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' };
     VA.ARHandoff[kind](cfg).then(() => {
       window.__handoffDone++;
       window.__handoffResolvedState = {
         camera: VA.CameraPose.state(), overlay: !!document.querySelector('.ar-handoff'),
       };
     });
-  }, { kind: mode, illustration: options.illustration });
+  }, { kind: mode, illustration: options.illustration, npcId: options.npcId });
   await waitFor(page, () => VA.ARHandoff.state().active, mode + ' active');
 }
 
@@ -118,6 +118,7 @@ const pose = (left, right, shoulders = { left: { x: .4, y: .4 }, right: { x: .6,
   leftWrist: left, rightWrist: right,
 });
 const setPose = (page, value) => page.evaluate(next => { window.__handoffPose = next; }, value);
+const PASSPORT_TARGET = { x: .79, y: .64 }; // must match VA.ARHandoff.PASSPORT_TARGET (checked below)
 const finishAt = async (page, side, target, wait = 550) => {
   const far = side === 'left' ? { x: .9, y: .8 } : { x: .1, y: .8 };
   const left = side === 'left' ? { x: target.x - .025, y: target.y + .025 } : far;
@@ -168,11 +169,30 @@ let browser;
   let st = await page.evaluate(() => VA.ARHandoff.state());
   check(st.hand === 'left' && st.object.attached, 'left wrist attaches the passport');
   await page.screenshot({ path: SHOT('passport-carry') });
-  await finishAt(page, 'left', { x: .77, y: .38 }, 130);
+  const officerUi = await page.evaluate(() => {
+    const npc = document.querySelector('.ar-handoff-npc');
+    const r = npc && npc.getBoundingClientRect();
+    const stage = document.querySelector('.ar-handoff').getBoundingClientRect();
+    const visibleTarget = [...document.querySelectorAll('.ar-handoff-target')].some(t => t.offsetParent);
+    return {
+      char: npc && npc.dataset.char, shown: !!(npc && npc.offsetParent), sprite: !!(npc && npc.querySelector('img, svg')),
+      rightSide: !!r && r.left - stage.left > stage.width * 0.6, belowCommand: !!r && r.top - stage.top > stage.height * 0.2,
+      visibleTarget, passportHereText: document.querySelector('.ar-handoff').innerText.includes('PASSPORT HERE'),
+      hands: /[🤲🖐👉✋]/u.test(npc ? npc.textContent : ''),
+    };
+  });
+  check(officerUi.char === 'officer' && officerUi.shown && officerUi.sprite, 'present shows the officer character');
+  check(officerUi.rightSide && officerUi.belowCommand, 'officer stands at the right edge, below the instructions');
+  check(!officerUi.visibleTarget && !officerUi.passportHereText, 'no visible PASSPORT HERE target while carrying');
+  check(!officerUi.hands, 'no hand graphic in the NPC overlay');
+  const gameTarget = await page.evaluate(() => VA.ARHandoff.state().target);
+  check(gameTarget && gameTarget.x === PASSPORT_TARGET.x && gameTarget.y === PASSPORT_TARGET.y,
+    'invisible passport target sits at the officer\'s chest (' + JSON.stringify(gameTarget) + ')');
+  await finishAt(page, 'left', PASSPORT_TARGET, 130);
   await setPose(page, pose({ x: .25, y: .72 }, { x: .85, y: .75 }));
   await page.waitForTimeout(340);
   check(!(await page.evaluate(() => VA.ARHandoff.state().done)), 'one-frame target touch does not complete');
-  await finishAt(page, 'left', { x: .77, y: .38 }, 130);
+  await finishAt(page, 'left', PASSPORT_TARGET, 130);
   await page.screenshot({ path: SHOT('passport-target-hover') });
   await waitFor(page, () => VA.ARHandoff.state().done, 'passport target dwell');
   await page.screenshot({ path: SHOT('passport-success') });
@@ -186,7 +206,7 @@ let browser;
   await setPose(page, pose({ x: .15, y: .75 }, { x: .5, y: .68 }));
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'right pickup dwell');
   check((await page.evaluate(() => VA.ARHandoff.state())).hand === 'right', 'right wrist can carry');
-  await finishAt(page, 'right', { x: .77, y: .38 });
+  await finishAt(page, 'right', PASSPORT_TARGET);
   await waitFor(page, () => window.__handoffDone === 1, 'right present complete');
 
   console.log('lost pose pauses and resumes before pickup, attached and near target');
@@ -209,12 +229,12 @@ let browser;
   st = await page.evaluate(() => VA.ARHandoff.state());
   check(st.stage === 'carry' && st.object.attached && st.object.x === attached.x && st.object.y === attached.y,
     'loss while attached keeps hand, object and carry stage');
-  await finishAt(page, 'left', { x: .77, y: .38 }, 140);
+  await finishAt(page, 'left', PASSPORT_TARGET, 140);
   await setPose(page, null);
   await waitFor(page, () => VA.ARHandoff.state().paused, 'paused near target');
   await page.waitForTimeout(400);
   check(!(await page.evaluate(() => VA.ARHandoff.state().done)), 'lost pose resets dwell and cannot complete');
-  await finishAt(page, 'left', { x: .77, y: .38 });
+  await finishAt(page, 'left', PASSPORT_TARGET);
   await waitFor(page, () => window.__handoffDone === 1, 'same carry stage resumes to completion');
 
   console.log('receive real art, wrist carry and chest dwell');
@@ -233,9 +253,14 @@ let browser;
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'receive pickup');
   check(await page.evaluate(() => document.querySelector('.ar-handoff-command').textContent === 'Bring it back!' &&
     document.querySelector('.ar-handoff-jp').textContent === '手をもどしてね！'), 'carry instruction is "Bring it back!" / 手をもどしてね！');
-  await finishAt(page, 'left', { x: .76, y: .72 }, 90);
-  st = await page.evaluate(() => VA.ARHandoff.state());
-  check(Math.abs(st.object.x - .76) < .04 && Math.abs(st.object.y - .72) < .04, 'attached souvenir follows its wrist directly');
+  await finishAt(page, 'left', { x: .76, y: .72 }, 0);
+  // Pose arrives every ~100 ms: the object must be at the wrist by the next
+  // couple of samples (well under the 300 ms chest dwell), not a fixed guess.
+  const followed = await page.waitForFunction(() => {
+    const o = VA.ARHandoff.state().object;
+    return Math.abs(o.x - .76) < .04 && Math.abs(o.y - .72) < .04;
+  }, null, { timeout: 250, polling: 'raf' }).then(() => true).catch(() => false);
+  check(followed, 'attached souvenir follows its wrist directly');
   await page.screenshot({ path: SHOT('souvenir-attached') });
   await finishAt(page, 'left', { x: .5, y: .56 }, 80);
   await waitFor(page, () => VA.ARHandoff.state().dwelling, 'souvenir chest hover');
@@ -245,6 +270,27 @@ let browser;
   await waitFor(page, () => window.__handoffDone === 1, 'receive resolved');
   resolved = await page.evaluate(() => window.__handoffResolvedState);
   check(!resolved.camera.running && !resolved.overlay, 'camera and overlay are off before receive resolves');
+
+  console.log('receive: the destination vendor stands behind the souvenir');
+  await installProvider(page);
+  await start(page, 'receive', { npcId: 'fr_vendor', illustration: 'souvenir_koala.webp' });
+  await setPose(page, pose({ x: .2, y: .75 }, { x: .85, y: .8 }));
+  await waitFor(page, () => VA.ARHandoff.state().poseSeen, 'vendor receive ready');
+  const vendorUi = await page.evaluate(() => {
+    const npc = document.querySelector('.ar-handoff-npc');
+    const obj = document.querySelector('.ar-handoff-object');
+    return { char: npc.dataset.char, shown: !!npc.offsetParent, inert: getComputedStyle(npc).pointerEvents === 'none',
+      objectAbove: Number(getComputedStyle(obj).zIndex) > Number(getComputedStyle(npc).zIndex) };
+  });
+  check(vendorUi.char === 'fr_vendor' && vendorUi.shown, 'receive shows the given vendor (fr_vendor)');
+  check(vendorUi.inert && vendorUi.objectAbove, 'vendor overlay is pointer-inert and under the souvenir');
+  await page.screenshot({ path: SHOT('souvenir-vendor') });
+  await setPose(page, pose({ x: .72, y: .42 }, { x: .85, y: .8 }));
+  await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'souvenir still picked up with the vendor shown');
+  check(await page.evaluate(() => !!document.querySelector('.ar-handoff-npc').offsetParent), 'vendor stays visible after the souvenir is taken');
+  await page.screenshot({ path: SHOT('souvenir-vendor-taken') });
+  await page.evaluate(() => VA.Screens.show('home'));
+  await waitFor(page, () => window.__handoffDone === 1, 'vendor receive cleanup');
 
   console.log('receive: one visible wrist, instant pickup, unused hand may leave');
   // A long dwell proves receive pickup does not wait for one.
@@ -288,7 +334,7 @@ let browser;
   await page.waitForTimeout(120);
   check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'passport pickup still needs its dwell');
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'passport dwell pickup');
-  await finishAt(page, 'left', { x: .77, y: .38 });
+  await finishAt(page, 'left', PASSPORT_TARGET);
   await waitFor(page, () => window.__handoffDone === 1, 'present strictness case complete');
 
   console.log('camera-off, unsupported, denied, model failure and pose timeout fallbacks');
@@ -298,6 +344,7 @@ let browser;
     await start(page, name.includes('souvenir') ? 'receive' : 'present', { camera });
     await waitFor(page, () => VA.ARHandoff.state().inputMode === 'fallback', name + ' fallback', 4000);
     check(await vis(page, '.ar-handoff-fallback'), name + ': fallback button visible');
+    check(await vis(page, '.ar-handoff-npc'), name + ': the NPC stays visible in fallback');
     if (shot) await page.screenshot({ path: SHOT(shot) });
     if (key) await page.keyboard.press(key);
     else await page.locator('.ar-handoff-fallback').click();
@@ -354,7 +401,9 @@ let browser;
     VA.Dialogue.hide = () => {};
     VA.Flows._socialReply = async kind => { window.__flowLog.push('reply:' + kind); };
     const present = VA.ARHandoff.present.bind(VA.ARHandoff);
-    VA.ARHandoff.present = cfg => { window.__flowLog.push('handoff:present'); return present(cfg); };
+    VA.ARHandoff.present = cfg => { window.__flowLog.push('handoff:present'); window.__flowLog.push('npc:' + cfg.npcId); return present(cfg); };
+    const receive = VA.ARHandoff.receive.bind(VA.ARHandoff);
+    VA.ARHandoff.receive = cfg => { window.__flowLog.push('npc:' + cfg.npcId); return receive(cfg); };
     VA.Fx.stampSlam = async id => { window.__flowLog.push('stamp:' + id); };
     VA.Fx.toast = () => {};
     VA.Art.waitForScreenAssets = async () => true;
@@ -400,6 +449,8 @@ let browser;
   check(departure.counts.souvenir === 1 && !!departure.souvenir, 'departure sets the chosen souvenir exactly once');
   check(departure.counts.reward === 1 && departure.log.includes('say:au_vendor:Goodbye!') && departure.log.some(x => x.startsWith('homeflight:Going home!')),
     'reward runs exactly once before Goodbye and the homeward flight');
+  check(departure.log.includes('npc:au_vendor') && arrival.log.includes('npc:officer'),
+    'flows pass the officer to the passport handoff and the resolved vendor (au_vendor) to the souvenir handoff');
   check(order(departure.log, ['say:au_vendor:Goodbye!', 'reply:goodbye', 'homeflight:Going home! 🏠']),
     'departure order: vendor Goodbye → spoken goodbye → flight home');
 

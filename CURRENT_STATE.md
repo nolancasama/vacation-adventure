@@ -93,7 +93,10 @@ Vercel).
   the souvenir snaps to whichever wrist touches it (0.17 radius, one wrist is
   enough). Once attached only the carrying wrist must stay in view; the object
   follows it to the officer/chest target, and lost pose pauses then resumes the
-  same stage. Camera failures use a direct button; a quiet button assist appears
+  same stage. The other person stands waist-up at the right edge (`cfg.npcId`,
+  existing character art via `VA.Art.actorEl`, also in fallback): the officer
+  receives the passport at an invisible chest zone (`PASSPORT_TARGET`, he glows
+  while it dwells); the destination vendor stands behind the souvenir. Camera failures use a direct button; a quiet button assist appears
   after a long wait while working camera play continues. Camera inference and
   tracks stop before the handoff promise resolves.
 - HUD: coins, Passport, Settings only. Photos open from the bedroom corkboard

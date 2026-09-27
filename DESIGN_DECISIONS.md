@@ -639,3 +639,19 @@ and the upward pull-back never does.
 **Rejected.** Raising the pose rate, enlarging spikeRadius or the hit window
 to paper over sampling, hand/finger tracking, and loosening volleyball's
 both-arm BUMP/SET pose.
+
+## 2026-09-27 — Handoffs show the other person, not a marker
+
+**What.** The handoff overlay shows the NPC at the right edge (waist-up crop of
+the existing sprite, no tag/chip/shadow, pointer-inert, under the object and
+instructions, kept in fallback). GIVE: object with the player → the visible
+officer; the "PASSPORT HERE" rectangle is gone and the officer glows while the
+passport dwells. The invisible zone moved from (0.77, 0.38) to the officer's
+chest (0.79, 0.64) so the card never covers his face and the motion is a
+natural hand-over. RECEIVE: the destination vendor (already resolved in
+`_departureInner`) stands behind the souvenir. `ARHandoff` only displays
+`cfg.npcId` and stays destination-agnostic.
+
+**Rejected.** Any hand, arm, pointing or reaching graphic or animation, new or
+edited character art, world-space AR (depth, floor, occlusion), and a visible
+target shape for the passport.

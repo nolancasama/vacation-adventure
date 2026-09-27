@@ -135,7 +135,7 @@ VA.Flows = {
     await this._socialReply('hello');
     await D.say('officer', 'Passport, please.', { jp: 'パスポートを見せてください。' });
     D.hide();
-    await VA.ARHandoff.present({ kind: 'passport', label: 'Passport',
+    await VA.ARHandoff.present({ kind: 'passport', label: 'Passport', npcId: 'officer',
       instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' });
     await D.auto('player', 'Here you are.', { jp: 'はい、どうぞ。' });
     await VA.Fx.stampSlam(destId);
@@ -276,7 +276,7 @@ VA.Flows = {
       // Use the same full-resolution reward moment as food, rather than a
       // small toast, so the whole souvenir is visible when it is received.
       await VA.Art.preloadAndWait(['assets/objects/' + souv.file]);
-      await VA.ARHandoff.receive({ illustration: souv.file, label: souv.label,
+      await VA.ARHandoff.receive({ illustration: souv.file, label: souv.label, npcId: vendorId,
         instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' });
       await VA.Cine.showItemReward({
         illustration: souv.file,

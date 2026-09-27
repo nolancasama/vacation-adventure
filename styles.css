@@ -1798,6 +1798,18 @@ body {
   background:radial-gradient(circle at 50% 80%,#f6d493 0 18%,transparent 19%),linear-gradient(#65c9ed 0 58%,#f0c77e 58%);
 }
 .ar-handoff.is-fallback .ar-handoff-video { display:none; }
+/* The officer / vendor at the right edge, waist-up (the crop hides the legs),
+   under every object and instruction. Scoped: global actor rules untouched. */
+.ar-handoff-npc {
+  position:absolute; z-index:2; right:-14px; bottom:0; width:270px; height:410px;
+  overflow:hidden; pointer-events:none; transition:filter .2s ease;
+}
+.ar-handoff-npc[hidden] { display:none; }
+.ar-handoff-npc .actor { position:absolute; }
+.ar-handoff-npc .actor-chip, .ar-handoff-npc .actor-tag, .ar-handoff-npc .player-vfx-rig { display:none !important; }
+.ar-handoff.is-present.is-dwelling.is-carrying .ar-handoff-npc {
+  filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 22px #ffe667);
+}
 .ar-handoff-command {
   position:absolute; z-index:6; left:50%; top:14px; transform:translateX(-50%);
   min-width:250px; max-width:720px; padding:8px 26px; border:3px solid rgba(255,255,255,.9);

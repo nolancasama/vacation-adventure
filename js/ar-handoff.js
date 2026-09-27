@@ -55,6 +55,10 @@
       assistMs: 30000,
     },
 
+    // Invisible zone at the officer's chest (he stands at the right edge), so
+    // the handed-over passport never covers his face.
+    PASSPORT_TARGET: { x: 0.79, y: 0.64 },
+
     _geom: { dist, chestPoint, nearestWrist },
     _session: null,
     _snapshot: inactive(),
@@ -73,7 +77,7 @@
       const ui = this._buildUI(mode, cfg);
       screen.appendChild(ui.root);
       const start = mode === 'present' ? { x: 0.50, y: 0.68 } : { x: 0.72, y: 0.42 };
-      const target = mode === 'present' ? { x: 0.77, y: 0.38 } : null;
+      const target = mode === 'present' ? { ...this.PASSPORT_TARGET } : null;
       const publicState = {
         active: true, mode, inputMode: 'starting', stage: 'pickup', hand: null,
         dwelling: false, object: { x: start.x, y: start.y, attached: false },
@@ -98,7 +102,7 @@
     },
 
     _buildUI(mode, cfg) {
-      const root = VA.el('div', 'ar-handoff');
+      const root = VA.el('div', 'ar-handoff is-' + mode);
       root.setAttribute('role', 'dialog');
       root.setAttribute('aria-label', mode === 'present' ? 'Present passport' : 'Receive souvenir');
       const video = document.createElement('video');
@@ -127,16 +131,29 @@
         img.alt = cfg.label || 'Souvenir';
         object.appendChild(img);
       }
+      // The other person stands at the right edge: the officer receives the
+      // passport, the vendor hands over the souvenir. Existing character art
+      // only — no hand, no reaching pose. Purely visual (pointer-events none).
+      const npc = VA.el('div', 'ar-handoff-npc');
+      npc.setAttribute('aria-hidden', 'true');
+      if (cfg.npcId && VA.Data.CHARS[cfg.npcId]) {
+        npc.dataset.char = cfg.npcId;
+        const actor = VA.Art.actorEl(cfg.npcId, { tag: false, scale: 2.2 });
+        actor.style.left = '50%';
+        actor.style.top = (300 * 2.2 * (VA.Data.CHARS[cfg.npcId].size || 1)) + 'px'; // feet below the crop: waist-up
+        npc.appendChild(actor);
+      } else npc.hidden = true;
+      // Passport: the officer IS the destination, so its target zone stays
+      // invisible. Receive keeps its subtle chest ring.
       const target = VA.el('div', 'ar-handoff-target');
-      if (mode === 'present') target.textContent = '🛂 PASSPORT HERE';
-      else target.setAttribute('aria-hidden', 'true');
+      target.setAttribute('aria-hidden', 'true');
       target.hidden = true;
       const fallback = VA.el('button', 'ar-handoff-fallback', mode === 'present' ? 'SHOW PASSPORT' : 'TAKE');
       fallback.type = 'button';
       fallback.hidden = true;
       fallback.setAttribute('aria-keyshortcuts', 'Space Enter');
-      root.append(video, shade, command, jp, message, target, object, fallback);
-      return { root, video, command, jp, message, object, target, fallback };
+      root.append(video, npc, shade, command, jp, message, target, object, fallback);
+      return { root, video, npc, command, jp, message, object, target, fallback };
     },
 
     _bind(s) {
@@ -239,7 +256,7 @@
       p.object.attached = true;
       const wrist = pose[hand + 'Wrist'];
       if (wrist) { p.object.x = clamp(wrist.x + 0.025); p.object.y = clamp(wrist.y - 0.025); }
-      if (s.mode === 'present') p.target = { x: 0.77, y: 0.38 };
+      if (s.mode === 'present') p.target = { ...this.PASSPORT_TARGET };
       else {
         p.target = chestPoint(pose);
         s.ui.message.textContent = 'Got it! ✨';
@@ -357,7 +374,7 @@
       s.ui.object.style.left = (p.object.x * 100) + '%';
       s.ui.object.style.top = (p.object.y * 100) + '%';
       s.ui.object.classList.toggle('is-attached', p.object.attached);
-      s.ui.target.hidden = !p.target || p.stage !== 'carry';
+      s.ui.target.hidden = !p.target || p.stage !== 'carry' || s.mode === 'present';
       if (p.target) {
         s.ui.target.style.left = (p.target.x * 100) + '%';
         s.ui.target.style.top = (p.target.y * 100) + '%';
