@@ -692,3 +692,19 @@ change read as "I'm doing it wrong".
 **Rejected.** An arrow, dotted path or hand graphic (wait for classroom
 evidence); enlarging the pickup radius at the same time as shortening the
 dwell (one sensitivity change at a time); "Grab it!" (less familiar word).
+
+## 2026-09-27 — Kangaroo LOOK becomes search, then spot
+
+**What.** The panorama search is true X+Y exploration with a smaller viewing
+window. Finding the kangaroo locks that view and starts an optional in-LOOK
+spot phase: the same kangaroo visibly hops between safe fixed-view positions
+and the student finds it three times. It never teleports, and an untapped
+landing simply leads to another hop with no penalty. The in-scene fallback
+skips spot and keeps its original completion path.
+
+**Why.** The search and the quick moving-target play are two readable beats.
+The short intro stays inside LOOK instead of coupling this reusable
+presentation to ranger dialogue or closing and reopening the panorama.
+
+**Rejected.** Ranger dialogue for the transition, multiple kangaroos,
+teleporting between positions, misses, lives, scores or other penalties.

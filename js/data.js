@@ -247,10 +247,21 @@ VA.Data.DESTS = [
           // search is the payoff for finding the kangaroo in the panorama.
           { look: {
             presentation: 'observe', panorama: 'look_australia_park.webp',
-            size: { w: 3000, h: 1000 }, window: { w: 1280, h: 800 },
-            axis: 'x', start: { x: 640, y: 500 }, target: 'observe_roo',
+            size: { w: 3000, h: 1000 }, window: { w: 1100, h: 688 },
+            axis: 'xy', start: { x: 640, y: 500 }, target: 'observe_roo',
             radius: 180, hold: 600,
             prompt: 'Find the kangaroo!', promptJP: 'カンガルーをさがして！', found: 'Found it!',
+            spot: {
+              target: 'observe_roo', hits: 3,
+              intro: "OH! IT'S MOVING!", introJP: 'あっ！動いた！',
+              prompt: 'FIND IT 3 TIMES!', promptJP: '3かい見つけて！',
+              landMs: [1800, 1550, 1400], hopMs: 360,
+              positions: [
+                { x: .26, y: .78 }, { x: .5, y: .8 }, { x: .74, y: .78 },
+                { x: .3, y: .88 }, { x: .43, y: .87 }, { x: .57, y: .88 },
+                { x: .7, y: .87 },
+              ],
+            },
             sprites: [{
               id: 'observe_roo', char: 'kangaroo', x: 1700, footY: 860, height: 300,
               anim: 'hop', attract: { sfx: 'boing', every: 1800 },

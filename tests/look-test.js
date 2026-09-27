@@ -107,6 +107,18 @@ async function finishCurrentLook(page, axis = 'xy', label = 'finish look') {
   throw new Error('HARNESS_PRECONDITION_FAILED: ' + label + ' ' + JSON.stringify(await lookState(page)));
 }
 
+async function finishSpot(page, label = 'finish spot') {
+  for (let i = 0; i < 220; i++) {
+    const st = await lookState(page);
+    if (!st.active) return;
+    if (st.spot && st.spot.active && st.spot.landed) {
+      await jsClick(page, '.look-spot-layer button[aria-label="Kangaroo"]');
+    }
+    await page.waitForTimeout(60);
+  }
+  throw new Error('HARNESS_PRECONDITION_FAILED: ' + label + ' ' + JSON.stringify(await lookState(page)));
+}
+
 async function dragTowardTarget(page, axis = 'xy', label = 'drag toward target') {
   const stage = await page.locator('#scr-cine').boundingBox();
   if (!stage) throw new Error('HARNESS_PRECONDITION_FAILED: cinematic stage has bounds for ' + label);
@@ -357,6 +369,15 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await finishCurrentLook(page, 'x', 'decoy look completion');
 
   console.log('real sightseeing events');
+  const australiaConfig = await page.evaluate(() => {
+    const event = VA.Data.destById('australia').events.find(item => item.id === 'kangaroo');
+    return event.steps.find(step => step.look).look;
+  });
+  check(australiaConfig.axis === 'xy' && australiaConfig.window.w === 1100 && australiaConfig.window.h === 688,
+    'Australia: observe search uses X+Y with the smaller 1100x688 window');
+  check(australiaConfig.spot && australiaConfig.spot.hits === 3 && australiaConfig.spot.positions.length >= 7,
+    'Australia: observe search configures the three-hit spot phase');
+  await page.evaluate(() => { VA.Look._spotPick = candidates => candidates[0]; });
   await startRealEvent(page, 'australia', 'kangaroo');
   const rangerTelemetry = { id: 'au_ranger', line: 'Look over there!' };
   await advanceToLook(page, 'kangaroo observe', null, rangerTelemetry);
@@ -398,13 +419,64 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   }, undefined, 'kangaroo became partly visible');
   await page.screenshot({ path: OBSERVE_SHOT('03-australia-kangaroo-partly-in-view') });
 
-  await finishCurrentLook(page, 'x', 'kangaroo key dwell');
+  await finishCurrentLook(page, 'xy', 'kangaroo key dwell');
   await precondition(page, () => VA.Look.state().active && VA.Look.state().found,
     undefined, 'kangaroo key dwell reached found hold', 3000);
   check((await lookState(page)).dwellMs >= 500, 'Australia: dwell completes without selecting');
   await page.screenshot({ path: OBSERVE_SHOT('04-australia-centred-found') });
   check(await actorX(page, 'roo') === 1090,
     'Australia: cinematic kangaroo has not entered when the panorama kangaroo is found');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.active,
+    undefined, 'Australia spot phase started', 3000);
+  check(await page.evaluate(() => window.__eventDone === 0) && (await lookState(page)).active,
+    'Australia: finding the panorama target enters spot mode without resolving LOOK');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.landed,
+    undefined, 'Australia first spot landing', 3000);
+  const locked = await lookState(page);
+  await pulse(page, 'ArrowRight', 150);
+  await pulse(page, 'w', 150);
+  await page.evaluate(() => {
+    const button = document.querySelector('.look-dir-left');
+    const buttonCapture = button.setPointerCapture;
+    button.setPointerCapture = null;
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 91 }));
+    button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 91 }));
+    button.setPointerCapture = buttonCapture;
+    const screen = document.querySelector('#scr-cine');
+    const screenCapture = screen.setPointerCapture;
+    screen.setPointerCapture = null;
+    screen.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 92, clientX: 480, clientY: 300 }));
+    screen.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 92, clientX: 620, clientY: 410 }));
+    screen.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 92, clientX: 620, clientY: 410 }));
+    screen.setPointerCapture = screenCapture;
+  });
+  const afterLockedInputs = await lookState(page);
+  check(afterLockedInputs.view.x === locked.view.x && afterLockedInputs.view.y === locked.view.y,
+    'Australia: arrow/WASD, direction buttons and drag cannot move the view during spot');
+
+  const firstPosition = afterLockedInputs.spot.position;
+  await jsClick(page, '.look-spot-layer button[aria-label="Kangaroo"]');
+  let tapped = await lookState(page);
+  check(tapped.spot.hits === 1 && !tapped.spot.landed && tapped.spot.hopping,
+    'Australia: a landed tap increments immediately and starts hopping');
+  await jsClick(page, '.look-spot-layer button[aria-label="Kangaroo"]');
+  check((await lookState(page)).spot.hits === 1,
+    'Australia: a tap while hopping does not count twice');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.landed,
+    undefined, 'Australia landed after first tap', 2000);
+  const afterFirstHop = await lookState(page);
+  check(afterFirstHop.spot.position !== firstPosition,
+    'Australia: injected picker chooses a configured position different from the current one');
+
+  const timeoutPosition = afterFirstHop.spot.position;
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.hopping,
+    undefined, 'Australia landing timeout started a hop', 2600);
+  check((await lookState(page)).spot.hits === 1,
+    'Australia: landing timeout hops without changing hits');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.landed,
+    undefined, 'Australia landed after timeout hop', 2000);
+  check((await lookState(page)).spot.position !== timeoutPosition,
+    'Australia: landing timeout moves to a new configured position');
   await armActorTelemetry(page, 'roo');
   // Record the first frame the cinematic roo leaves x 1090: the observe screen
   // must already be closed and its hop must not have started yet.
@@ -421,6 +493,7 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     };
     tick();
   });
+  await finishSpot(page, 'Australia three-hit spot completion');
   await precondition(page, () => !VA.Look.state().active, undefined, 'Australia observe returned to cinematic', 2500);
   rangerTelemetry.returned = await actorX(page, 'au_ranger');
   check(rangerTelemetry.returned === rangerTelemetry.lineX,
@@ -440,10 +513,13 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await startRealEvent(page, 'australia', 'kangaroo');
   await advanceToLook(page, 'kangaroo drag replay');
   await observeContract(page, 'look_australia_park.webp', 'Australia drag replay');
-  await dragTowardTarget(page, 'x', 'kangaroo drag dwell');
+  await dragTowardTarget(page, 'xy', 'kangaroo drag dwell');
   await precondition(page, () => VA.Look.state().active && VA.Look.state().found,
     undefined, 'kangaroo drag reached found hold', 3000);
   check((await lookState(page)).found, 'Australia: pointer drag also finds the moving kangaroo');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.active,
+    undefined, 'kangaroo drag entered spot', 3000);
+  await finishSpot(page, 'kangaroo drag spot completion');
   await precondition(page, () => !VA.Look.state().active, undefined, 'kangaroo drag observe returned', 2500);
   await finishEventAndCapturePhoto(page, 'kangaroo', 'observe/07-australia-drag-photo-toast');
 
@@ -581,6 +657,7 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
     'fallback is the existing in-scene look, not an observe overlay');
   check(await actorX(page, 'roo') === 760,
     'fallback brings the cinematic kangaroo on stage before the in-scene search');
+  check(!fallback.spot, 'Australia fallback skips the spot phase');
   await page.screenshot({ path: OBSERVE_SHOT('18-missing-panorama-fallback') });
   await finishCurrentLook(page, 'x', 'missing panorama fallback completion');
   await finishEventAndCapturePhoto(page, 'kangaroo', 'observe/19-fallback-photo-toast');
@@ -589,10 +666,16 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   await startRealEvent(page, 'australia', 'kangaroo');
   await advanceToLook(page, 'cleanup observe');
   await observeContract(page, 'look_australia_park.webp', 'cleanup');
+  await finishCurrentLook(page, 'xy', 'cleanup observe search');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.active,
+    undefined, 'cleanup entered spot', 3000);
   const abandonedView = { ...(await lookState(page)).view };
   await page.evaluate(() => VA.Screens.show('map'));
   await precondition(page, () => !VA.Look.state().active && !document.querySelector('.look-mode'),
     undefined, 'leaving cinematic cleaned observe DOM');
+  await page.waitForTimeout(2100);
+  check(!await page.locator('.look-spot-layer').count() && !(await lookState(page)).active,
+    'cleanup mid-spot leaves no layer, timers or active session');
   await pulse(page, 'ArrowRight', 180);
   const afterLeave = await lookState(page);
   check(afterLeave.view.x === abandonedView.x && afterLeave.view.y === abandonedView.y,
@@ -603,7 +686,10 @@ async function finishEventAndCapturePhoto(page, eventId, shotName) {
   check(await page.locator('.look-mode').count() === 1 && await page.locator('.look-observe').count() === 1 &&
     await page.locator('.look-observe-sprite[data-sprite-id="observe_roo"]').count() === 1,
   'replaying after cleanup mounts one observe UI and one sprite');
-  await finishCurrentLook(page, 'x', 'cleanup replay completion');
+  await finishCurrentLook(page, 'xy', 'cleanup replay search completion');
+  await precondition(page, () => VA.Look.state().spot && VA.Look.state().spot.active,
+    undefined, 'cleanup replay entered spot', 3000);
+  await finishSpot(page, 'cleanup replay spot completion');
   await precondition(page, () => !VA.Look.state().active, undefined, 'cleanup replay returned', 2500);
   await finishEventAndCapturePhoto(page, 'kangaroo', 'observe/20-cleanup-replay-photo-toast');
 

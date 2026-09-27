@@ -39,12 +39,13 @@ Vercel).
   Australia and Egypt use its full-screen `observe` presentation over approved
   panoramas, with moving/attracting character sprites and silent fallback to
   the original in-scene searches if panorama loading fails. France keeps the
-  existing Eiffel Tower crop. The ranger and Amira stay at their conversation
+  existing Eiffel Tower crop. Australia's search uses X+Y exploration, then a
+  fixed-view three-tap moving-target spot phase; fallback skips that phase. The ranger and Amira stay at their conversation
   positions while observe owns the looking. Egypt's pyramid event starts on the
   arrival art, swaps to the pyramid art after its first discovery, then brings
   Coco in after the second; its saved photo records the displayed backdrop.
   `VA.Look.state()` is the read-only semantic
-  harness surface, including presentation/panorama/load/fallback state.
+  harness surface, including presentation/panorama/load/fallback and spot state.
 - France soccer is spoken: the `soccerVoice` step (`VA.Cine._soccerVoice` in
   `js/cinematic.js`, prompt card in `#soccer-game`) asks PASS → PASS → SHOOT,
   reusing `_volleyPass` / `_goalShot` and `VA.Speech.listen`; the first PASS

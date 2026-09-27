@@ -34,9 +34,14 @@ async function vis(page, sel) {
 const jsClick = (page, sel) => page.$eval(sel, el => el.click()).catch(() => {});
 
 async function finishLook(page, label) {
-  for (let i = 0; i < 160; i++) {
+  for (let i = 0; i < 240; i++) {
     const st = await page.evaluate(() => VA.Look && VA.Look.state()).catch(() => null);
     if (!st || !st.active) return;
+    if (st.spot && st.spot.active) {
+      if (st.spot.landed) await jsClick(page, '.look-spot-layer button[aria-label="Kangaroo"]');
+      await page.waitForTimeout(60);
+      continue;
+    }
     const dx = st.target.x - st.view.x;
     const dy = st.target.y - st.view.y;
     if (st.distance <= 28) {

@@ -17,6 +17,7 @@ VA.Look = {
     target: { x: 480, y: 300 }, distance: 0,
     dwellMs: 0, found: false, decoyShown: false,
     presentation: 'scene', panorama: null, loaded: false, usedFallback: false,
+    spot: null,
   },
 
   state() {
@@ -127,6 +128,7 @@ VA.Look = {
       panorama: meta.panorama || null,
       loaded: !!meta.loaded,
       usedFallback: !!meta.usedFallback,
+      spot: null,
     };
 
     return new Promise(resolve => {
@@ -137,7 +139,7 @@ VA.Look = {
         startedAt: performance.now(), lastFrame: performance.now(),
         insideSince: null, outsideSince: null, shownDecoys: new Set(),
         attractAt: 0, raf: 0, timers: new Set(), glide: null,
-        moveSpeed: isObserve ? 720 : 300,
+        moveSpeed: isObserve ? 720 : 300, spot: null,
       };
       session.cleanup = found => this._cleanup(session, found);
       this._session = session;
@@ -315,7 +317,7 @@ VA.Look = {
     const decoy = VA.el('div', 'look-decoy');
     decoy.hidden = true;
     root.appendChild(decoy);
-    return { root, reticle, ring, mark, hint, controls, show, decoy };
+    return { root, chip, reticle, ring, mark, hint, controls, show, decoy };
   },
 
   _bind(s) {
@@ -390,7 +392,7 @@ VA.Look = {
   },
 
   _move(s, dx, dy) {
-    if (!s.active || s.glide || s.completing) return;
+    if (!s.active || s.glide || s.completing || (s.spot && s.spot.active)) return;
     if (s.axis === 'x') dy = 0;
     if (s.axis === 'y') dx = 0;
     const next = this._clampView({ x: s.view.x + dx, y: s.view.y + dy }, s.zoom, s.mode, s.bounds);
@@ -425,12 +427,20 @@ VA.Look = {
     }
     const dt = Math.min(50, Math.max(0, now - s.lastFrame));
     s.lastFrame = now;
+    if (s.completing) {
+      s.raf = requestAnimationFrame(t => this._frame(s, t));
+      return;
+    }
     const held = new Set([...s.keys, ...s.buttonDirs]);
     const speed = s.moveSpeed * dt / 1000;
     held.forEach(dir => this._moveDir(s, dir, speed));
     this._updateSprites(s, now);
     this._updateTarget(s, now);
     if (!s.active) return;
+    if (s.completing) {
+      s.raf = requestAnimationFrame(t => this._frame(s, t));
+      return;
+    }
     this._updateAssists(s, now);
     this._updateAttract(s, now);
     s.raf = requestAnimationFrame(t => this._frame(s, t));
@@ -605,14 +615,243 @@ VA.Look = {
     s.ui.root.appendChild(found);
     const hold = setTimeout(() => {
       s.timers.delete(hold);
-      s.ui.root.classList.add('is-leaving');
-      const fade = setTimeout(() => {
-        s.timers.delete(fade);
-        s.cleanup(true);
-      }, VA.reducedMotion ? 0 : 300);
-      s.timers.add(fade);
-    }, VA.reducedMotion ? 0 : 600);
+      found.remove();
+      if (s.cfg.spot) this._startSpot(s);
+      else this._observeLeave(s);
+    }, VA.reducedMotion ? 250 : 600);
     s.timers.add(hold);
+  },
+
+  _observeLeave(s) {
+    if (!s.active) return;
+    s.ui.root.classList.add('is-leaving');
+    const fade = setTimeout(() => {
+      s.timers.delete(fade);
+      s.cleanup(true);
+    }, VA.reducedMotion ? 0 : 300);
+    s.timers.add(fade);
+  },
+
+  _spotPick(candidates) {
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  },
+
+  _startSpot(s) {
+    if (!s.active || s.mode !== 'observe' || !s.observe) return this._observeLeave(s);
+    const cfg = s.cfg.spot;
+    const source = s.observe.sprites[cfg.target];
+    if (!source || !Array.isArray(cfg.positions) || !cfg.positions.length) return this._observeLeave(s);
+
+    s.keys.clear();
+    s.buttonDirs.clear();
+    s.pointer = null;
+    s.ui.root.classList.add('is-spot');
+    source.el.style.visibility = 'hidden';
+    if (source.spec.anim) {
+      const animated = source.el.querySelector('.actor-svg-wrap > :not(.player-vfx-rig), img');
+      if (animated) animated.classList.remove(source.spec.anim);
+    }
+
+    const layer = VA.el('div', 'look-spot-layer');
+    const button = VA.el('button', 'look-spot-target');
+    button.type = 'button';
+    const character = source.spec.char && VA.Data.CHARS[source.spec.char];
+    button.setAttribute('aria-label', (character && character.name) || 'Target');
+    const art = source.el.cloneNode(true);
+    art.classList.remove('look-observe-sprite');
+    art.removeAttribute('data-sprite-id');
+    art.setAttribute('aria-hidden', 'true');
+    art.style.visibility = '';
+    art.style.left = '';
+    art.style.top = '';
+    const artHeight = source.height * s.zoom;
+    const stageRect = VA.$('#stage').getBoundingClientRect();
+    const sourceRect = source.el.getBoundingClientRect();
+    const stageScale = stageRect.width / VA.W || 1;
+    const artWidth = Math.max(120, sourceRect.width / stageScale);
+    button.style.setProperty('--spot-art-scale', s.zoom);
+    button.style.setProperty('--spot-art-width', artWidth + 'px');
+    button.style.setProperty('--spot-art-height', artHeight + 'px');
+    button.appendChild(art);
+    layer.appendChild(button);
+    s.ui.root.appendChild(layer);
+
+    const first = {
+      x: VA.W / 2 + (source.x - s.view.x) * s.zoom,
+      y: VA.H / 2 + (source.footY - s.view.y) * s.zoom,
+    };
+    const required = Math.max(1, Number(cfg.hits) || 1);
+    const spot = s.spot = {
+      active: true, hits: 0, required, hopping: false, landed: false,
+      position: null, point: first, layer, button, source, artHeight,
+      hopRaf: 0, landTimer: 0, onTap: null,
+    };
+    s.publicState.spot = {
+      active: true, hits: 0, required, hopping: false, landed: false, position: null,
+    };
+    this._spotPlace(s, first);
+
+    const intro = VA.el('div', 'look-spot-intro');
+    intro.append(VA.el('strong', '', VA.escape(cfg.intro || 'Look!')));
+    if (cfg.introJP) intro.append(VA.el('span', '', VA.escape(cfg.introJP)));
+    s.ui.root.appendChild(intro);
+    spot.onTap = e => {
+      e.stopPropagation();
+      this._spotHit(s);
+    };
+    button.addEventListener('click', spot.onTap);
+    const introTimer = setTimeout(() => {
+      s.timers.delete(introTimer);
+      if (!s.active || !spot.active) return;
+      intro.remove();
+      this._spotPrompt(s);
+      this._spotHop(s);
+    }, VA.reducedMotion ? 350 : 800);
+    s.timers.add(introTimer);
+  },
+
+  _spotPrompt(s) {
+    const cfg = s.cfg.spot;
+    s.ui.chip.replaceChildren();
+    s.ui.chip.appendChild(VA.el('span', 'look-prompt', VA.escape(cfg.prompt || 'Find it!')));
+    if (cfg.promptJP) s.ui.chip.appendChild(VA.el('span', 'look-prompt-jp', VA.escape(cfg.promptJP)));
+    const progress = VA.el('div', 'look-spot-progress');
+    s.ui.root.appendChild(progress);
+    s.spot.progress = progress;
+    this._spotProgress(s);
+  },
+
+  _spotProgress(s) {
+    if (s.spot.progress) s.spot.progress.textContent = s.spot.hits + ' / ' + s.spot.required;
+    Object.assign(s.publicState.spot, {
+      active: s.spot.active, hits: s.spot.hits, required: s.spot.required,
+      hopping: s.spot.hopping, landed: s.spot.landed, position: s.spot.position,
+    });
+  },
+
+  _spotPlace(s, point) {
+    s.spot.point = { x: point.x, y: point.y };
+    s.spot.button.style.left = point.x + 'px';
+    s.spot.button.style.top = point.y + 'px';
+  },
+
+  _spotCandidates(s) {
+    const all = s.cfg.spot.positions.map((point, index) => ({ index, point }));
+    const different = all.filter(item => item.index !== s.spot.position);
+    if (s.spot.position == null) return different;
+    const current = all[s.spot.position].point;
+    const distant = different.filter(item => Math.hypot(item.point.x - current.x, item.point.y - current.y) >= .25);
+    return distant.length ? distant : different;
+  },
+
+  _spotHop(s, offscreen = false) {
+    const spot = s.spot;
+    if (!s.active || !spot || !spot.active || spot.hopping) return;
+    if (spot.landTimer) {
+      clearTimeout(spot.landTimer);
+      s.timers.delete(spot.landTimer);
+      spot.landTimer = 0;
+    }
+    let picked = null;
+    let to;
+    if (offscreen) {
+      to = { x: VA.clamp(spot.point.x + 70, 120, VA.W - 120), y: -90 };
+    } else {
+      const candidates = this._spotCandidates(s);
+      picked = this._spotPick(candidates, spot.position) || candidates[0];
+      if (!picked || picked.index === spot.position) picked = candidates.find(item => item.index !== spot.position) || candidates[0];
+      to = { x: picked.point.x * VA.W, y: picked.point.y * VA.H };
+    }
+    const from = { ...spot.point };
+    const distance = Math.hypot(to.x - from.x, to.y - from.y);
+    let arc = offscreen ? 145 : VA.clamp(distance * .24, 70, 120);
+    if (!offscreen) arc = Math.min(arc, Math.max(45, Math.min(from.y, to.y) - spot.artHeight - 112));
+    const duration = offscreen ? (VA.reducedMotion ? 260 : 600)
+      : (VA.reducedMotion ? 200 : Math.max(120, Number(s.cfg.spot.hopMs) || 360));
+    spot.hopping = true;
+    spot.landed = false;
+    spot.button.classList.add('is-hopping');
+    spot.button.style.pointerEvents = 'none';
+    this._spotProgress(s);
+    VA.Audio.sfx('boing');
+    const started = performance.now();
+    const frame = now => {
+      if (!s.active || !spot.active) return;
+      const t = VA.clamp((now - started) / duration, 0, 1);
+      const point = {
+        x: from.x + (to.x - from.x) * t,
+        y: from.y + (to.y - from.y) * t - Math.sin(Math.PI * t) * arc,
+      };
+      this._spotPlace(s, point);
+      if (t < 1) {
+        spot.hopRaf = requestAnimationFrame(frame);
+        return;
+      }
+      spot.hopRaf = 0;
+      spot.hopping = false;
+      spot.button.classList.remove('is-hopping');
+      if (offscreen) {
+        spot.active = false;
+        spot.landed = false;
+        this._spotProgress(s);
+        this._observeLeave(s);
+        return;
+      }
+      spot.position = picked.index;
+      spot.landed = true;
+      spot.button.style.pointerEvents = '';
+      this._spotProgress(s);
+      const values = s.cfg.spot.landMs || [];
+      const wait = Math.max(1200, Number(values[spot.hits]) || 1400);
+      spot.landTimer = setTimeout(() => {
+        s.timers.delete(spot.landTimer);
+        spot.landTimer = 0;
+        if (s.active && spot.active && spot.landed) {
+          spot.landed = false;
+          this._spotProgress(s);
+          this._spotHop(s);
+        }
+      }, wait);
+      s.timers.add(spot.landTimer);
+    };
+    spot.hopRaf = requestAnimationFrame(frame);
+  },
+
+  _spotHit(s) {
+    const spot = s.spot;
+    if (!s.active || !spot || !spot.active || !spot.landed || spot.hopping) return;
+    spot.landed = false;
+    spot.hopping = true;
+    spot.hits++;
+    spot.button.classList.add('is-hopping');
+    spot.button.style.pointerEvents = 'none';
+    if (spot.landTimer) {
+      clearTimeout(spot.landTimer);
+      s.timers.delete(spot.landTimer);
+      spot.landTimer = 0;
+    }
+    VA.Audio.sfx('boing');
+    this._spotProgress(s);
+    const final = spot.hits >= spot.required;
+    const feedback = VA.el('div', 'look-spot-feedback' + (final ? ' is-final' : ''));
+    feedback.textContent = final ? '✨✨✨ BOING!' : '✨ BOING!';
+    feedback.style.left = spot.point.x + 'px';
+    feedback.style.top = (spot.point.y - spot.artHeight * .65) + 'px';
+    spot.layer.appendChild(feedback);
+    // The BOING outlives the 120 ms tap pause: it plays on while the kangaroo hops.
+    const fade = setTimeout(() => {
+      s.timers.delete(fade);
+      feedback.remove();
+    }, final ? 800 : 600);
+    s.timers.add(fade);
+    const timer = setTimeout(() => {
+      s.timers.delete(timer);
+      if (s.active && spot.active) {
+        spot.hopping = false;
+        this._spotHop(s, final);
+      }
+    }, 120);
+    s.timers.add(timer);
   },
 
   _observeSparkles(s, at) {
@@ -636,6 +875,16 @@ VA.Look = {
     s.active = false;
     cancelAnimationFrame(s.raf);
     if (s.glide && s.glide.raf) cancelAnimationFrame(s.glide.raf);
+    if (s.spot) {
+      s.spot.active = false;
+      s.spot.landed = false;
+      s.spot.hopping = false;
+      if (s.spot.hopRaf) cancelAnimationFrame(s.spot.hopRaf);
+      if (s.spot.onTap) s.spot.button.removeEventListener('click', s.spot.onTap);
+      if (s.publicState.spot) Object.assign(s.publicState.spot, {
+        active: false, landed: false, hopping: false,
+      });
+    }
     if (s.pointer && s.screen.hasPointerCapture && s.screen.hasPointerCapture(s.pointer.id)) {
       s.screen.releasePointerCapture(s.pointer.id);
     }
