@@ -95,6 +95,14 @@ async function talk(page, label, stopFnBody, opts = {}) {
 
     if (await vis(page, '#hint-photo')) { await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn'))    { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
+    if (await vis(page, '.volleyball-ar-hit')) {
+      const hittable = await page.evaluate(() => {
+        const state = VA.VolleyballAR && VA.VolleyballAR.state();
+        return !!(state && state.active && state.mode === 'fallback' &&
+          (state.hittable || (state.ball && state.ball.hittable)));
+      }).catch(() => false);
+      if (hittable) { await jsClick(page, '.volleyball-ar-hit'); await page.waitForTimeout(350); continue; }
+    }
     if (await vis(page, '.eat-tap:not([disabled])')) { await jsClick(page, '.eat-tap'); await page.waitForTimeout(350); continue; }
     if (await page.evaluate(() => !!(VA.Look && VA.Look.state().active)).catch(() => false)) {
       await finishLook(page, label);

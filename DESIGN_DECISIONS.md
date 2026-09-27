@@ -528,3 +528,31 @@ entrance. The memory must preserve the discovered pyramids.
 **Rejected.** Keeping `evt.backdrop` for the photo, which would drop the
 pyramids from every Egypt memory. Fallback searches reveal their targets first
 because the in-scene target must be visible.
+
+## 2026-09-27 — Beach volleyball uses body play with a timing fallback
+
+**What.** Australia's volleyball game is now camera BUMP → SET → SPIKE using
+local pose landmarks. If the camera cannot work, the same three ball paths use
+a HIT-window timing control. The existing dramatic finale begins only after a
+successful SPIKE and after the camera has fully stopped.
+
+This re-enables the finale that was switched off on 2026-08-09; it plays only
+after the new camera/timing game, never after the old tap game. High ball
+targets (SET, SPIKE) stay below the command pill so the prompt stays readable.
+
+**Rejected.** Speech commands, a physics simulation, and a calibration wizard.
+
+## 2026-09-27 — France soccer is spoken: PASS → PASS → SHOOT
+
+**What.** The 3-tap KICK game is replaced by a `soccerVoice` cinematic step:
+the student says "pass" (ball player → Louis), "pass" (Louis → player), then
+"shoot" (existing goal shot), each accepted on the first interim match
+(`pass`/`past`, `shoot`/`shot`, whole words only). It is not a reaction task;
+the ball moves only after the word. Misses ladder: "Try again!" → Japanese
+hint → a button repeating the command word (never "SKIP"); soft misses keep
+listening behind that button. Mic off or a hard recognizer error shows the
+command button at once. Speech controls soccer; the body controls volleyball
+— the two are intentionally different.
+
+**Rejected.** Reviving the parked 3D / top-down soccer, accepting vague words
+(go, kick, play, yes), and a generic skip.

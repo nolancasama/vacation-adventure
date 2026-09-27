@@ -11,7 +11,9 @@
      {cam:{x,y,s,dur}}       slow pan/zoom to focus point x,y (stage px)
      {towerPan:{from,to,dur}} pan a tall background from its base to its top
      {look:{...}}             player pans/looks until a target is held in view
-     {soccerGame:{...}}       third-person 3D soccer (top-down fallback)
+     {soccerGame:{...}}       third-person 3D soccer (top-down fallback; parked)
+     {soccerVoice:{ballId,playerId,teammateId,goal}} say PASS → PASS → SHOOT
+     {volleyballAR:{sequence}} BUMP → SET → SPIKE with the front camera (volleyball-ar.js)
      {eatGame:{shape,illustration,bites}} take bites by tapping or (opt-in) webcam
      {wait:ms}               hold the moment
      {say:['vendor','One ice cream?','アイスはいかが？']}   tap to continue
@@ -119,7 +121,7 @@ VA.Cine = {
     // Start decoding the volleyball payoff while the player is still talking.
     // showVolleyballFinale waits on this promise only if three very quick taps
     // beat the local image decoder.
-    if ((evt.steps || []).some(step => step.game && step.game.finale === 'volleyball' && step.game.finaleEnabled !== false)) {
+    if ((evt.steps || []).some(step => step.volleyballAR || (step.game && step.game.finale === 'volleyball' && step.game.finaleEnabled !== false))) {
       ctx.volleyballFinaleReady = VA.Art.preloadAndWait(this.VOLLEY_FINALE_ASSETS);
     }
     (evt.actors || []).forEach(a => {
@@ -257,6 +259,8 @@ VA.Cine = {
         ctx.soccer = soccer && !soccer.fallback ? soccer : await VA.Soccer.play(st.soccerGame, this);
         continue;
       }
+      if (st.soccerVoice) { await this._soccerVoice(st.soccerVoice); continue; }
+      if (st.volleyballAR) { await VA.VolleyballAR.start(st.volleyballAR, this); continue; }
       if (st.eatGame) { await VA.EatGame.play(st.eatGame, this); continue; }
       if (st.wait)    { await VA.wait(st.wait); continue; }
       if (st.say)     { await VA.Dialogue.say(st.say[0], st.say[1], { jp: st.say[2], mood: st.say[3], jpMode: st.jpMode }); continue; }
@@ -599,6 +603,132 @@ VA.Cine = {
     overlay.hidden = true;
     overlay.replaceChildren();
     overlay.classList.remove('is-visible', 'is-leaving');
+  },
+
+  /* --------- France soccer: say PASS → PASS → SHOOT ---------
+     Not a reaction test: each command waits as long as the student needs,
+     and the ball only moves once the word is heard.  A command button
+     appears only when speech cannot work (mic off / hard error) or after
+     repeated misses; soft misses keep listening behind it. */
+  SOCCER_COMMANDS: { pass: ['pass', 'past'], shoot: ['shoot', 'shot'] },
+  _soccerVoiceState: { active: false, phase: null, expected: null, misses: 0, fallback: false },
+  _soccerRun: null,
+
+  soccerVoiceState() {
+    return { ...this._soccerVoiceState };
+  },
+
+  _onCineScreen() {
+    const screen = VA.$('#scr-cine');
+    return !!(screen && screen.classList.contains('active')) && (!VA.Screens.current || VA.Screens.current === 'cine');
+  },
+
+  async _soccerVoice(cfg) {
+    if (this._soccerRun) this._soccerVoiceCleanup(this._soccerRun);
+    const playerId = cfg.playerId || 'player';
+    const mateId = cfg.teammateId || 'fr_kid';
+    const ball = this._target(cfg.ballId || 'ball');
+    const start = ball && this._volleyHandPoint(playerId, 'right');
+    if (start) { ball.style.left = start.x + 'px'; ball.style.top = start.y + 'px'; }
+    VA.Dialogue.hide();
+
+    const run = { alive: true, finishCommand: null };
+    this._soccerRun = run;
+    Object.assign(this._soccerVoiceState, { active: true, phase: null, expected: null, misses: 0, fallback: false });
+    run.watch = setInterval(() => { if (!this._onCineScreen()) this._soccerVoiceCleanup(run); }, 400);
+
+    const beats = [
+      { phase: 'pass1', word: 'pass', from: playerId, to: mateId },
+      { phase: 'pass2', word: 'pass', from: mateId, to: playerId },
+      { phase: 'shoot', word: 'shoot' },
+    ];
+    try {
+      for (const beat of beats) {
+        if (!(await this._soccerCommand(beat, run))) return;
+        VA.$('#soccer-game').hidden = true;
+        VA.Audio.sfx('kick');
+        if (!ball) continue;
+        if (beat.to) await this._volleyPass(ball, beat.from, beat.to);
+        else await this._goalShot(ball, cfg.goal || { x: 790, y: 370, scale: 0.25 });
+        if (!run.alive) return;
+      }
+      this._soccerVoiceState.phase = 'done';
+      this._soccerVoiceState.expected = null;
+    } finally {
+      this._soccerVoiceCleanup(run);
+    }
+  },
+
+  /* One spoken command. Resolves true when it is said (or its fallback
+     button is pressed), false if the scene is left first. */
+  _soccerCommand({ phase, word }, run) {
+    const S = this._soccerVoiceState;
+    Object.assign(S, { phase, expected: word, misses: 0, fallback: false });
+    const label = word.toUpperCase() + '!';
+    const aliases = this.SOCCER_COMMANDS[word];
+
+    const box = VA.$('#soccer-game');
+    box.innerHTML = '';
+    const card = VA.el('div', 'soccer-voice-card');
+    card.dataset.command = word;
+    const icon = VA.el('div', 'soccer-voice-icon', '🎤');
+    const text = VA.el('div', 'soccer-voice-word', label);
+    const hint = VA.el('div', 'soccer-voice-hint');
+    const btn = VA.el('button', 'soccer-voice-fallback', label);
+    btn.type = 'button';
+    btn.hidden = true;
+    card.append(icon, text, hint, btn);
+    box.appendChild(card);
+    box.hidden = false;
+
+    return new Promise(resolve => {
+      let done = false;
+      const finish = ok => {
+        if (done) return;
+        done = true;
+        if (run.finishCommand === finish) run.finishCommand = null;
+        VA.Speech.cancel();
+        card.classList.remove('is-listening');
+        resolve(ok);
+      };
+      run.finishCommand = finish;
+      btn.addEventListener('click', () => finish(true));
+      const showFallback = () => { S.fallback = true; btn.hidden = false; };
+      const setHint = () => {
+        if (S.misses === 1) hint.textContent = 'Try again!';
+        else if (S.misses >= 2) hint.textContent = `「${label}」と言ってね！`;
+      };
+
+      (async () => {
+        if (!VA.Speech.available()) { card.classList.add('no-mic'); showFallback(); return; }
+        while (!done && run.alive) {
+          card.classList.add('is-listening');
+          const r = await VA.Speech.listen({ match: t => VA.Speech.matchesAny(t, aliases) });
+          if (done || !run.alive) return;
+          card.classList.remove('is-listening');
+          if (r.status === 'match') { finish(true); return; }
+          if (r.status === 'cancelled') { await VA.wait(300); continue; }
+          if (r.status === 'error' && VA.Speech.isHardError(r.error)) { card.classList.add('no-mic'); showFallback(); return; }
+          S.misses++;
+          setHint();
+          if (S.misses >= 3) showFallback();
+          await VA.wait(250);
+        }
+      })();
+    });
+  },
+
+  _soccerVoiceCleanup(run) {
+    run.alive = false;
+    clearInterval(run.watch);
+    if (run.finishCommand) run.finishCommand(false);
+    VA.Speech.cancel();
+    const box = VA.$('#soccer-game');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    if (this._soccerRun === run) {
+      this._soccerRun = null;
+      this._soccerVoiceState.active = false;
+    }
   },
 
   /* --------- the little "TAP!" play mini-game --------- */

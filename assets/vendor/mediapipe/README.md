@@ -2,6 +2,8 @@
 
 - Package: `@mediapipe/tasks-vision` 0.10.14 (Apache-2.0, Google LLC)
 - Model: `face_landmarker.task` (float16/1) from storage.googleapis.com/mediapipe-models
+- Model: `pose_landmarker_lite.task` (float16/1) from the same bucket, for
+  the Australia volleyball camera game (`js/camera-pose.js`)
 - Only the SIMD wasm build is vendored; if it cannot load, the eating game
   falls back to tapping.
 

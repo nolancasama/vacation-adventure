@@ -304,10 +304,9 @@ VA.Data.DESTS = [
           { say: ['au_kid', 'Hi!', 'ハーイ！'] },
           { say: ['au_kid', "Let's play!", 'いっしょに遊ぼう！'] },
           { offer: { who: 'au_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
-          { caption: 'TAP the ball!' },
-          // The regular volleyball activity is active. Keep its dramatic
-          // three-shot finale in the project but do not play it for now.
-          { game: { n: 3, label: 'TAP! 🏐', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'au_kid', sfx: 'bounce', finale: 'volleyball', finaleEnabled: false } },
+          // Camera BUMP → SET → SPIKE (timing fallback without a camera),
+          // then the existing dramatic finale (js/volleyball-ar.js).
+          { volleyballAR: { sequence: ['bump', 'set', 'spike'] } },
           { caption: 'Nice!' },
           { anim: { id: 'au_kid', name: 'cheer', wait: false } },
           { say: ['au_kid', 'You are good!', 'じょうずだね！'] },
@@ -454,8 +453,7 @@ VA.Data.DESTS = [
           { say: ['fr_kid', 'Bonjour!', 'ボンジュール！'] },
           { say: ['fr_kid', "Let's play soccer!", 'サッカーしよう！'] },
           { offer: { who: 'fr_kid', yes: { text: "Yes! Let's play!", jp: 'うん、遊ぼう！' } } },
-          { caption: 'TAP to kick!' },
-          { game: { n: 3, label: 'KICK! ⚽', propId: 'ball', anim: 'volley', fromId: 'player', toId: 'fr_kid', goal: { x: 790, y: 370, scale: 0.25 }, sfx: 'kick' } },
+          { soccerVoice: { ballId: 'ball', playerId: 'player', teammateId: 'fr_kid', goal: { x: 790, y: 370, scale: 0.25 } } },
           { caption: 'GOAL!' },
           { anim: { id: 'fr_kid', name: 'cheer', wait: false } },
           { anim: { id: 'pige', name: 'wiggle', wait: false } },

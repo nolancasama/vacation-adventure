@@ -45,15 +45,16 @@ Vercel).
   Coco in after the second; its saved photo records the displayed backdrop.
   `VA.Look.state()` is the read-only semantic
   harness surface, including presentation/panorama/load/fallback state.
-- France soccer uses the legacy 3-tap `game` step ("TAP to kick!" / KICK! ⚽).
-  The new soccer minigames are parked, uncommitted and not loaded:
+- France soccer is spoken: the `soccerVoice` step (`VA.Cine._soccerVoice` in
+  `js/cinematic.js`, prompt card in `#soccer-game`) asks PASS → PASS → SHOOT,
+  reusing `_volleyPass` / `_goalShot` and `VA.Speech.listen`; a command button
+  appears only with the mic off, a hard error, or after three misses.
+  `VA.Cine.soccerVoiceState()` is the test surface. The older soccer
+  minigames are parked, uncommitted and not loaded:
   `js/soccer3d.js` (`VA.Soccer3D`, third-person 3D, lazy three.js from
   `assets/vendor/three/` + `soccer3d.css`) and its top-down fallback
   `js/soccer.js` (`VA.Soccer`). `js/cinematic.js` still dispatches the
-  `soccerGame` step. To re-enable: add the two `<script>` tags back to
-  `index.html` after cinematic.js and swap the soccer event's caption+game
-  steps in `js/data.js` for
-  `{ soccerGame: { ballId: 'ball', goal: { x: 790, y: 370, scale: 0.25 } } }`.
+  `soccerGame` step, but nothing uses it.
 - `js/eat-game.js` (`VA.EatGame`) provides the `eatGame` step after the food
   reward in the ice cream, crepe and kebab events: 3 bites, each cutting
   mask holes from per-food geometry in `VA.EatGame.SHAPES` (empty cone, clean
@@ -73,6 +74,12 @@ Vercel).
   first use), lip-gap/mouth-width openness with open/close hysteresis,
   ~8 checks/s, tracks stopped when the food is finished. Unsupported under
   file:// (tap only); `_setProviderForTest()` is the test seam.
+- Australia's volleyball uses `VA.VolleyballAR` for camera BUMP → SET → SPIKE,
+  driven by the local vendored Pose Landmarker through `VA.CameraPose` at about
+  10 checks/s. It pauses when the body leaves frame and retries only the missed
+  phase with hidden adaptive forgiveness. When camera use is disabled,
+  unsupported or fails, the same ball sequence becomes a HIT-window timing
+  game. Camera inference and tracks stop before the existing finale begins.
 - `js/timeline.js` (`VA.Timeline`) runs every reveal. Outcomes are saved
   before animating, and a reveal is never persisted or replayed.
   `window.VA_TIMELINE_SCALE` speeds it up for tests.
@@ -118,6 +125,14 @@ Vercel).
   unavailable / no-face fallbacks, tracks and loop stopped), settings, the
   three real food events and decline, plus an http smoke check that the
   vendored model loads (and is not fetched at startup); `.shots/eat/`.
+- `tests/soccer-voice-test.js` — waiting fake recognizer: command matching,
+  PASS/PASS/SHOOT ball path, interim acceptance, wrong words, hint ladder,
+  fallback (misses, hard error, mic off), stale callbacks, cleanup, and the
+  real France event (refusal, GOAL, photo); `.shots/soccer-voice/`.
+- `tests/volleyball-test.js` — pose geometry and mirroring, camera lifecycle,
+  BUMP → SET → SPIKE order, retry/forgiveness and lost-pose pause, timing
+  fallback paths, finale handoff, real Australia event, cleanup, vendored model
+  smoke coverage and `.shots/volleyball/` screenshots.
 - `tests/japanese-test.js` — Japanese-only, mixed and edited posts, replies
   and reviews (never blocked, English earns the normal response and bonus).
 - `test-e2e.js` — full Australia trip in mic-free (button) mode.
@@ -187,6 +202,11 @@ The controller writes the CURRENT_STATE/DESIGN_DECISIONS updates for item 3
 after review (that order was told not to edit docs).
 
 ## Next Steps
+
+- On a real Chromebook (hosted build): soccer PASS/SHOOT recognition latency
+  and accuracy with children; Pose Landmarker frame rate; BUMP/SET/SPIKE
+  thresholds (`VA.VolleyballAR.TUNING`, hit window 430 ms) for children;
+  camera permission in managed Chrome.
 
 - Try webcam eating on a real Chromebook (hosted build) and tune the
   open/close thresholds if bites are missed or doubled.

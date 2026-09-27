@@ -160,6 +160,18 @@ async function talk(page, label, stop, answers = {}, log = []) {
       await finishLook(page, label);
       continue;
     }
+    const soccerVoice = await page.evaluate(() => VA.Cine.soccerVoiceState()).catch(() => null);
+    if (soccerVoice && soccerVoice.active && soccerVoice.expected) {
+      // Say each command once per phase; the recognizer is always listening.
+      if (soccerVoice.phase !== talk._soccerPhase) {
+        talk._soccerPhase = soccerVoice.phase;
+        log.push({ q: '(soccer ' + soccerVoice.phase + ')', kind: 'soccer', said: soccerVoice.expected });
+        await say(page, { final: soccerVoice.expected });
+      }
+      await page.waitForTimeout(120);
+      continue;
+    }
+    if (soccerVoice && !soccerVoice.active) talk._soccerPhase = null;
     if (await page.evaluate(() => !!(VA.Soccer && VA.Soccer.state().active)).catch(() => false)) {
       await finishSoccer(page, label);
       continue;
