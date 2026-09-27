@@ -153,6 +153,25 @@ async function clickUntil(page, sel, cond, label) {
 async function talk(page, label, stop, answers = {}, log = []) {
   for (let i = 0; i < 700; i++) {
     if (await page.evaluate(stop).catch(() => false)) return log;
+    if (await vis(page, '.ar-handoff-fallback')) {
+      const handoff = await page.evaluate(() => {
+        const state = VA.ARHandoff.state();
+        return { q: state.mode === 'present' ? 'Passport, please.' : '(receive souvenir)',
+          kind: 'handoff', mode: state.mode, inputMode: state.inputMode,
+          button: document.querySelector('.ar-handoff-fallback').textContent.trim() };
+      });
+      log.push(handoff);
+      await jsClick(page, '.ar-handoff-fallback');
+      await page.waitForTimeout(500);
+      continue;
+    }
+    const playerAuto = await page.evaluate(() => {
+      const shown = document.querySelector('#dialogue').style.display !== 'none';
+      return shown && VA.Dialogue._lastWho === 'player' && VA.Dialogue._lastLine === 'Here you are.';
+    }).catch(() => false);
+    if (playerAuto && !log.some(item => item.kind === 'auto' && item.q === 'Here you are.')) {
+      log.push({ q: 'Here you are.', kind: 'auto', who: 'player' });
+    }
     if (await vis(page, '#hint-photo')) { log.push({ q: '(hint)', kind: 'hint' }); await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn')) { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
     if (await vis(page, '.eat-tap:not([disabled])')) { await jsClick(page, '.eat-tap'); await page.waitForTimeout(350); continue; }
@@ -506,7 +525,10 @@ async function talk(page, label, stop, answers = {}, log = []) {
 
   const find = q => log.filter(l => l.q.includes(q));
   const passport = find('Passport, please.');
-  check(passport.length === 1 && passport[0].kind === 'buttons' && passport[0].btns.join() === 'Here you are.', 'passport stays a "Here you are." button');
+  const passportAuto = find('Here you are.').filter(item => item.kind === 'auto' && item.who === 'player');
+  check(passport.length === 1 && passport[0].kind === 'handoff' && passport[0].mode === 'present' &&
+    passport[0].inputMode === 'fallback' && passport[0].button === 'SHOW PASSPORT' && passportAuto.length === 1,
+  'passport uses the fallback handoff, then the player auto-says "Here you are."');
   const ticket = find('Ticket, please.');
   check(ticket.length === 1 && ticket[0].kind === 'buttons', 'Eiffel ticket stays a button');
   check(find('One crepe?')[0].kind === 'mic', 'crepe offer is answered by speech');

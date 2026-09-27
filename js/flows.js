@@ -133,7 +133,10 @@ VA.Flows = {
     const D = VA.Dialogue;
     await D.say('officer', 'Hello!', { jp: 'こんにちは！' });
     await D.say('officer', 'Passport, please.', { jp: 'パスポートを見せてください。' });
-    await D.choice([{ text: 'Here you are.', jp: 'はい、どうぞ。' }]);
+    D.hide();
+    await VA.ARHandoff.present({ kind: 'passport', label: 'Passport',
+      instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' });
+    await D.auto('player', 'Here you are.', { jp: 'はい、どうぞ。' });
     await VA.Fx.stampSlam(destId);
     VA.State.addStamp(destId);
     await D.say('officer', dest.welcome.en, { jp: dest.welcome.jp });
@@ -244,9 +247,12 @@ VA.Flows = {
       VA.State.addCoins(-3);
       VA.State.setSouvenir(souv);
       await D.say(vendorId, 'Here you are.', { jp: 'はい、どうぞ。' });
+      D.hide();
       // Use the same full-resolution reward moment as food, rather than a
       // small toast, so the whole souvenir is visible when it is received.
       await VA.Art.preloadAndWait(['assets/objects/' + souv.file]);
+      await VA.ARHandoff.receive({ illustration: souv.file, label: souv.label,
+        instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' });
       await VA.Cine.showItemReward({
         illustration: souv.file,
         word: souv.label,

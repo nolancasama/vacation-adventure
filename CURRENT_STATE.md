@@ -64,11 +64,12 @@ Vercel).
   disabled, unavailable, failed, or has stalled for 10 seconds; it hides while
   a working camera is registering eating. "EAT! 😋" is the prompt; each bite
   pops CHOMP!. The front webcam (`facingMode: 'user'`) starts by default
-  unless Settings → `settings.camera` is off, shown as a small mirrored
+  unless Settings → Camera activities (`settings.camera`) is off, shown as a small mirrored
   preview bottom-right with a ○/◔/● mouth indicator; any failure quietly
   removes it. The first camera food shows 口をあけて、とじてね！ plus a looping
   mouth demo until the first camera bite (`guides.eating`); after that the
   hint returns only after ~6 s with no bite and never once the student taps.
+  The same Camera activities setting controls eating, volleyball and handoffs;
   `settings.cameraEat` is unused but kept in saves.
 - `js/camera-mouth.js` (`VA.CameraMouth`) is the only webcam/face-model code:
   vendored MediaPipe Face Landmarker (`assets/vendor/mediapipe/`, loaded on
@@ -86,6 +87,13 @@ Vercel).
   (`TUNING.tutorialMs`); copy lives in `VA.VolleyballAR.HINTS` / `.COPY`.
   Every ball (retries and fallback too) follows a 3-2-1-GO! countdown
   (`TUNING.countdownMs` / `goMs`, `state().countdown`); a lost pose restarts it.
+- `js/ar-handoff.js` (`VA.ARHandoff`) provides reusable waist-up present and
+  receive actions, currently only for passport control and receiving the chosen
+  souvenir. Either wrist picks up by a short dwell, the attached object follows
+  that wrist to the officer/chest target, and lost pose pauses then resumes the
+  same stage. Camera failures use a direct button; a quiet button assist appears
+  after a long wait while working camera play continues. Camera inference and
+  tracks stop before the handoff promise resolves.
 - HUD: coins, Passport, Settings only. Photos open from the bedroom corkboard
   and the scrapbook from the bedroom scrapbook object.
 - `js/timeline.js` (`VA.Timeline`) runs every reveal. Outcomes are saved
@@ -141,6 +149,9 @@ Vercel).
   BUMP → SET → SPIKE order, retry/forgiveness and lost-pose pause, timing
   fallback paths, finale handoff, real Australia event, cleanup, vendored model
   smoke coverage and `.shots/volleyball/` screenshots.
+- `tests/handoff-test.js` — handoff geometry, either-wrist dwell and following,
+  receive/chest carry, lost-pose resume, camera failure fallbacks, quiet assist,
+  cleanup, real arrival/departure integration and `.shots/handoff/` screenshots.
 - `tests/japanese-test.js` — Japanese-only, mixed and edited posts, replies
   and reviews (never blocked, English earns the normal response and bonus).
 - `test-e2e.js` — full Australia trip in mic-free (button) mode.

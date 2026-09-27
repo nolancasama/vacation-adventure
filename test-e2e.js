@@ -93,6 +93,7 @@ async function talk(page, label, stopFnBody, opts = {}) {
       }
     }
 
+    if (await vis(page, '.ar-handoff-fallback')) { await jsClick(page, '.ar-handoff-fallback'); await page.waitForTimeout(500); continue; }
     if (await vis(page, '#hint-photo')) { await jsClick(page, '#hint-photo'); await page.waitForTimeout(400); continue; }
     if (await vis(page, '#tap-btn'))    { await jsClick(page, '#tap-btn'); await page.waitForTimeout(350); continue; }
     if (await vis(page, '.volleyball-ar-hit')) {

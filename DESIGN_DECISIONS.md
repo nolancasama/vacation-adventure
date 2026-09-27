@@ -594,3 +594,13 @@ into the (removed) album button.
 **Rejected.** A slower dramatic countdown, resuming a cancelled countdown
 mid-way, hiding the HUD buttons with CSS, and a new bedroom album object (the
 corkboard already is one).
+
+## 2026-09-27 — Physical handoffs use waist-up movement
+
+**What.** Speak to communicate; move to act. Passport control and receiving
+the chosen souvenir use a reusable waist-up handoff: either wrist acts as the
+hand, the object follows it to a visible target, and a short dwell completes
+each contact. Camera-off play uses a direct button, and a quiet button assist
+appears only after a long wait while a working camera continues.
+
+**Rejected.** Finger or grasp recognition, dragging, and countdowns.

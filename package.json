@@ -16,6 +16,7 @@
     "test:soccer3d": "node -r ./tests/pw-path.js tests/soccer3d-test.js",
     "test:eat": "node -r ./tests/pw-path.js tests/eat-test.js",
     "test:volleyball": "node -r ./tests/pw-path.js tests/volleyball-test.js",
-    "test:soccer-voice": "node -r ./tests/pw-path.js tests/soccer-voice-test.js"
+    "test:soccer-voice": "node -r ./tests/pw-path.js tests/soccer-voice-test.js",
+    "test:handoff": "node -r ./tests/pw-path.js tests/handoff-test.js"
   }
 }
