@@ -326,6 +326,44 @@ let server;
   check(!geom.spikeNoWindow, 'SPIKE: nothing counts outside the hit window');
   check(geom.liveTuningHasDownward, 'live (forgiveness) tuning carries spikeDownwardMin');
 
+  console.log('ball reaction after a hit (pure)');
+  const react = await page.evaluate(() => {
+    const V = VA.VolleyballAR;
+    const T = V.TUNING;
+    const bump = V._path('bump', { x: 0.47, y: 0.65 }).end;
+    const set = V._path('set', { x: 0.55, y: 0.25 }).end;
+    const spikeTarget = { x: 0.62, y: 0.28 };
+    const spike = V._path('spike', spikeTarget).end;
+    // Drive the real return animation on a minimal session.
+    const scaleAt = (phase, elapsed) => {
+      const s = { publicState: { ball: { x: .5, y: .5, scale: 1 }, paused: false, mode: 'camera' },
+        ui: { ball: document.createElement('div') },
+        ballRun: { phase, stage: 'return', elapsed: 0, path: V._path(phase, { x: .5, y: .4 }) } };
+      V._advanceBall(s, 0);
+      s.ballRun.elapsed = elapsed;
+      V._advanceBall(s, 0);
+      return { scale: s.publicState.ball.scale, css: s.ui.ball.style.getPropertyValue('--ball-scale') };
+    };
+    const fresh = { active: true, pose: null, publicState: { forgiveness: 1, ball: { x: .5, y: 1, scale: .4 }, mode: 'camera' },
+      ui: { ball: document.createElement('div') } };
+    V._launchPhaseBall(fresh, 'spike');
+    return {
+      bump, set, spike, spikeTarget,
+      faster: T.spikeReturnMs < T.returnMs,
+      spike0: scaleAt('spike', 0), spikeEnd: scaleAt('spike', T.spikeReturnMs - 1),
+      bumpEnd: scaleAt('bump', T.returnMs - 1),
+      freshScale: fresh.publicState.ball.scale,
+    };
+  });
+  check(Math.abs(react.bump.x - 0.47) < 0.02 && react.bump.y <= 0.1, 'BUMP ball leaves straight up from where it was hit (' + JSON.stringify(react.bump) + ')');
+  check(Math.abs(react.set.x - 0.55) < 0.02 && react.set.y <= 0.1, 'SET ball leaves straight up from where it was hit (' + JSON.stringify(react.set) + ')');
+  check(react.spike.y > 1 && react.spike.x >= react.spikeTarget.x, 'SPIKE ball drives down and away (' + JSON.stringify(react.spike) + ')');
+  check(react.faster, 'SPIKE leaves faster than BUMP/SET');
+  check(Math.abs(react.spike0.scale - 1) < .02 && Math.abs(react.spikeEnd.scale - .4) < .03 && react.spikeEnd.css !== '',
+    'SPIKE ball shrinks from 1 to ~0.4 via --ball-scale (' + react.spike0.scale + ' → ' + react.spikeEnd.scale.toFixed(2) + ')');
+  check(react.bumpEnd.scale === 1, 'BUMP/SET balls keep scale 1');
+  check(react.freshScale === 1, 'a new or retried ball always starts at scale 1');
+
   console.log('classroom copy, waist-up pose, BUMP target (pure)');
   const pure = await page.evaluate(() => {
     const V = VA.VolleyballAR;
@@ -439,6 +477,12 @@ let server;
   }, phase, { timeout: 10000, polling: 'raf' }).then(() => true).catch(() => false);
   check(await contact('bump'), 'BUMP contact reached');
   await page.screenshot({ path: SHOT('bump') });
+  const bumpExit = await page.waitForFunction(() => {
+    const st = VA.VolleyballAR.state();
+    return st.phase === 'bump' && st.ball && st.ball.stage === 'return' && st.ball.y < 0.45 ? st.ball : null;
+  }, null, { timeout: 3000, polling: 'raf' }).then(h => h.jsonValue()).catch(() => null);
+  check(!!bumpExit && bumpExit.scale === 1, 'live BUMP exit rises at full size ' + JSON.stringify(bumpExit));
+  await page.screenshot({ path: SHOT('bump-exit') });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'set', undefined, 'SET followed BUMP', 10000);
   const setTut = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), hint: document.querySelector('.volleyball-ar-hint').textContent,
     demo: document.querySelector('.volleyball-ar-demo').classList.contains('demo-set') }));
@@ -459,6 +503,12 @@ let server;
     undefined, 'SPIKE demo is followed by the countdown, ball still waiting', 3000);
   check(await contact('spike'), 'SPIKE contact reached');
   await page.screenshot({ path: SHOT('spike') });
+  const spikeExit = await page.waitForFunction(() => {
+    const st = VA.VolleyballAR.state();
+    return st.ball && st.ball.stage === 'return' && st.ball.scale < 0.75 ? st.ball : null;
+  }, null, { timeout: 3000, polling: 'raf' }).then(h => h.jsonValue()).catch(() => null);
+  check(!!spikeExit && spikeExit.y > 0.3, 'live SPIKE exit drives the ball downward while it shrinks ' + JSON.stringify(spikeExit));
+  await page.screenshot({ path: SHOT('spike-exit') });
   await precondition(page, () => (window.__finaleCalls || 0) > 0, undefined, 'finale started after SPIKE', 10000);
   const beforeFinale = await page.evaluate(() => window.__beforeFinale);
   check(!beforeFinale.camera.running && beforeFinale.tracks.every(state => state === 'ended'),

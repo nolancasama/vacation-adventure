@@ -655,3 +655,22 @@ natural hand-over. RECEIVE: the destination vendor (already resolved in
 **Rejected.** Any hand, arm, pointing or reaching graphic or animation, new or
 edited character art, world-space AR (depth, floor, occlusion), and a visible
 target shape for the passport.
+
+## 2026-09-27 — Souvenir sits in the vendor's hands; hits show what they mean
+
+**What.** The souvenir is offered smaller (145 px, 170 px once carried) and low
+over the vendor's own drawn hands: shared anchor `RECEIVE_START` (0.73, 0.58)
+for the France and Egypt vendors, with one art-keyed exception
+(`RECEIVE_START_BY_CHAR.au_vendor` = 0.78, 0.66) because the ice-cream vendor's
+arms hang down. That exception deliberately stops short of his hands' full
+depth: with instant pickup, a hand resting at desk height near the bottom
+edge must not grab it by accident. Volleyball hit reactions: BUMP and SET
+send the ball straight up from the hit point; SPIKE glows, jolts the stage
+3 px (none with reduced motion), plays the synthesized `spike` SFX and drives
+the ball down and slightly away in 330 ms while it shrinks to 0.4 via a
+`--ball-scale` CSS variable (so the centring translate is never overwritten).
+Incoming paths, hit windows and recognition are unchanged.
+
+**Rejected.** Hand graphics, per-destination anchors where one shared point
+works, a full-screen flash, large shakes, and reusing the `.is-hit` pop for
+SPIKE (it animates transform and would fight the shrink).

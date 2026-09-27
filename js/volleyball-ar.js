@@ -84,6 +84,8 @@
       incoming: { bump: 1900, set: 2100, spike: 1800 },
       contactPause: 180,
       returnMs: 650,
+      spikeReturnMs: 330, // a spike leaves much faster than a bump or set
+      spikeEndScale: 0.4, // …and shrinks as it drives away across the court
       retryPause: 300,
       readyMs: 500,
       tutorialMs: 1200, // first appearance of each move: demo before the ball
@@ -384,8 +386,12 @@
 
     _path(phase, target) {
       const starts = { bump: { x: 0.22, y: 0.08 }, set: { x: 0.82, y: 0.62 }, spike: { x: 0.12, y: 0.08 } };
-      const exits = { bump: { x: 0.78, y: 0.08 }, set: { x: 0.20, y: 0.05 }, spike: { x: 1.08, y: 0.05 } };
-      return { start: starts[phase], target, end: exits[phase] };
+      // After a hit the ball shows what the move means: BUMP and SET send it
+      // straight up from where it was touched; SPIKE drives it down and away.
+      const end = phase === 'bump' ? { x: target.x, y: 0.06 }
+        : phase === 'set' ? { x: target.x, y: 0.03 }
+        : { x: Math.min(1.04, target.x + 0.10), y: 1.04 };
+      return { start: starts[phase], target, end };
     },
 
     _startPhase(s, index) {
@@ -505,7 +511,7 @@
         incoming: this.TUNING.incoming[phase] * p.forgiveness,
         window: this.TUNING.hitWindow * p.forgiveness,
       };
-      p.ball = { x: path.start.x, y: path.start.y, hittable: false, stage: 'incoming' };
+      p.ball = { x: path.start.x, y: path.start.y, scale: 1, hittable: false, stage: 'incoming' };
       s.ui.ball.hidden = false;
       this._renderBall(s);
       this._syncHitButton(s);
@@ -543,9 +549,11 @@
           p.ball.stage = 'return';
         }
       } else if (run.stage === 'return') {
-        const t = Math.min(1, run.elapsed / this.TUNING.returnMs);
+        const spike = run.phase === 'spike';
+        const t = Math.min(1, run.elapsed / (spike ? this.TUNING.spikeReturnMs : this.TUNING.returnMs));
         p.ball.x = this._lerp(run.path.target.x, run.path.end.x, t);
         p.ball.y = this._lerp(run.path.target.y, run.path.end.y, t);
+        p.ball.scale = spike ? this._lerp(1, this.TUNING.spikeEndScale, t) : 1;
         if (t >= 1) this._afterReturn(s);
       }
       if (s.ballRun) this._renderBall(s);
@@ -557,6 +565,7 @@
       if (!ball) { s.ui.ball.hidden = true; return; }
       s.ui.ball.style.left = (ball.x * 100) + '%';
       s.ui.ball.style.top = (ball.y * 100) + '%';
+      s.ui.ball.style.setProperty('--ball-scale', ball.scale || 1); // CSS keeps the centring translate
       s.ui.ball.classList.toggle('is-hittable', !!ball.hittable);
     },
 
@@ -579,9 +588,18 @@
       run.elapsed = 0;
       s.ui.command.textContent = run.phase === 'spike' ? 'SPIKE! 💥' : run.phase.toUpperCase() + '! ✨';
       s.ui.hint.textContent = '';
-      s.ui.ball.classList.add('is-hit');
-      this._later(s, 260, () => s.ui.ball.classList.remove('is-hit'));
-      VA.Audio.sfx('pop');
+      if (run.phase === 'spike') {
+        // Strong but short: ball glow + a tiny stage jolt (none with reduced
+        // motion). Filter-only on the ball so the shrink transform is untouched.
+        s.ui.ball.classList.add('is-spike-hit');
+        s.ui.root.classList.add('spike-impact');
+        this._later(s, 220, () => { s.ui.ball.classList.remove('is-spike-hit'); s.ui.root.classList.remove('spike-impact'); });
+        VA.Audio.sfx('spike');
+      } else {
+        s.ui.ball.classList.add('is-hit');
+        this._later(s, 260, () => s.ui.ball.classList.remove('is-hit'));
+        VA.Audio.sfx('pop');
+      }
       this._syncHitButton(s);
     },
 

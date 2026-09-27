@@ -1706,7 +1706,8 @@ body {
 }
 .volleyball-ar-message:empty { display:none; }
 .volleyball-ar-ball {
-  position:absolute; z-index:4; width:112px; height:112px; transform:translate(-50%,-50%);
+  --ball-scale:1;
+  position:absolute; z-index:4; width:112px; height:112px; transform:translate(-50%,-50%) scale(var(--ball-scale));
   display:grid; place-items:center; font:82px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;
   filter:drop-shadow(0 9px 7px rgba(0,0,0,.34)); pointer-events:none; will-change:left,top,transform;
 }
@@ -1714,6 +1715,20 @@ body {
   filter:drop-shadow(0 0 13px #fff) drop-shadow(0 0 23px #ffe156) drop-shadow(0 9px 7px rgba(0,0,0,.3));
 }
 .volleyball-ar-ball.is-hit { animation:volleyball-ar-hit-pop .26s ease-out; }
+/* SPIKE impact: glow only (the shrink lives in transform), plus a 3px jolt */
+.volleyball-ar-ball.is-spike-hit { animation:volleyball-ar-spike-impact .2s ease-out; }
+@keyframes volleyball-ar-spike-impact {
+  0% { filter:drop-shadow(0 0 0 #fff); }
+  40% { filter:drop-shadow(0 0 18px #fff) drop-shadow(0 0 34px #ffe156); }
+  100% { filter:drop-shadow(0 9px 7px rgba(0,0,0,.34)); }
+}
+.volleyball-ar.spike-impact { animation:volleyball-ar-spike-shake .18s ease-out; }
+@keyframes volleyball-ar-spike-shake {
+  0%, 100% { transform:translate(0,0); }
+  25% { transform:translate(-3px,2px); }
+  50% { transform:translate(3px,-2px); }
+  75% { transform:translate(-2px,1px); }
+}
 .volleyball-ar-hit {
   position:absolute; z-index:5; left:50%; bottom:20px; transform:translateX(-50%);
   width:340px; min-height:68px; border:4px solid rgba(255,255,255,.92); border-radius:22px;
@@ -1844,7 +1859,10 @@ body {
   align-self:end; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font:800 15px/1.1 var(--font); text-transform:uppercase;
 }
-.ar-handoff-object.is-souvenir { width:190px; height:190px; }
+/* Offered: small enough to sit in the vendor's own hands; a little larger once
+   it is in the student's hand. */
+.ar-handoff-object.is-souvenir { width:145px; height:145px; transition:width .12s ease, height .12s ease; }
+.ar-handoff.is-receive.is-carrying .ar-handoff-object.is-souvenir { width:170px; height:170px; }
 .ar-handoff-object.is-souvenir img { display:block; width:100%; height:100%; object-fit:contain; }
 .ar-handoff-target {
   position:absolute; z-index:3; width:245px; height:150px; transform:translate(-50%,-50%);
@@ -1901,7 +1919,7 @@ body {
   .scene-art.drift, .hotspot, .depart-btn, #tap-btn, .map-pin, .actor.bob { animation:none !important; }
   .player-ground-shadow, .environment-light { animation:none !important; }
   .volleyball-finale-shot, .volleyball-finale-shot *, .volleyball-finale-shot::before, .volleyball-finale-shot::after { animation:none !important; transition:none !important; }
-  .volleyball-ar-ball, .volleyball-ar-hit, .volleyball-ar-countdown { animation:none !important; }
+  .volleyball-ar-ball, .volleyball-ar-hit, .volleyball-ar-countdown, .volleyball-ar.spike-impact { animation:none !important; }
   .volleyball-ar-demo i, .volleyball-ar-demo span { animation-duration:.01ms !important; } /* end pose only */
   .ar-handoff-object, .ar-handoff-object::after, .ar-handoff-target::after { animation:none !important; }
   .bedroom-hotspot.first-trip { animation:none; }

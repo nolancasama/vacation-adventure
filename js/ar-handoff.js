@@ -58,6 +58,14 @@
     // Invisible zone at the officer's chest (he stands at the right edge), so
     // the handed-over passport never covers his face.
     PASSPORT_TARGET: { x: 0.79, y: 0.64 },
+    // Where the vendor offers the souvenir: over the vendor's own hands (one
+    // shared anchor for every destination vendor), not hovering at head height.
+    RECEIVE_START: { x: 0.73, y: 0.58 },
+    // Per-art exceptions only where the shared anchor misses the drawn hands:
+    // the ice-cream vendor's arms hang down, so the offer sits lower at his side
+    // (not at his hands' full depth: with instant pickup, a hand resting at
+    // desk height near the bottom edge must not grab it by accident).
+    RECEIVE_START_BY_CHAR: { au_vendor: { x: 0.78, y: 0.66 } },
 
     _geom: { dist, chestPoint, nearestWrist },
     _session: null,
@@ -76,7 +84,8 @@
       if (!screen) return Promise.resolve();
       const ui = this._buildUI(mode, cfg);
       screen.appendChild(ui.root);
-      const start = mode === 'present' ? { x: 0.50, y: 0.68 } : { x: 0.72, y: 0.42 };
+      const start = mode === 'present' ? { x: 0.50, y: 0.68 }
+        : { ...(this.RECEIVE_START_BY_CHAR[cfg.npcId] || this.RECEIVE_START) };
       const target = mode === 'present' ? { ...this.PASSPORT_TARGET } : null;
       const publicState = {
         active: true, mode, inputMode: 'starting', stage: 'pickup', hand: null,

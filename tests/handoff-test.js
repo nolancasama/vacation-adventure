@@ -101,7 +101,7 @@ async function start(page, mode, options = {}) {
   await page.evaluate(({ kind, illustration, npcId }) => {
     const cfg = kind === 'present'
       ? { kind: 'passport', label: 'Passport', npcId: npcId || 'officer', instruction: 'Show your passport!', instructionJP: 'パスポートを見せてね！' }
-      : { illustration: illustration || 'souvenir_koala.webp', label: 'Koala', npcId: npcId || 'au_vendor', instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' };
+      : { illustration: illustration || 'souvenir_koala.webp', label: 'Koala', npcId: npcId || 'fr_vendor', instruction: 'Take it!', instructionJP: '手をのばして、うけとってね！' };
     VA.ARHandoff[kind](cfg).then(() => {
       window.__handoffDone++;
       window.__handoffResolvedState = {
@@ -119,6 +119,8 @@ const pose = (left, right, shoulders = { left: { x: .4, y: .4 }, right: { x: .6,
 });
 const setPose = (page, value) => page.evaluate(next => { window.__handoffPose = next; }, value);
 const PASSPORT_TARGET = { x: .79, y: .64 }; // must match VA.ARHandoff.PASSPORT_TARGET (checked below)
+const RECEIVE_START = { x: .73, y: .58 }; // must match VA.ARHandoff.RECEIVE_START (checked below)
+const RS = (dx = 0, dy = 0) => ({ x: +(RECEIVE_START.x + dx).toFixed(3), y: +(RECEIVE_START.y + dy).toFixed(3) });
 const finishAt = async (page, side, target, wait = 550) => {
   const far = side === 'left' ? { x: .9, y: .8 } : { x: .1, y: .8 };
   const left = side === 'left' ? { x: target.x - .025, y: target.y + .025 } : far;
@@ -245,14 +247,22 @@ let browser;
   await page.screenshot({ path: SHOT('souvenir-camera-ready') });
   const src = await page.$eval('.ar-handoff-object img', img => img.getAttribute('src'));
   check(src === 'assets/objects/souvenir_koala.webp', 'receive uses the real souvenir illustration src');
-  await setPose(page, pose({ x: .55, y: .5 }, { x: .9, y: .75 })); // reaching, just outside the zone
+  const offer = await page.evaluate(() => ({ start: VA.ARHandoff.state().object, anchor: VA.ARHandoff.RECEIVE_START,
+    size: document.querySelector('.ar-handoff-object.is-souvenir').getBoundingClientRect().width }));
+  check(offer.anchor.x === RECEIVE_START.x && offer.anchor.y === RECEIVE_START.y &&
+    offer.start.x === RECEIVE_START.x && offer.start.y === RECEIVE_START.y && offer.start.y > .5,
+  'souvenir is offered low, at the vendor\'s hands (' + JSON.stringify(offer.start) + '), not at head height');
+  await setPose(page, pose(RS(-.19, 0), { x: .9, y: .75 })); // reaching, just outside the zone
   await page.waitForTimeout(250);
   check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'a hand just outside the souvenir zone does not pick it up');
   await page.screenshot({ path: SHOT('souvenir-reach') });
-  await setPose(page, pose({ x: .72, y: .42 }, { x: .9, y: .75 }));
+  await setPose(page, pose(RS(), { x: .9, y: .75 }));
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'receive pickup');
   check(await page.evaluate(() => document.querySelector('.ar-handoff-command').textContent === 'Bring it back!' &&
     document.querySelector('.ar-handoff-jp').textContent === '手をもどしてね！'), 'carry instruction is "Bring it back!" / 手をもどしてね！');
+  await page.waitForTimeout(200); // past the .12s size transition
+  const carriedSize = await page.evaluate(() => document.querySelector('.ar-handoff-object.is-souvenir').getBoundingClientRect().width);
+  check(offer.size < carriedSize, `offered souvenir is smaller than the carried one (${Math.round(offer.size)} < ${Math.round(carriedSize)} px)`);
   await finishAt(page, 'left', { x: .76, y: .72 }, 0);
   // Pose arrives every ~100 ms: the object must be at the wrist by the next
   // couple of samples (well under the 300 ms chest dwell), not a fixed guess.
@@ -285,7 +295,22 @@ let browser;
   check(vendorUi.char === 'fr_vendor' && vendorUi.shown, 'receive shows the given vendor (fr_vendor)');
   check(vendorUi.inert && vendorUi.objectAbove, 'vendor overlay is pointer-inert and under the souvenir');
   await page.screenshot({ path: SHOT('souvenir-vendor') });
-  await setPose(page, pose({ x: .72, y: .42 }, { x: .85, y: .8 }));
+  // One shared offer anchor must read as "in the vendor's hands" for every vendor.
+  for (const vendor of ['au_vendor', 'eg_vendor']) {
+    await page.evaluate(() => VA.Screens.show('home'));
+    await waitFor(page, () => window.__handoffDone === 1, 'vendor preview cleanup');
+    await installProvider(page);
+    await start(page, 'receive', { npcId: vendor, illustration: 'souvenir_koala.webp' });
+    await setPose(page, pose({ x: .2, y: .75 }, { x: .35, y: .9 })); // hands resting, well clear of the offer
+    await waitFor(page, () => VA.ARHandoff.state().poseSeen, vendor + ' preview ready');
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: SHOT('souvenir-offer-' + vendor) });
+    const at = await page.evaluate(v => ({ start: VA.ARHandoff.state().object,
+      want: VA.ARHandoff.RECEIVE_START_BY_CHAR[v] || VA.ARHandoff.RECEIVE_START }), vendor);
+    check(at.start.x === at.want.x && at.start.y === at.want.y && at.start.y > .5,
+      vendor + ': souvenir offered at its vendor\'s hands ' + JSON.stringify(at.start));
+  }
+  await setPose(page, pose(RS(), { x: .85, y: .8 }));
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'souvenir still picked up with the vendor shown');
   check(await page.evaluate(() => !!document.querySelector('.ar-handoff-npc').offsetParent), 'vendor stays visible after the souvenir is taken');
   await page.screenshot({ path: SHOT('souvenir-vendor-taken') });
@@ -298,7 +323,7 @@ let browser;
   for (const side of ['right', 'left']) {
     await installProvider(page);
     await start(page, 'receive', { illustration: 'souvenir_koala.webp' });
-    const reach = { x: .72, y: .57 }; // 0.15 away: inside 0.17, outside the passport's 0.13
+    const reach = RS(0, .15); // 0.15 away: inside 0.17, outside the passport's 0.13
     const away = side === 'right' ? pose(null, { x: .9, y: .8 }) : pose({ x: .1, y: .8 }, null);
     await setPose(page, away);
     await waitFor(page, () => VA.ARHandoff.state().poseSeen, side + '-only wrist is a ready pose');
