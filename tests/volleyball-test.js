@@ -124,11 +124,13 @@ async function installProvider(page, mode = 'ok') {
         pose.leftWrist = { x: ball.x - 0.01, y: ball.y };
         pose.rightWrist = { x: ball.x + 0.01, y: ball.y };
       } else if (state.phase === 'spike') {
+        // Raised above the ball ↔ swung down through and past it. Only the
+        // downward half of each cycle may count; the upward recovery must not.
         window.__spikeSample++;
-        const atBall = window.__spikeSample % 2 === 0;
-        pose.leftWrist = atBall
-          ? { x: ball.x, y: ball.y }
-          : { x: Math.max(0.05, ball.x - 0.3), y: Math.min(0.38, ball.y + 0.08) };
+        const raised = window.__spikeSample % 2 === 1;
+        pose.leftWrist = raised
+          ? { x: ball.x, y: Math.max(0.05, ball.y - 0.15) }
+          : { x: ball.x, y: ball.y + 0.12 };
       }
       return [screenPose(pose)];
     };
@@ -280,9 +282,13 @@ let server;
     const bumpBall = { x: 0.5, y: 0.64, hittable: true };
     const setPose = { ...base, leftWrist: { x: 0.42, y: 0.3 }, rightWrist: { x: 0.58, y: 0.3 } };
     const setBall = { x: 0.42, y: 0.3, hittable: true };
-    const prev = { ...base, leftWrist: { x: 0.15, y: 0.32 } };
-    const spike = { ...base, leftWrist: { x: 0.48, y: 0.25 } };
-    const spikeBall = { x: 0.48, y: 0.25, hittable: true };
+    // SPIKE: swept wrist path, shoulder at y 0.42 (screen y grows downward)
+    const sp = (prevW, curW) => [
+      { ...base, leftShoulder: { x: 0.5, y: 0.42 }, leftWrist: curW },
+      { ...base, leftShoulder: { x: 0.5, y: 0.42 }, leftWrist: prevW },
+    ];
+    const spikeBall = { x: 0.5, y: 0.4, hittable: true };
+    const spikeCase = (prevW, curW, ball = spikeBall) => { const [cur, prv] = sp(prevW, curW); return g.isSpike(cur, prv, ball, t); };
     return {
       dist: g.dist({ x: 0, y: 0 }, { x: 3, y: 4 }),
       segment: g.pointSegmentDistance({ x: 0.5, y: 0.2 }, { x: 0, y: 0 }, { x: 1, y: 0 }),
@@ -293,9 +299,16 @@ let server;
       setYes: g.isSet(setPose, setBall, t),
       setNoWindow: g.isSet(setPose, { ...setBall, hittable: false }, t),
       setNoRaised: g.isSet(base, setBall, t),
-      spikeYes: g.isSpike(spike, prev, spikeBall, t),
-      spikeNoWindow: g.isSpike(spike, prev, { ...spikeBall, hittable: false }, t),
-      spikeNoMotion: g.isSpike(spike, spike, spikeBall, t),
+      spikeCrossing: spikeCase({ x: 0.5, y: 0.25 }, { x: 0.5, y: 0.55 }),
+      spikeThrough: spikeCase({ x: 0.5, y: 0.15 }, { x: 0.5, y: 0.65 }),
+      spikeEndpointsFar: g.dist({ x: 0.5, y: 0.15 }, spikeBall) >= t.spikeRadius && g.dist({ x: 0.5, y: 0.65 }, spikeBall) >= t.spikeRadius,
+      spikePullBack: spikeCase({ x: 0.5, y: 0.55 }, { x: 0.5, y: 0.25 }),
+      spikeSideMiss: spikeCase({ x: 0.2, y: 0.25 }, { x: 0.2, y: 0.55 }),
+      spikeDiagonal: spikeCase({ x: 0.35, y: 0.25 }, { x: 0.6, y: 0.52 }, { x: 0.47, y: 0.38, hittable: true }),
+      spikeJitter: spikeCase({ x: 0.5, y: 0.39 }, { x: 0.5, y: 0.41 }),
+      spikeNeverHigh: spikeCase({ x: 0.5, y: 0.45 }, { x: 0.5, y: 0.75 }, { x: 0.5, y: 0.6, hittable: true }),
+      spikeNoWindow: spikeCase({ x: 0.5, y: 0.25 }, { x: 0.5, y: 0.55 }, { ...spikeBall, hittable: false }),
+      liveTuningHasDownward: typeof VA.VolleyballAR._effectiveTuning({ publicState: { forgiveness: 1 } }).spikeDownwardMin === 'number',
     };
   });
   check(geom.dist === 5, 'dist returns Euclidean distance');
@@ -303,7 +316,15 @@ let server;
   check(geom.midpoint.x === 0.5 && geom.midpoint.y === 0.5, 'midpoint averages both axes');
   check(geom.bumpYes && !geom.bumpNoWindow && !geom.bumpNoTogether, 'BUMP requires window, close wrists and ball contact');
   check(geom.setYes && !geom.setNoWindow && !geom.setNoRaised, 'SET requires window, raised wrists and ball contact');
-  check(geom.spikeYes && !geom.spikeNoWindow && !geom.spikeNoMotion, 'SPIKE requires window, motion toward the ball and contact');
+  check(geom.spikeCrossing, 'SPIKE: a downward swing from above to below the ball hits');
+  check(geom.spikeThrough && geom.spikeEndpointsFar, 'SPIKE: a fast swing whose path crosses the ball hits even though neither sample is near it');
+  check(!geom.spikePullBack, 'SPIKE: the upward pull-back through the ball never counts');
+  check(!geom.spikeSideMiss, 'SPIKE: a downward swing beside the ball misses');
+  check(geom.spikeDiagonal, 'SPIKE: a diagonal downward strike through the ball hits');
+  check(!geom.spikeJitter, 'SPIKE: small jitter at the ball is not a swing');
+  check(!geom.spikeNeverHigh, 'SPIKE: a swing that never starts above the shoulder does not count');
+  check(!geom.spikeNoWindow, 'SPIKE: nothing counts outside the hit window');
+  check(geom.liveTuningHasDownward, 'live (forgiveness) tuning carries spikeDownwardMin');
 
   console.log('classroom copy, waist-up pose, BUMP target (pure)');
   const pure = await page.evaluate(() => {

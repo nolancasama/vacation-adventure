@@ -33,8 +33,8 @@
     frameJP: '上半身とうでが見えるようにしてね！',
     lost: 'Show your arms! 🙂',
     lostJP: 'りょううでが見えるようにしてね！',
-    receiveCarry: 'Bring it to you!',
-    receiveCarryJP: '自分のほうにもってきてね！',
+    receiveCarry: 'Bring it back!',
+    receiveCarryJP: '手をもどしてね！',
   };
 
   const inactive = () => ({
@@ -45,7 +45,8 @@
 
   VA.ARHandoff = {
     TUNING: {
-      pickupRadius: 0.13,
+      pickupRadius: 0.13, // passport: dwell to pick up
+      receivePickupRadius: 0.17, // souvenir: touch = instant pickup
       targetRadius: 0.15,
       chestRadius: 0.18,
       dwellMs: 350,
@@ -178,17 +179,23 @@
       s.assistTimer = this._later(s, this.TUNING.assistMs, () => this._showAssist(s));
     },
 
-    _poseComplete(pose) {
-      return !!(pose && pose.leftShoulder && pose.rightShoulder && pose.leftWrist && pose.rightWrist);
+    /* Shoulders always; then only the wrist(s) that matter: the carrying
+       hand once something is attached, either hand to receive, both hands
+       to pick up the passport. The unused hand may leave the frame. */
+    _poseComplete(pose, mode, hand = null) {
+      if (!pose || !pose.leftShoulder || !pose.rightShoulder) return false;
+      if (hand) return !!pose[hand + 'Wrist'];
+      if (mode === 'receive') return !!(pose.leftWrist || pose.rightWrist);
+      return !!(pose.leftWrist && pose.rightWrist);
     },
 
     _receivePose(s, pose) {
       if (!s.active || s.publicState.inputMode === 'fallback') return;
-      if (!this._poseComplete(pose)) {
-        if (s.publicState.poseSeen) this._poseLost(s);
+      const p = s.publicState;
+      if (!this._poseComplete(pose, s.mode, p.object.attached ? p.hand : null)) {
+        if (p.poseSeen) this._poseLost(s);
         return;
       }
-      const p = s.publicState;
       const firstPose = !p.poseSeen;
       p.poseSeen = true;
       p.paused = false;
@@ -212,26 +219,37 @@
 
       if (p.stage === 'pickup') {
         const nearest = nearestWrist(pose, p.object);
-        this._dwell(s, nearest.distance <= this.TUNING.pickupRadius, 'pickup', nearest.side, () => {
-          p.stage = 'carry';
-          p.hand = nearest.side;
-          p.object.attached = true;
-          if (s.mode === 'present') p.target = { x: 0.77, y: 0.38 };
-          else {
-            p.target = chestPoint(pose);
-            s.ui.message.textContent = 'Got it! ✨';
-            VA.Audio.sfx('pop');
-            s.messageTimer = this._later(s, 650, () => {
-              s.messageTimer = 0;
-              if (!p.done && !p.paused) s.ui.message.textContent = '';
-            });
-          }
-          this._setInstruction(s);
-        });
+        if (s.mode === 'receive') {
+          // Reach → touch → snap to the hand: no hold for taking a gift.
+          if (nearest.side && nearest.distance <= this.TUNING.receivePickupRadius) this._attach(s, nearest.side, pose);
+        } else {
+          this._dwell(s, nearest.distance <= this.TUNING.pickupRadius, 'pickup', nearest.side,
+            () => this._attach(s, nearest.side, pose));
+        }
       } else if (p.stage === 'carry') {
         const radius = s.mode === 'present' ? this.TUNING.targetRadius : this.TUNING.chestRadius;
         this._dwell(s, dist(p.object, p.target) <= radius, 'target', p.hand, () => this._cameraComplete(s));
       }
+    },
+
+    _attach(s, hand, pose) {
+      const p = s.publicState;
+      p.stage = 'carry';
+      p.hand = hand;
+      p.object.attached = true;
+      const wrist = pose[hand + 'Wrist'];
+      if (wrist) { p.object.x = clamp(wrist.x + 0.025); p.object.y = clamp(wrist.y - 0.025); }
+      if (s.mode === 'present') p.target = { x: 0.77, y: 0.38 };
+      else {
+        p.target = chestPoint(pose);
+        s.ui.message.textContent = 'Got it! ✨';
+        VA.Audio.sfx('pop');
+        s.messageTimer = this._later(s, 650, () => {
+          s.messageTimer = 0;
+          if (!p.done && !p.paused) s.ui.message.textContent = '';
+        });
+      }
+      this._setInstruction(s);
     },
 
     _dwell(s, touching, zone, hand, complete) {

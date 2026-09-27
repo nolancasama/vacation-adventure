@@ -43,6 +43,7 @@ async function installProvider(page, mode = 'ok') {
       const at = { nose: 0, leftShoulder: 11, rightShoulder: 12, leftElbow: 13,
         rightElbow: 14, leftWrist: 15, rightWrist: 16 };
       Object.entries(named).forEach(([key, value]) => {
+        if (!value) return; // a landmark out of frame
         points[at[key]] = { x: 1 - value.x, y: value.y, visibility: 1, presence: 1 };
       });
       window.__handoffRaw = points;
@@ -224,10 +225,14 @@ let browser;
   await page.screenshot({ path: SHOT('souvenir-camera-ready') });
   const src = await page.$eval('.ar-handoff-object img', img => img.getAttribute('src'));
   check(src === 'assets/objects/souvenir_koala.webp', 'receive uses the real souvenir illustration src');
-  await setPose(page, pose({ x: .72, y: .42 }, { x: .9, y: .75 }));
-  await page.waitForTimeout(130);
+  await setPose(page, pose({ x: .55, y: .5 }, { x: .9, y: .75 })); // reaching, just outside the zone
+  await page.waitForTimeout(250);
+  check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'a hand just outside the souvenir zone does not pick it up');
   await page.screenshot({ path: SHOT('souvenir-reach') });
+  await setPose(page, pose({ x: .72, y: .42 }, { x: .9, y: .75 }));
   await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'receive pickup');
+  check(await page.evaluate(() => document.querySelector('.ar-handoff-command').textContent === 'Bring it back!' &&
+    document.querySelector('.ar-handoff-jp').textContent === '手をもどしてね！'), 'carry instruction is "Bring it back!" / 手をもどしてね！');
   await finishAt(page, 'left', { x: .76, y: .72 }, 90);
   st = await page.evaluate(() => VA.ARHandoff.state());
   check(Math.abs(st.object.x - .76) < .04 && Math.abs(st.object.y - .72) < .04, 'attached souvenir follows its wrist directly');
@@ -240,6 +245,51 @@ let browser;
   await waitFor(page, () => window.__handoffDone === 1, 'receive resolved');
   resolved = await page.evaluate(() => window.__handoffResolvedState);
   check(!resolved.camera.running && !resolved.overlay, 'camera and overlay are off before receive resolves');
+
+  console.log('receive: one visible wrist, instant pickup, unused hand may leave');
+  // A long dwell proves receive pickup does not wait for one.
+  await page.evaluate(() => { VA.ARHandoff.TUNING.dwellMs = 5000; });
+  for (const side of ['right', 'left']) {
+    await installProvider(page);
+    await start(page, 'receive', { illustration: 'souvenir_koala.webp' });
+    const reach = { x: .72, y: .57 }; // 0.15 away: inside 0.17, outside the passport's 0.13
+    const away = side === 'right' ? pose(null, { x: .9, y: .8 }) : pose({ x: .1, y: .8 }, null);
+    await setPose(page, away);
+    await waitFor(page, () => VA.ARHandoff.state().poseSeen, side + '-only wrist is a ready pose');
+    let one = await page.evaluate(() => VA.ARHandoff.state());
+    check(!one.paused && one.inputMode === 'camera', side + '-only: no pose-lost pause with the other wrist missing');
+    await setPose(page, side === 'right' ? pose(null, reach) : pose(reach, null));
+    await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', side + '-only instant pickup', 1500);
+    one = await page.evaluate(() => VA.ARHandoff.state());
+    check(one.hand === side && one.object.attached && one.inputMode === 'camera' && !one.assist,
+      side + ' wrist alone picks up the souvenir at once (no dwell, no fallback)');
+    if (side === 'right') {
+      // After pickup only the carrying hand matters: drop the left, move the right.
+      await setPose(page, pose(null, { x: .7, y: .7 }));
+      await page.waitForTimeout(350);
+      one = await page.evaluate(() => VA.ARHandoff.state());
+      check(!one.paused && one.stage === 'carry' && Math.abs(one.object.x - .725) < .03 && Math.abs(one.object.y - .675) < .03,
+        'unused left wrist leaving the frame keeps the carry going and the souvenir on the right wrist');
+    }
+    await page.evaluate(() => VA.Screens.show('home'));
+    await waitFor(page, () => window.__handoffDone === 1, side + '-only cleanup');
+  }
+  await page.evaluate(() => { VA.ARHandoff.TUNING.dwellMs = 300; });
+
+  console.log('present keeps both-wrist pickup and its dwell');
+  await installProvider(page);
+  await start(page, 'present');
+  await setPose(page, pose({ x: .2, y: .75 }, { x: .8, y: .75 }));
+  await waitFor(page, () => VA.ARHandoff.state().poseSeen, 'present ready for strictness check');
+  await setPose(page, pose(null, { x: .5, y: .68 }));
+  await waitFor(page, () => VA.ARHandoff.state().paused, 'present with one wrist before pickup pauses');
+  check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'passport does not pick up with a single visible wrist');
+  await setPose(page, pose({ x: .5, y: .68 }, { x: .85, y: .75 }));
+  await page.waitForTimeout(120);
+  check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'passport pickup still needs its dwell');
+  await waitFor(page, () => VA.ARHandoff.state().stage === 'carry', 'passport dwell pickup');
+  await finishAt(page, 'left', { x: .77, y: .38 });
+  await waitFor(page, () => window.__handoffDone === 1, 'present strictness case complete');
 
   console.log('camera-off, unsupported, denied, model failure and pose timeout fallbacks');
   const fallbackCase = async ({ name, provider, camera = true, key = null, shot = null }) => {

@@ -624,3 +624,18 @@ visual buttons; trip memory → past-tense STT.
 **Rejected.** STT for food ordering, souvenir selection, "Where is…?"
 questions, "Grandma, this is for you!", activity NPC greetings, every goodbye,
 small reactions, and any speech scoring.
+
+## 2026-09-27 — Easier souvenir pickup; SPIKE uses the swept wrist path
+
+**What.** Taking a souvenir is reach → touch → snap: no pickup dwell, a wider
+0.17 zone, and only one visible wrist needed; after pickup only the carrying
+wrist must stay in frame (passport and souvenir). The carry prompt is "Bring
+it back!" / 手をもどしてね！. Passport pickup keeps both wrists and its dwell.
+SPIKE now tests the whole wrist path between two ~10 Hz pose samples against
+the ball, and only for a downward swing from a raised arm (either end above
+the shoulder), so a fast strike through the ball counts on the first swing
+and the upward pull-back never does.
+
+**Rejected.** Raising the pose rate, enlarging spikeRadius or the hit window
+to paper over sampling, hand/finger tracking, and loosening volleyball's
+both-arm BUMP/SET pose.

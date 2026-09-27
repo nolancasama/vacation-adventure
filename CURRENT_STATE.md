@@ -89,8 +89,10 @@ Vercel).
   (`TUNING.countdownMs` / `goMs`, `state().countdown`); a lost pose restarts it.
 - `js/ar-handoff.js` (`VA.ARHandoff`) provides reusable waist-up present and
   receive actions, currently only for passport control and receiving the chosen
-  souvenir. Either wrist picks up by a short dwell, the attached object follows
-  that wrist to the officer/chest target, and lost pose pauses then resumes the
+  souvenir. The passport is picked up by a short dwell (both wrists visible);
+  the souvenir snaps to whichever wrist touches it (0.17 radius, one wrist is
+  enough). Once attached only the carrying wrist must stay in view; the object
+  follows it to the officer/chest target, and lost pose pauses then resumes the
   same stage. Camera failures use a direct button; a quiet button assist appears
   after a long wait while working camera play continues. Camera inference and
   tracks stop before the handoff promise resolves.

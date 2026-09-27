@@ -37,16 +37,22 @@
     pose.leftWrist.y < pose.leftShoulder.y && pose.rightWrist.y < pose.rightShoulder.y &&
     Math.min(dist(ball, pose.leftWrist), dist(ball, pose.rightWrist)) < tuning.setRadius);
 
+  /* Pose arrives ~10×/s, so a fast swing can pass right through the ball
+     between two samples. Test the whole wrist path (previous → current)
+     against the ball, and only for a DOWNWARD swing (screen y grows
+     downward) from a raised arm — the upward pull-back never counts. */
   const isSpike = (pose, prevPose, ball, tuning) => {
     if (!pose || !prevPose || !ball || !ball.hittable) return false;
     return ['left', 'right'].some(side => {
       const wrist = pose[side + 'Wrist'];
       const shoulder = pose[side + 'Shoulder'];
       const previous = prevPose[side + 'Wrist'];
-      return !!(wrist && shoulder && previous && wrist.y < shoulder.y &&
+      if (!wrist || !shoulder || !previous) return false;
+      const armWasHigh = previous.y < shoulder.y || wrist.y < shoulder.y;
+      const downwardSwing = wrist.y > previous.y + tuning.spikeDownwardMin;
+      return armWasHigh && downwardSwing &&
         dist(wrist, previous) > tuning.spikeMotion &&
-        dist(wrist, ball) < dist(previous, ball) &&
-        dist(wrist, ball) < tuning.spikeRadius);
+        pointSegmentDistance(ball, previous, wrist) < tuning.spikeRadius;
     });
   };
 
@@ -72,6 +78,7 @@
       bumpRadius: 0.17,
       setRadius: 0.18,
       spikeMotion: 0.035,
+      spikeDownwardMin: 0.01, // jitter guard; diagonal swings still count
       spikeRadius: 0.19,
       hitWindow: 430,
       incoming: { bump: 1900, set: 2100, spike: 1800 },
@@ -356,6 +363,7 @@
         bumpRadius: this.TUNING.bumpRadius * factor,
         setRadius: this.TUNING.setRadius * factor,
         spikeMotion: this.TUNING.spikeMotion,
+        spikeDownwardMin: this.TUNING.spikeDownwardMin,
         spikeRadius: this.TUNING.spikeRadius * factor,
       };
     },
