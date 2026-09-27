@@ -106,6 +106,9 @@ Vercel).
 - Spoken answers: `js/speech.js` (recognizer wrapper, yes/no classifier, alias
   matching) + `VA.Dialogue.respond` / `yesNo` (mic UI, hint ladder, fallback).
   Cinematic `offer` step = optional activity that can be declined.
+  Social replies (`VA.Flows._socialReply` / `SOCIAL_REPLIES`): arrival
+  Hello, departure Goodbye and "I'm home!" to Grandma, each with an
+  `initialHint` cue shown before any miss.
   See DESIGN_DECISIONS.md for which interactions are spoken vs. buttons.
 - English first: dialogue Japanese is hidden behind a “? 日本語” reveal by
   default (`jpMode` in `VA.Dialogue.say`; `visible` opts in per line), and the

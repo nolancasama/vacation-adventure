@@ -604,3 +604,23 @@ each contact. Camera-off play uses a direct button, and a quiet button assist
 appears only after a long wait while a working camera continues.
 
 **Rejected.** Finger or grasp recognition, dragging, and countdowns.
+
+## 2026-09-27 — Social replies are spoken only at the three big rituals
+
+**What.** The player answers out loud (via `VA.Dialogue.respond`) only where
+they genuinely reply to someone: the passport officer's "Hello!" (hello / hi /
+hey), the souvenir vendor's "Goodbye!" (goodbye / bye / bye bye / see you) and
+Grandma's "Welcome home" ("I'm home!" / "I am home"). Matching is loose and
+whole-word; the canonical line is then modelled by the player. The target is
+shown before any miss via a new optional `initialHint` (🎤 HELLO! plus
+「Hello!」と言ってね！ only when Japanese hints are on); callers without it are
+unchanged. Mic off / hard error → one button with the same line.
+
+Interaction rule going forward: major social ritual → STT; real yes/no
+participation → existing `yesNo`; physical object action → AR handoff;
+search → LOOK; food order → existing Yes/Yes please offer; souvenir choice →
+visual buttons; trip memory → past-tense STT.
+
+**Rejected.** STT for food ordering, souvenir selection, "Where is…?"
+questions, "Grandma, this is for you!", activity NPC greetings, every goodbye,
+small reactions, and any speech scoring.

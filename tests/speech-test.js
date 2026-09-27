@@ -201,7 +201,8 @@ async function talk(page, label, stop, answers = {}, log = []) {
       const mic = wrap.querySelector('.mic-btn:not([disabled])');
       const btns = [...wrap.querySelectorAll('.choice-btn:not(.mic-btn)')].filter(b => !b.disabled).map(b => b.firstChild.textContent);
       if (!mic && !btns.length) return null;
-      return { q: document.querySelector('#dlg-text').textContent, jp: document.querySelector('#dlg-jp .jp-reveal') ? '' : document.querySelector('#dlg-jp').textContent, mic: !!mic, listening: !!wrap.querySelector('.mic-btn.listening'), btns };
+      const hintEl = wrap.querySelector('.speak-hint');
+      return { q: document.querySelector('#dlg-text').textContent, jp: document.querySelector('#dlg-jp .jp-reveal') ? '' : document.querySelector('#dlg-jp').textContent, mic: !!mic, listening: !!wrap.querySelector('.mic-btn.listening'), btns, hint: hintEl ? hintEl.textContent : '' };
     });
     if (ui && ui.listening) { await page.waitForTimeout(150); continue; }
     if (ui) {
@@ -210,7 +211,7 @@ async function talk(page, label, stop, answers = {}, log = []) {
         let a = key ? answers[key] : null;
         if (Array.isArray(a)) a = a.shift();
         if (a == null) throw new Error(`${label}: no spoken answer scripted for "${ui.q}"`);
-        log.push({ q: ui.q, kind: 'mic', said: a, jp: ui.jp });
+        log.push({ q: ui.q, kind: 'mic', said: a, jp: ui.jp, hint: ui.hint });
         await say(page, typeof a === 'string' ? { final: a } : a);
         await jsClick(page, '#choices .mic-btn');
         await page.waitForTimeout(500);
@@ -272,6 +273,36 @@ async function talk(page, label, stop, answers = {}, log = []) {
   check(!unit.egyptForFrance, '"Egypt" is not accepted for a France trip');
 
   /* ---------- 2. recognizer behaviour ---------- */
+  console.log('unit: social replies (hello / goodbye / I\'m home)');
+  const social = await page.evaluate(() => {
+    const R = VA.Flows.SOCIAL_REPLIES;
+    const m = (kind, t) => VA.Speech.matchesAny(t, R[kind].aliases);
+    const cases = {
+      hello: { pass: ['hello', 'Hello!', 'hi', 'Hi there', 'hey', 'Hello there'], fail: ['goodbye', 'passport', 'soccer', 'home'] },
+      goodbye: { pass: ['goodbye', 'good bye', 'bye', 'bye bye', 'see you'], fail: ['hello', 'passport', 'thank you', 'home'] },
+      home: { pass: ["I'm home", 'I am home', "I'm home!", 'Im home'], fail: ['homework', 'go home', 'welcome home', 'hello'] },
+    };
+    const bad = [];
+    Object.entries(cases).forEach(([kind, c]) => {
+      c.pass.forEach(t => { if (!m(kind, t)) bad.push(kind + ' should accept "' + t + '"'); });
+      c.fail.forEach(t => { if (m(kind, t)) bad.push(kind + ' should reject "' + t + '"'); });
+    });
+    // initialHint copy with Japanese hints on and off (captured, not shown)
+    const seen = [];
+    const orig = VA.Dialogue.respond;
+    VA.Dialogue.respond = spec => { seen.push(spec.initialHint); return Promise.resolve(); };
+    const jp0 = VA.State.data.settings.jp;
+    VA.State.data.settings.jp = true; VA.Flows._socialReply('home');
+    VA.State.data.settings.jp = false; VA.Flows._socialReply('home');
+    VA.State.data.settings.jp = jp0;
+    VA.Dialogue.respond = orig;
+    return { bad, seen, homeJp: R.home.jp };
+  });
+  check(!social.bad.length, 'social matchers accept/reject as specified' + (social.bad.length ? ': ' + social.bad.join('; ') : ''));
+  check(social.seen[0] === "🎤 I'M HOME!　「I'm home!」と言ってね！" && social.seen[1] === "🎤 I'M HOME!",
+    'I\'m home cue shows the Japanese instruction only when Japanese hints are on (' + social.seen.join(' | ') + ')');
+  check(social.homeJp === 'ただいま！', 'the modelled "I\'m home!" carries ただいま！');
+
   console.log('recognizer: interim, errors, cleanup');
   const interim = await page.evaluate(async () => {
     window.__speechQueue.push({ interim: ['i saw', 'i saw the eiffel'], final: 'i saw the eiffel tower', finalDelay: 3000 });
@@ -487,7 +518,8 @@ async function talk(page, label, stop, answers = {}, log = []) {
   check(await page.evaluate(() => document.querySelector('#scr-bedroom').classList.contains('active')), 'first send-off lands in the bedroom');
   await clickUntil(page, '.bedroom-hotspot[data-action="trip"]', () => document.querySelector('#scr-map').classList.contains('active') && !!document.querySelector('.dest-card'), 'first suitcase');
   await clickUntil(page, '.dest-card[data-dest="france"]', () => !document.querySelector('#scr-map').classList.contains('active'), 'board');
-  await talk(page, 'passport', new Function(`return () => { const h = document.querySelector('#hs-crepe'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(), {}, log);
+  await talk(page, 'passport', new Function(`return () => { const h = document.querySelector('#hs-crepe'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(),
+    { 'Hello!': ['goodbye', 'hi there'] }, log);
   const coins0 = (await state(page)).coins;
 
   const hubBack = new Function(`return () => document.querySelector('#scr-explore').classList.contains('active') && ${dlgHidden} && !document.querySelector('#fade.on, #fade.show')`)();
@@ -516,6 +548,8 @@ async function talk(page, label, stop, answers = {}, log = []) {
 
   await clickUntil(page, '#btn-depart', () => document.querySelector('#dialogue').style.display !== 'none' || !document.querySelector('#scr-explore').classList.contains('active'), 'depart');
   await talk(page, 'debrief', () => document.querySelector('#scr-scrapbook').classList.contains('active'), {
+    'Goodbye!': 'bye bye',
+    'Welcome home': ['homework', "I'm home"],
     'Did you have fun?': 'not really',
     'Where did you go?': 'france',
     'What did you see?': ['pyramids', 'I see the Eiffel tower'],
@@ -529,6 +563,20 @@ async function talk(page, label, stop, answers = {}, log = []) {
   check(passport.length === 1 && passport[0].kind === 'handoff' && passport[0].mode === 'present' &&
     passport[0].inputMode === 'fallback' && passport[0].button === 'SHOW PASSPORT' && passportAuto.length === 1,
   'passport uses the fallback handoff, then the player auto-says "Here you are."');
+  // Social rituals: officer hello, vendor goodbye, "I'm home!" — spoken,
+  // target shown before any miss, wrong words retried, in flow order.
+  const at = pred => log.findIndex(pred);
+  const hello = find('Hello!').filter(l => l.kind === 'mic');
+  check(hello.length === 2 && hello[0].said === 'goodbye' && hello[1].said === 'hi there', 'arrival Hello: "goodbye" is retried, "hi there" accepted');
+  check(at(l => l.kind === 'mic' && l.q.includes('Hello!')) < at(l => l.q.includes('Passport, please.')), 'Hello is answered before the passport handoff');
+  const bye = find('Goodbye!').filter(l => l.kind === 'mic');
+  check(bye.length === 1 && at(l => l.q.includes('A gift for Grandma?')) < at(l => l.kind === 'mic' && l.q.includes('Goodbye!')), 'vendor Goodbye is answered by speech after the souvenir');
+  const home = find('Welcome home').filter(l => l.kind === 'mic');
+  check(home.length === 2 && home[0].said === 'homework' && home[1].said === "I'm home", '"homework" is not "I\'m home"; "I\'m home" is accepted');
+  check(at(l => l.kind === 'mic' && l.q.includes('Welcome home')) < at(l => l.q.includes('Did you have fun?')), '"I\'m home!" comes before "Did you have fun?"');
+  check([hello[0], bye[0], home[0]].every(l => l && l.hint.startsWith('🎤 ')) && hello[0].hint.includes('HELLO!') && home[0].hint.includes("I'M HOME!"),
+    'social replies show their 🎤 target before any miss (' + [hello[0], bye[0], home[0]].map(l => l && l.hint).join(' | ') + ')');
+  check(!find('Did you have fun?')[0].hint, 'existing yes/no questions (no initialHint) still start without a hint');
   const ticket = find('Ticket, please.');
   check(ticket.length === 1 && ticket[0].kind === 'buttons', 'Eiffel ticket stays a button');
   check(find('One crepe?')[0].kind === 'mic', 'crepe offer is answered by speech');
@@ -556,7 +604,8 @@ async function talk(page, label, stop, answers = {}, log = []) {
   await talk(page, 'next trip', new Function(`return () => document.querySelector('#scr-map').classList.contains('active') && ${dlgHidden}`)(),
     { 'Do you want another trip?': 'yes' }, log);
   await clickUntil(page, '.dest-card[data-dest="egypt"]', () => !document.querySelector('#scr-map').classList.contains('active'), 'board egypt');
-  await talk(page, 'egypt passport', new Function(`return () => { const h = document.querySelector('#hs-kebab'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(), {}, log);
+  await talk(page, 'egypt passport', new Function(`return () => { const h = document.querySelector('#hs-kebab'); return h && h.offsetParent && document.querySelector('#hotspot-layer').style.visibility !== 'hidden' && ${dlgHidden}; }`)(),
+    { 'Hello!': 'hello' }, log);
   await runHotspot('kebab', { 'Try this kebab!': 'yes please' });
   await runHotspot('pyramids', {});
   await runHotspot('sand', { "Let's make a sand pyramid!": 'okay' });
@@ -565,6 +614,8 @@ async function talk(page, label, stop, answers = {}, log = []) {
   await clickUntil(page, '#btn-depart', () => document.querySelector('#dialogue').style.display !== 'none' || !document.querySelector('#scr-explore').classList.contains('active'), 'depart egypt');
   const egStart = log.length;
   await talk(page, 'egypt debrief', () => document.querySelector('#scr-scrapbook').classList.contains('active'), {
+    'Goodbye!': 'see you',
+    'Welcome home': 'I am home',
     'Did you have fun?': 'yes',
     'Where did you go?': 'egypt',
     'What did you eat?': 'kebab',
@@ -573,7 +624,9 @@ async function talk(page, label, stop, answers = {}, log = []) {
   }, log);
   s = await state(page);
   check(!!(s.book.egypt && s.book.egypt.done), 'Egypt trip completed and scrapbook page saved');
-  const egReview = log.slice(egStart).filter(l => l.kind === 'mic');
+  const egSocial = log.slice(egStart).filter(l => l.kind === 'mic' && /Goodbye!|Welcome home/.test(l.q));
+  check(egSocial.length === 2, 'Egypt: "see you" and "I am home" accepted first time');
+  const egReview = log.slice(egStart).filter(l => l.kind === 'mic' && !/Goodbye!|Welcome home/.test(l.q));
   check(egReview.length === 5 && egReview.every(l => !JP.test(l.jp)), 'Egypt review: five spoken answers, every question English-only');
 
   const maxActive = await page.evaluate(() => window.__recLog.maxActive);

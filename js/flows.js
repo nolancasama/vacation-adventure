@@ -132,6 +132,7 @@ VA.Flows = {
 
     const D = VA.Dialogue;
     await D.say('officer', 'Hello!', { jp: 'こんにちは！' });
+    await this._socialReply('hello');
     await D.say('officer', 'Passport, please.', { jp: 'パスポートを見せてください。' });
     D.hide();
     await VA.ARHandoff.present({ kind: 'passport', label: 'Passport',
@@ -144,6 +145,30 @@ VA.Flows = {
 
     hsLayer.style.visibility = 'visible';
     VA.Fx.toast('Tap a place to visit! 　行きたい場所をタップ！', 3200);
+  },
+
+  /* A major social ritual answered out loud (arrival hello, departure
+     goodbye, "I'm home!"). Loose whole-word matching; the canonical line is
+     then modelled by the player. The target is shown before any miss.
+     Mic off / hard error → one button with the same line. */
+  SOCIAL_REPLIES: {
+    hello: { aliases: ['hello', 'hi', 'hey'], text: 'Hello!', jp: 'こんにちは！', cue: 'HELLO!' },
+    goodbye: { aliases: ['goodbye', 'good bye', 'bye', 'bye bye', 'see you'], text: 'Goodbye!', jp: 'さようなら！', cue: 'GOODBYE!' },
+    home: { aliases: ["i'm home", 'i am home'], text: "I'm home!", jp: 'ただいま！', cue: "I'M HOME!" },
+  },
+
+  _socialReply(kind) {
+    const s = this.SOCIAL_REPLIES[kind];
+    if (!s) return Promise.resolve();
+    const jpOn = VA.State.data.settings.jp;
+    const sayIt = `「${s.text}」と言ってね！`;
+    return VA.Dialogue.respond({
+      match: t => (VA.Speech.matchesAny(t, s.aliases) ? kind : null),
+      options: [{ value: kind, text: s.text, jp: s.jp }],
+      initialHint: jpOn ? `🎤 ${s.cue}　${sayIt}` : `🎤 ${s.cue}`,
+      hints: [s.text, jpOn ? sayIt : s.text],
+      maxMisses: 3,
+    });
   },
 
   async _flight(bannerText, homeward, arrival = null) {
@@ -260,6 +285,7 @@ VA.Flows = {
         screen: 'explore',
       });
       await D.say(vendorId, 'Goodbye!', { jp: 'さようなら！' });
+      await this._socialReply('goodbye');
       D.hide();
     }
 
@@ -285,6 +311,7 @@ VA.Flows = {
 
     const D = VA.Dialogue;
     await D.say('grandma', `Welcome home, ${name}!`, { jp: `おかえり、${name}！` });
+    await this._socialReply('home');
     await D.say('grandma', 'Did you have fun?', { jp: '楽しかった？' });
     const fun = await D.yesNo({
       yes: { text: 'Yes, I did!', jp: 'うん、楽しかった！' },

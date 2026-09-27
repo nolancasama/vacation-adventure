@@ -190,6 +190,7 @@ VA.Dialogue = {
 
      spec: { match(transcript) -> value|null,
              options: [{value, text, jp, voiceKey}],
+             initialHint: 'before any miss' (optional),
              hints: ['after 1 miss', 'after 2 misses'],
              onMiss(transcript) -> async (recognized but wrong),
              maxMisses: 3 } */
@@ -205,7 +206,7 @@ VA.Dialogue = {
     let hard = false;
     while (true) {
       const hints = spec.hints || [];
-      const hint = misses ? hints[Math.min(misses, hints.length) - 1] || '' : '';
+      const hint = misses ? hints[Math.min(misses, hints.length) - 1] || '' : (spec.initialHint || '');
       // English first: the question's Japanese only joins the ladder once
       // the sentence-frame hint alone has not been enough
       if (misses >= 2) this.revealJp();

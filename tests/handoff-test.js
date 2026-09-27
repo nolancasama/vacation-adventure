@@ -302,6 +302,9 @@ let browser;
     VA.Dialogue.say = async (who, text) => { window.__flowLog.push('say:' + who + ':' + text); };
     VA.Dialogue.auto = async (who, text) => { window.__flowLog.push('auto:' + who + ':' + text); };
     VA.Dialogue.hide = () => {};
+    VA.Flows._socialReply = async kind => { window.__flowLog.push('reply:' + kind); };
+    const present = VA.ARHandoff.present.bind(VA.ARHandoff);
+    VA.ARHandoff.present = cfg => { window.__flowLog.push('handoff:present'); return present(cfg); };
     VA.Fx.stampSlam = async id => { window.__flowLog.push('stamp:' + id); };
     VA.Fx.toast = () => {};
     VA.Art.waitForScreenAssets = async () => true;
@@ -316,6 +319,11 @@ let browser;
   check(arrival.stamps.filter(id => id === 'australia').length === 1 && arrival.log.includes('auto:player:Here you are.') &&
     arrival.log.includes('say:officer:Welcome to Australia!') && arrival.hotspot === 'visible',
   'arrival saves stamp, models player line, welcomes and reveals hotspots');
+  const order = (log, keys) => keys.map(k => log.indexOf(k)).every((v, i, a) => v >= 0 && (i === 0 || v > a[i - 1]));
+  check(order(arrival.log, ['say:officer:Hello!', 'reply:hello', 'say:officer:Passport, please.', 'handoff:present',
+    'auto:player:Here you are.', 'stamp:australia', 'say:officer:Welcome to Australia!']) &&
+    arrival.log.filter(x => x.startsWith('reply:')).join() === 'reply:hello',
+  'arrival order: Hello → spoken hello → Passport, please → handoff → Here you are → stamp → welcome (no goodbye)');
 
   await page.evaluate(async () => {
     const originalCoins = VA.State.addCoins.bind(VA.State);
@@ -342,6 +350,8 @@ let browser;
   check(departure.counts.souvenir === 1 && !!departure.souvenir, 'departure sets the chosen souvenir exactly once');
   check(departure.counts.reward === 1 && departure.log.includes('say:au_vendor:Goodbye!') && departure.log.some(x => x.startsWith('homeflight:Going home!')),
     'reward runs exactly once before Goodbye and the homeward flight');
+  check(order(departure.log, ['say:au_vendor:Goodbye!', 'reply:goodbye', 'homeflight:Going home! 🏠']),
+    'departure order: vendor Goodbye → spoken goodbye → flight home');
 
   check(errors.length === 0, 'no unexpected page or console errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 })().catch(error => {
