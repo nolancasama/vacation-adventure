@@ -70,9 +70,14 @@ async function installProvider(page, mode = 'ok') {
       getUserMedia() {
         window.__handoffGum++;
         if (providerMode === 'denied') return Promise.reject(new DOMException('no', 'NotAllowedError'));
-        const stream = canvas.captureStream(15);
-        stream.getTracks().forEach(track => window.__handoffTracks.push(track));
-        return Promise.resolve(stream);
+        const give = () => {
+          const stream = canvas.captureStream(15);
+          stream.getTracks().forEach(track => window.__handoffTracks.push(track));
+          return stream;
+        };
+        // The student is still reading the browser's permission prompt.
+        if (providerMode === 'slow-permission') return new Promise(resolve => { window.__grantCamera = () => resolve(give()); });
+        return Promise.resolve(give());
       },
       loadLandmarker() {
         if (providerMode === 'model-fail') return Promise.reject(new Error('fake model failure'));
@@ -166,6 +171,18 @@ let browser;
   console.log('present with left wrist, continuous pickup and target dwell');
   await installProvider(page);
   await start(page, 'present');
+  await waitFor(page, () => VA.ARHandoff.state().inputMode === 'camera', 'present camera running before a pose');
+  const framing = await copy(page);
+  check(framing.command === 'MOVE BACK — SHOW BOTH ARMS!' && framing.jp === '少しうしろに下がって、りょううでを見せてね！',
+    'before a complete pose the passport asks to move back and show both arms (' + framing.command + ')');
+  const framingBoxes = await page.evaluate(() => {
+    const command = document.querySelector('.ar-handoff-command').getBoundingClientRect();
+    const jp = document.querySelector('.ar-handoff-jp').getBoundingClientRect();
+    return { commandBottom: Math.round(command.bottom), jpTop: Math.round(jp.top), commandHeight: Math.round(command.height) };
+  });
+  check(framingBoxes.commandBottom <= framingBoxes.jpTop,
+    'the framing command fits one line above the Japanese line ' + JSON.stringify(framingBoxes));
+  await page.screenshot({ path: SHOT('passport-framing') });
   await setPose(page, pose({ x: .2, y: .75 }, { x: .8, y: .75 }));
   await waitFor(page, () => VA.ARHandoff.state().inputMode === 'camera' && VA.ARHandoff.state().poseSeen, 'present camera ready');
   await page.screenshot({ path: SHOT('passport-camera-ready') });
@@ -236,8 +253,8 @@ let browser;
   check((await page.evaluate(() => VA.ARHandoff.state())).stage === 'pickup', 'loss before pickup keeps pickup stage');
   const lostCopy = await page.evaluate(() => ({ message: document.querySelector('.ar-handoff-message').textContent,
     jp: document.querySelector('.ar-handoff-jp').textContent }));
-  check(lostCopy.message === 'Show your arms! 🙂' && lostCopy.jp === 'りょううでが見えるようにしてね！',
-    'lost pose uses the waist-up arms copy in the message and Japanese instruction');
+  check(lostCopy.message === 'SHOW BOTH ARMS!' && lostCopy.jp === 'りょううでを見せてね！',
+    'a later lost pose asks only for both arms (no move-back) in the message and Japanese instruction');
   await setPose(page, pose({ x: .2, y: .75 }, { x: .8, y: .75 }));
   await waitFor(page, () => !VA.ARHandoff.state().paused, 'pose back before pickup');
   check(same(await copy(page), TAKE), 'pose back before pickup restores TAKE THE PASSPORT!');
@@ -408,6 +425,35 @@ let browser;
   await fallbackCase({ name: 'pose-acquisition-timeout', provider: 'ok', key: 'Space' });
   await page.evaluate(() => { VA.ARHandoff.TUNING.startTimeout = 10000; });
   await fallbackCase({ name: 'souvenir fallback', provider: 'unsupported', shot: 'souvenir-fallback' });
+
+  console.log('permission time never counts toward the pose timeout');
+  await installProvider(page, 'slow-permission');
+  await page.evaluate(() => { VA.ARHandoff.TUNING.startTimeout = 250; });
+  await start(page, 'present');
+  await page.waitForTimeout(800);
+  const asking = await page.evaluate(() => ({ st: VA.ARHandoff.state(), fallback: !document.querySelector('.ar-handoff-fallback').hidden }));
+  check(asking.st.inputMode === 'starting' && !asking.fallback,
+    'an unanswered permission prompt (800 ms > 250 ms startTimeout) does not fall back (' + asking.st.inputMode + ')');
+  await page.evaluate(() => window.__grantCamera());
+  await waitFor(page, () => VA.ARHandoff.state().inputMode === 'camera', 'camera running once permission is granted');
+  await waitFor(page, () => VA.ARHandoff.state().inputMode === 'fallback', 'no pose after camera start still falls back', 3000);
+  await page.locator('.ar-handoff-fallback').click();
+  await waitFor(page, () => window.__handoffDone === 1, 'slow-permission fallback resolve');
+  await page.evaluate(() => { VA.ARHandoff.TUNING.startTimeout = 10000; });
+
+  console.log('a camera start that never finishes falls back after startLimitMs');
+  await installProvider(page, 'slow-permission');
+  await page.evaluate(() => { VA.ARHandoff.TUNING.startLimitMs = 400; });
+  await start(page, 'present');
+  await waitFor(page, () => VA.ARHandoff.state().inputMode === 'fallback', 'prompt left open falls back', 2000);
+  await page.evaluate(() => window.__grantCamera()); // answered after the fallback
+  await page.waitForTimeout(150);
+  const late = await page.evaluate(() => ({ camera: VA.CameraPose.state(), tracks: window.__handoffTracks.map(t => t.readyState) }));
+  check(!late.camera.running && late.tracks.length === 1 && late.tracks.every(state => state === 'ended'),
+    'a late permission answer after the fallback releases the camera at once');
+  await page.locator('.ar-handoff-fallback').click();
+  await waitFor(page, () => window.__handoffDone === 1, 'start-limit fallback resolve');
+  await page.evaluate(() => { VA.ARHandoff.TUNING.startLimitMs = 30000; });
 
   console.log('quiet assist appears late while camera continues');
   await installProvider(page);

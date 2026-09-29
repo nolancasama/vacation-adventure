@@ -208,6 +208,48 @@ async function finishFallback(page, input) {
   throw new Error('HARNESS_PRECONDITION_FAILED: fallback did not complete with ' + input);
 }
 
+/* Freeze the SPIKE jolt at its 25% keyframe (translate(-3px,2px)) and
+   measure: which element animates, how far the visual layer still overscans
+   the clipped root while shifted, and whether the command moved. */
+async function shakeProbe(page, shot) {
+  const probe = await page.evaluate(() => {
+    const root = document.querySelector('.volleyball-ar');
+    const visual = root.querySelector('.volleyball-ar-visual');
+    const command = root.querySelector('.volleyball-ar-command');
+    const before = command.getBoundingClientRect();
+    root.classList.add('spike-impact');
+    const anims = visual.getAnimations();
+    let maxShift = 0;
+    anims.forEach(anim => anim.effect.getKeyframes().forEach(frame => {
+      (String(frame.transform || '').match(/-?\d+(\.\d+)?px/g) || []).forEach(v => { maxShift = Math.max(maxShift, Math.abs(parseFloat(v))); });
+    }));
+    anims.forEach(anim => { anim.pause(); anim.currentTime = 45; });
+    const r = root.getBoundingClientRect();
+    const v = visual.getBoundingClientRect();
+    const during = command.getBoundingClientRect();
+    return {
+      visualAnims: anims.map(anim => anim.animationName),
+      rootAnims: root.getAnimations().map(anim => anim.animationName),
+      rootTransform: getComputedStyle(root).transform,
+      rootOverflow: getComputedStyle(root).overflow,
+      visualTransform: getComputedStyle(visual).transform,
+      overscanCss: -parseFloat(getComputedStyle(visual).top),
+      shifted: Math.min(r.left - v.left, r.top - v.top, v.right - r.right, v.bottom - r.bottom),
+      maxShift,
+      commandMoved: during.left !== before.left || during.top !== before.top,
+      videoTransform: getComputedStyle(root.querySelector('.volleyball-ar-video')).transform,
+      videoInVisual: root.querySelector('.volleyball-ar-video').parentElement === visual,
+    };
+  });
+  if (shot) await page.screenshot({ path: SHOT(shot) });
+  await page.evaluate(() => {
+    const root = document.querySelector('.volleyball-ar');
+    root.querySelector('.volleyball-ar-visual').getAnimations().forEach(anim => anim.cancel());
+    root.classList.remove('spike-impact');
+  });
+  return probe;
+}
+
 function attemptFor(state) {
   if (typeof state.attempts === 'number') return state.attempts;
   return state.attempts && typeof state.attempts[state.phase] === 'number' ? state.attempts[state.phase] : 0;
@@ -289,16 +331,43 @@ let server;
     ];
     const spikeBall = { x: 0.5, y: 0.4, hittable: true };
     const spikeCase = (prevW, curW, ball = spikeBall) => { const [cur, prv] = sp(prevW, curW); return g.isSpike(cur, prv, ball, t); };
+    // Fast BUMP: joined wrists swing from below the ball to above it between
+    // two samples; neither sample's forearms or wrists are near the ball.
+    const fastBumpBall = { x: 0.5, y: 0.6, hittable: true };
+    const bumpBefore = { ...base, leftElbow: { x: 0.45, y: 0.8 }, rightElbow: { x: 0.55, y: 0.8 },
+      leftWrist: { x: 0.49, y: 0.86 }, rightWrist: { x: 0.51, y: 0.86 } };
+    const bumpAfter = { ...base, leftElbow: { x: 0.44, y: 0.4 }, rightElbow: { x: 0.56, y: 0.4 },
+      leftWrist: { x: 0.49, y: 0.36 }, rightWrist: { x: 0.51, y: 0.36 } };
+    // One hand swinging up while the other rests: the wrist midpoint path
+    // passes near the ball, but the arms are never together.
+    const oneHandBefore = { ...base, leftWrist: { x: 0.2, y: 0.86 }, rightWrist: { x: 0.8, y: 0.86 } };
+    const oneHandAfter = { ...base, leftWrist: { x: 0.2, y: 0.86 }, rightWrist: { x: 0.5, y: 0.36 } };
+    // Fast SET: hands push from chest height to overhead through the ball.
+    const setBefore = { ...base, leftWrist: { x: 0.42, y: 0.52 }, rightWrist: { x: 0.58, y: 0.52 } };
+    const setAfter = { ...base, leftWrist: { x: 0.42, y: 0.08 }, rightWrist: { x: 0.58, y: 0.08 } };
+    // Low hands (below the shoulders in both samples) sweeping through a low ball.
+    const lowBall = { x: 0.42, y: 0.7, hittable: true };
+    const lowBefore = { ...base, leftWrist: { x: 0.42, y: 0.9 }, rightWrist: { x: 0.58, y: 0.9 } };
+    const lowAfter = { ...base, leftWrist: { x: 0.42, y: 0.55 }, rightWrist: { x: 0.58, y: 0.55 } };
     return {
       dist: g.dist({ x: 0, y: 0 }, { x: 3, y: 4 }),
       segment: g.pointSegmentDistance({ x: 0.5, y: 0.2 }, { x: 0, y: 0 }, { x: 1, y: 0 }),
       midpoint: g.midpoint({ x: 0.2, y: 0.4 }, { x: 0.8, y: 0.6 }),
-      bumpYes: g.isBump(base, bumpBall, t),
-      bumpNoWindow: g.isBump(base, { ...bumpBall, hittable: false }, t),
-      bumpNoTogether: g.isBump({ ...base, leftWrist: { x: 0.1, y: 0.66 } }, bumpBall, t),
-      setYes: g.isSet(setPose, setBall, t),
-      setNoWindow: g.isSet(setPose, { ...setBall, hittable: false }, t),
-      setNoRaised: g.isSet(base, setBall, t),
+      bumpYes: g.isBump(base, null, bumpBall, t),
+      bumpNoWindow: g.isBump(base, null, { ...bumpBall, hittable: false }, t),
+      bumpNoTogether: g.isBump({ ...base, leftWrist: { x: 0.1, y: 0.66 } }, null, bumpBall, t),
+      bumpFast: g.isBump(bumpAfter, bumpBefore, fastBumpBall, t),
+      bumpFastEndpointsMiss: !g.isBump(bumpAfter, null, fastBumpBall, t) && !g.isBump(bumpBefore, null, fastBumpBall, t),
+      bumpFastNoWindow: g.isBump(bumpAfter, bumpBefore, { ...fastBumpBall, hittable: false }, t),
+      bumpOneHand: g.isBump(oneHandAfter, oneHandBefore, fastBumpBall, t),
+      bumpOneHandPathNear: g.pointSegmentDistance(fastBumpBall, g.midpoint(oneHandBefore.leftWrist, oneHandBefore.rightWrist),
+        g.midpoint(oneHandAfter.leftWrist, oneHandAfter.rightWrist)) < t.bumpRadius,
+      setYes: g.isSet(setPose, null, setBall, t),
+      setNoWindow: g.isSet(setPose, null, { ...setBall, hittable: false }, t),
+      setNoRaised: g.isSet(base, null, setBall, t),
+      setFast: g.isSet(setAfter, setBefore, setBall, t),
+      setFastEndpointsMiss: !g.isSet(setAfter, null, setBall, t) && g.dist(setBefore.leftWrist, setBall) >= t.setRadius,
+      setLowCrossing: g.isSet(lowAfter, lowBefore, lowBall, t),
       spikeCrossing: spikeCase({ x: 0.5, y: 0.25 }, { x: 0.5, y: 0.55 }),
       spikeThrough: spikeCase({ x: 0.5, y: 0.15 }, { x: 0.5, y: 0.65 }),
       spikeEndpointsFar: g.dist({ x: 0.5, y: 0.15 }, spikeBall) >= t.spikeRadius && g.dist({ x: 0.5, y: 0.65 }, spikeBall) >= t.spikeRadius,
@@ -315,7 +384,12 @@ let server;
   check(Math.abs(geom.segment - 0.2) < 1e-9, 'pointSegmentDistance projects onto a segment');
   check(geom.midpoint.x === 0.5 && geom.midpoint.y === 0.5, 'midpoint averages both axes');
   check(geom.bumpYes && !geom.bumpNoWindow && !geom.bumpNoTogether, 'BUMP requires window, close wrists and ball contact');
+  check(geom.bumpFast && geom.bumpFastEndpointsMiss, 'BUMP: a fast bump whose joined wrists cross the ball between samples hits (neither sample alone does)');
+  check(!geom.bumpFastNoWindow, 'BUMP: a fast crossing outside the hit window does not count');
+  check(!geom.bumpOneHand && geom.bumpOneHandPathNear, 'BUMP: one swinging hand never counts, even when the wrist-midpoint path passes the ball');
   check(geom.setYes && !geom.setNoWindow && !geom.setNoRaised, 'SET requires window, raised wrists and ball contact');
+  check(geom.setFast && geom.setFastEndpointsMiss, 'SET: hands pushing up through the ball between samples hit (neither sample alone does)');
+  check(!geom.setLowCrossing, 'SET: a low-hand crossing (below the shoulders in both samples) never counts');
   check(geom.spikeCrossing, 'SPIKE: a downward swing from above to below the ball hits');
   check(geom.spikeThrough && geom.spikeEndpointsFar, 'SPIKE: a fast swing whose path crosses the ball hits even though neither sample is near it');
   check(!geom.spikePullBack, 'SPIKE: the upward pull-back through the ball never counts');
@@ -378,15 +452,17 @@ let server;
     low.leftShoulder.y = low.rightShoulder.y = 0.62;
     return {
       hints: V.HINTS, copy: V.COPY,
-      banned: ['立って', 'Move back', 'Stand', 'step back', 'Step back'].filter(w => all.includes(w)),
+      banned: ['立って', '全身', 'Stand', 'stand up', 'whole body', 'WHOLE BODY'].filter(w => all.includes(w)),
       waistUp: V._poseComplete(waistUp),
       bump: V._target({ pose: waistUp }, 'bump'),
       bumpLow: V._target({ pose: low }, 'bump'),
     };
   });
   check(pure.hints.bump === 'うでをそろえてね！' && pure.hints.set === 'りょうてを上にあげてね！' && pure.hints.spike === 'うでを上からふってね！', 'move hints use the short control copy');
-  check(pure.copy.frameJP === '上半身とうでが見えるようにしてね！' && pure.copy.lostJP === 'りょううでが見えるようにしてね！', 'framing and lost-pose Japanese copy');
-  check(pure.banned.length === 0, 'no volleyball copy asks to stand or move back (' + pure.banned.join(',') + ')');
+  check(pure.copy.frame === 'MOVE BACK — SHOW BOTH ARMS!' && pure.copy.frameJP === '少しうしろに下がって、りょううでを見せてね！',
+    'first framing asks for a small step back and both arms');
+  check(pure.copy.lost === 'SHOW BOTH ARMS!' && pure.copy.lostJP === 'りょううでを見せてね！', 'a later loss only asks for both arms');
+  check(pure.banned.length === 0, 'no volleyball copy asks to stand or show the whole body (' + pure.banned.join(',') + ')');
   check(pure.waistUp, 'nose + shoulders + elbows + wrists alone is a complete pose (no hips/legs)');
   check(Math.abs(pure.bump.y - 0.65) < 0.005 && pure.bump.y < 0.72, 'BUMP target is shoulders + 0.23 (above the old +0.30)');
   check(Math.abs(pure.bumpLow.y - 0.74) < 0.005, 'BUMP target is capped at 0.74 for a low-framed student');
@@ -421,11 +497,23 @@ let server;
     command: document.querySelector('.volleyball-ar-command').textContent,
     hint: document.querySelector('.volleyball-ar-hint').textContent,
   }));
-  check(frameUi.command === 'Show your upper body!' && frameUi.hint === '上半身とうでが見えるようにしてね！',
-    'camera start asks for the upper body (no standing, no moving back) ' + JSON.stringify(frameUi));
-  await page.screenshot({ path: SHOT('ready') });
+  check(frameUi.command === 'MOVE BACK — SHOW BOTH ARMS!' && frameUi.hint === '少しうしろに下がって、りょううでを見せてね！',
+    'before a complete pose the camera asks to move back and show both arms ' + JSON.stringify(frameUi));
+  const frameBoxes = await page.evaluate(() => {
+    const command = document.querySelector('.volleyball-ar-command').getBoundingClientRect();
+    const hint = document.querySelector('.volleyball-ar-hint').getBoundingClientRect();
+    return { commandBottom: Math.round(command.bottom), hintTop: Math.round(hint.top), commandHeight: Math.round(command.height) };
+  });
+  check(frameBoxes.commandBottom <= frameBoxes.hintTop,
+    'the framing command fits one line above the Japanese hint ' + JSON.stringify(frameBoxes));
+  await page.screenshot({ path: SHOT('framing') });
   check(!(await vis(page, '.volleyball-ar-hit')), 'fallback button is absent while camera mode works');
   await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => document.querySelector('.volleyball-ar-command').textContent === 'READY!', undefined, 'READY! after a valid pose', 3000);
+  const readyUi = await page.evaluate(() => ({ hint: document.querySelector('.volleyball-ar-hint').textContent,
+    msg: document.querySelector('.volleyball-ar-message').textContent }));
+  check(readyUi.hint === '' && readyUi.msg === '', 'a valid pose replaces the move-back framing with READY! at once ' + JSON.stringify(readyUi));
+  await page.screenshot({ path: SHOT('ready') });
   await precondition(page, () => VA.VolleyballAR.state().phase === 'bump', undefined, 'BUMP began');
   // First BUMP: instruction + demo while the real ball waits.
   const tut = await page.evaluate(() => {
@@ -560,7 +648,7 @@ let server;
   check(attemptFor(duringLoss) === attemptFor(beforeLoss), 'pose loss does not count as a miss');
   const lostUi = await page.evaluate(() => ({ msg: document.querySelector('.volleyball-ar-message').textContent,
     hint: document.querySelector('.volleyball-ar-hint').textContent }));
-  check(lostUi.msg === 'Show your arms! 🙂' && lostUi.hint === 'りょううでが見えるようにしてね！', 'lost pose asks to show the arms, not to move back');
+  check(lostUi.msg === 'SHOW BOTH ARMS!' && lostUi.hint === 'りょううでを見せてね！', 'lost pose during play asks for both arms, not to move back');
   await page.screenshot({ path: SHOT('pose-lost') });
   await page.evaluate(() => { window.__poseKind = 'base'; });
   await precondition(page, () => {
@@ -600,7 +688,7 @@ let server;
   const cdLost = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), shown: !document.querySelector('.volleyball-ar-countdown').hidden,
     msg: document.querySelector('.volleyball-ar-message').textContent }));
   check(cdLost.st.countdown === null && !cdLost.shown && cdLost.st.ball === null, 'lost pose stops the countdown and launches no ball');
-  check(cdLost.msg === 'Show your arms! 🙂', 'lost pose during countdown shows the arms message');
+  check(cdLost.msg === 'SHOW BOTH ARMS!', 'lost pose during countdown shows the arms message');
   await page.evaluate(() => { window.__poseKind = 'base'; });
   await precondition(page, () => VA.VolleyballAR.state().countdown === 3, undefined, 'countdown restarted from 3 after recovery', 3000);
   await page.waitForTimeout(250);
@@ -651,13 +739,31 @@ let server;
   };
   await fallbackCase('denied', true, 'Space', 'fallback');
   await fallbackCase('model-fail', true, 'click');
+
+  console.log('camera/model startup never counts toward the pose timeout');
   await installProvider(page, 'slow');
   await page.evaluate(() => { VA.VolleyballAR.TUNING.startTimeout = 250; });
   await startSynthetic(page);
-  await precondition(page, () => VA.VolleyballAR.state().mode === 'fallback', undefined, 'model timeout reached fallback', 3000);
-  await page.evaluate(() => { window.__resolvePoseModel(); VA.VolleyballAR.TUNING.startTimeout = 10000; });
+  await page.waitForTimeout(800);
+  const slowStart = await volleyState(page);
+  check(slowStart.mode === 'starting', 'a pending CameraPose.start() (800 ms > 250 ms startTimeout) does not fall back (' + slowStart.mode + ')');
+  await page.evaluate(() => window.__resolvePoseModel());
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'camera', undefined, 'camera running once start resolved', 3000);
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'fallback', undefined, 'no pose after camera start still reaches fallback', 3000);
+  await page.evaluate(() => { VA.VolleyballAR.TUNING.startTimeout = 10000; });
   await finishFallback(page, 'Space');
-  check(await page.evaluate(() => window.__volleyDone), 'model timeout fallback completes');
+  check(await page.evaluate(() => window.__volleyDone), 'pose-timeout fallback completes');
+
+  console.log('a camera start that never finishes falls back after startLimitMs');
+  await installProvider(page, 'slow');
+  await page.evaluate(() => { VA.VolleyballAR.TUNING.startLimitMs = 400; });
+  await startSynthetic(page);
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'fallback', undefined, 'stalled start reached fallback', 3000);
+  await page.evaluate(() => { window.__resolvePoseModel(); VA.VolleyballAR.TUNING.startLimitMs = 30000; });
+  await page.waitForTimeout(150);
+  const stalled = await page.evaluate(() => ({ camera: VA.CameraPose.state(), tracks: window.__tracks.map(t => t.readyState) }));
+  check(!stalled.camera.running && stalled.tracks.every(state => state === 'ended'), 'a stalled start falls back and releases the camera even if the model arrives late');
+  await finishFallback(page, 'Space');
   await installProvider(page, 'ok');
   const gumBeforeSetting = await page.evaluate(() => window.__gum);
   await startSynthetic(page, { camera: false });
@@ -670,10 +776,41 @@ let server;
   await installProvider(page, 'ok');
   await page.evaluate(() => { VA.VolleyballAR.TUNING.lostPoseMs = 500; });
   await startSynthetic(page);
-  await precondition(page, () => VA.VolleyballAR.state().mode === 'camera', undefined, 'camera active before extended pose loss');
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'camera' && VA.VolleyballAR.state().poseSeen, undefined, 'camera active with a pose before extended pose loss');
+  await page.evaluate(() => { window.__poseKind = 'none'; });
   await precondition(page, () => VA.VolleyballAR.state().mode === 'fallback', undefined, 'extended pose loss reached fallback', 3000);
   await page.evaluate(() => { VA.VolleyballAR.TUNING.lostPoseMs = 8000; });
   await finishFallback(page, 'click');
+
+  console.log('SPIKE jolt moves only the overscanned visual layer');
+  for (const mode of ['fallback', 'camera']) {
+    await installProvider(page, 'ok');
+    await startSynthetic(page, { camera: mode === 'camera' });
+    if (mode === 'camera') await page.evaluate(() => { window.__poseKind = 'base'; });
+    await precondition(page, m => VA.VolleyballAR.state().mode === m, mode, mode + ' mode before the shake probe');
+    await page.waitForTimeout(300);
+    const shake = await shakeProbe(page, 'spike-shake-' + mode);
+    check(shake.visualAnims.includes('volleyball-ar-spike-shake') && shake.visualTransform !== 'none',
+      mode + ': the SPIKE jolt animates the visual layer');
+    check(shake.rootAnims.length === 0 && shake.rootTransform === 'none' && shake.rootOverflow === 'hidden',
+      mode + ': the clipped .volleyball-ar root never moves');
+    check(shake.overscanCss >= 2 * shake.maxShift && shake.shifted > 0,
+      mode + `: ${shake.overscanCss}px overscan covers the ${shake.maxShift}px jolt (still ${shake.shifted.toFixed(1)}px past every edge mid-shake)`);
+    check(!shake.commandMoved, mode + ': the command stays still during the jolt');
+    // The fallback hides the video (display:none has no transform to read).
+    check(shake.videoInVisual && (mode === 'fallback' || /^matrix\(-1,/.test(shake.videoTransform)),
+      mode + ': the camera video keeps its single mirror inside the moving layer');
+    await page.evaluate(() => VA.Screens.show('explore'));
+    await precondition(page, () => !VA.VolleyballAR.state().active, undefined, mode + ' shake probe cleaned up');
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installProvider(page, 'ok');
+  await startSynthetic(page, { camera: false });
+  const reducedShake = await shakeProbe(page, null);
+  check(reducedShake.visualAnims.length === 0 && reducedShake.rootAnims.length === 0, 'reduced motion: no SPIKE jolt at all');
+  await page.evaluate(() => VA.Screens.show('explore'));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   console.log('leaving mid-game is idempotent cleanup');
   await installProvider(page, 'ok');

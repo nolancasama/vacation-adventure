@@ -28,11 +28,14 @@
   };
   const clamp = value => Math.max(0.04, Math.min(0.96, value));
 
+  // Seated, waist-up: students start too close to the Chromebook, so the
+  // first framing asks for a small step back; a later loss only asks for
+  // the arms (one may just have left the frame).
   const COPY = {
-    frame: 'Show your upper body!',
-    frameJP: '上半身とうでが見えるようにしてね！',
-    lost: 'Show your arms! 🙂',
-    lostJP: 'りょううでが見えるようにしてね！',
+    frame: 'MOVE BACK — SHOW BOTH ARMS!',
+    frameJP: '少しうしろに下がって、りょううでを見せてね！',
+    lost: 'SHOW BOTH ARMS!',
+    lostJP: 'りょううでを見せてね！',
     presentCarry: 'GIVE IT!',
     presentCarryJP: '係の人にわたしてね！',
     receiveCarry: 'Bring it back!',
@@ -53,7 +56,8 @@
       targetRadius: 0.15,
       chestRadius: 0.18,
       dwellMs: 350,
-      startTimeout: 10000,
+      startTimeout: 10000, // no usable pose after the camera is running
+      startLimitMs: 30000, // camera + model still not started (e.g. prompt left open)
       lostPoseMs: 12000,
       assistMs: 30000,
     },
@@ -99,7 +103,7 @@
       return new Promise(resolve => {
         const s = {
           mode, cfg, screen, ui, publicState, resolve, active: true, resolved: false,
-          timers: new Set(), raf: 0, watch: 0, startupTimer: 0, lostTimer: 0,
+          timers: new Set(), raf: 0, watch: 0, cameraTimer: 0, startupTimer: 0, lostTimer: 0,
           assistTimer: 0, finishTimer: 0, messageTimer: 0, cameraStopped: false, dwell: null,
         };
         this._session = s;
@@ -186,8 +190,12 @@
 
     async _startCamera(s) {
       s.ui.root.classList.add('is-camera');
-      s.startupTimer = this._later(s, this.TUNING.startTimeout, () => {
-        if (!s.publicState.poseSeen) this._switchFallback(s);
+      // Permission and model startup never eat into the pose timeout; only a
+      // start that never finishes (a prompt left open, a stalled download)
+      // falls back, after a generous limit.
+      s.cameraTimer = this._later(s, this.TUNING.startLimitMs, () => {
+        s.cameraTimer = 0;
+        if (s.publicState.inputMode === 'starting') this._switchFallback(s);
       });
       try {
         await VA.CameraPose.start({
@@ -203,8 +211,17 @@
         this._stopCamera(s);
         return;
       }
+      this._clearTimer(s, 'cameraTimer');
       s.publicState.inputMode = 'camera';
       s.ui.root.classList.add('camera-running');
+      // The camera and model are running: only now does the wait for a
+      // usable pose begin.
+      if (!s.publicState.poseSeen) {
+        s.startupTimer = this._later(s, this.TUNING.startTimeout, () => {
+          s.startupTimer = 0;
+          if (!s.publicState.poseSeen) this._switchFallback(s);
+        });
+      }
       s.assistTimer = this._later(s, this.TUNING.assistMs, () => this._showAssist(s));
     },
 
@@ -418,6 +435,7 @@
         s.cameraStopped = true;
         if (VA.CameraPose) VA.CameraPose.stop();
       }
+      this._clearTimer(s, 'cameraTimer');
       this._clearTimer(s, 'startupTimer');
       this._clearTimer(s, 'lostTimer');
       s.ui.video.srcObject = null;

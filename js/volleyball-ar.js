@@ -20,26 +20,44 @@
     return dist(p, { x: a.x + t * dx, y: a.y + t * dy });
   };
 
-  const isBump = (pose, ball, tuning) => {
-    if (!pose || !ball || !ball.hittable || !pose.leftWrist || !pose.rightWrist ||
-        !pose.leftElbow || !pose.rightElbow) return false;
-    if (dist(pose.leftWrist, pose.rightWrist) >= tuning.bumpWrists) return false;
-    const wristMid = midpoint(pose.leftWrist, pose.rightWrist);
-    return Math.min(
+  /* Pose arrives only several times per second on a Chromebook, so a fast
+     move can pass right through the ball between two samples. All three
+     moves therefore also test the path a wrist swept since the previous
+     sample, while keeping each move's own arm shape. */
+  const armsTogether = (pose, tuning) => !!(pose && pose.leftWrist && pose.rightWrist &&
+    pose.leftElbow && pose.rightElbow && dist(pose.leftWrist, pose.rightWrist) < tuning.bumpWrists);
+
+  // BUMP: forearms together (this sample or the one before) and the ball on
+  // a forearm, at the joined wrists, or on the path the joined wrists swept.
+  const isBump = (pose, prevPose, ball, tuning) => {
+    if (!pose || !ball || !ball.hittable) return false;
+    const together = armsTogether(pose, tuning);
+    if (together && Math.min(
       pointSegmentDistance(ball, pose.leftElbow, pose.leftWrist),
       pointSegmentDistance(ball, pose.rightElbow, pose.rightWrist),
-      dist(ball, wristMid)
-    ) < tuning.bumpRadius;
+      dist(ball, midpoint(pose.leftWrist, pose.rightWrist))
+    ) < tuning.bumpRadius) return true;
+    if (!prevPose || !(together || armsTogether(prevPose, tuning))) return false;
+    return pointSegmentDistance(ball,
+      midpoint(prevPose.leftWrist, prevPose.rightWrist),
+      midpoint(pose.leftWrist, pose.rightWrist)) < tuning.bumpRadius;
   };
 
-  const isSet = (pose, ball, tuning) => !!(pose && ball && ball.hittable &&
-    pose.leftWrist && pose.rightWrist && pose.leftShoulder && pose.rightShoulder &&
-    pose.leftWrist.y < pose.leftShoulder.y && pose.rightWrist.y < pose.rightShoulder.y &&
-    Math.min(dist(ball, pose.leftWrist), dist(ball, pose.rightWrist)) < tuning.setRadius);
+  const handsUp = pose => !!(pose && pose.leftWrist && pose.rightWrist && pose.leftShoulder && pose.rightShoulder &&
+    pose.leftWrist.y < pose.leftShoulder.y && pose.rightWrist.y < pose.rightShoulder.y);
 
-  /* Pose arrives ~10×/s, so a fast swing can pass right through the ball
-     between two samples. Test the whole wrist path (previous → current)
-     against the ball, and only for a DOWNWARD swing (screen y grows
+  // SET: both hands above the shoulders (this sample or the one before) and
+  // a wrist at the ball or sweeping through it.
+  const isSet = (pose, prevPose, ball, tuning) => {
+    if (!pose || !ball || !ball.hittable || !(handsUp(pose) || handsUp(prevPose))) return false;
+    return ['left', 'right'].some(side => {
+      const wrist = pose[side + 'Wrist'];
+      const previous = prevPose && prevPose[side + 'Wrist'];
+      return (previous ? pointSegmentDistance(ball, previous, wrist) : dist(ball, wrist)) < tuning.setRadius;
+    });
+  };
+
+  /* SPIKE: the swept wrist path, only for a DOWNWARD swing (screen y grows
      downward) from a raised arm — the upward pull-back never counts. */
   const isSpike = (pose, prevPose, ball, tuning) => {
     if (!pose || !prevPose || !ball || !ball.hittable) return false;
@@ -56,18 +74,20 @@
     });
   };
 
-  // Waist-up, desk-friendly copy: it teaches the controls the detector needs,
-  // never asks the student to stand or move back.
+  // Waist-up, desk-friendly copy: it teaches the controls the detector needs
+  // and never asks the student to stand. Students start too close to the
+  // Chromebook, so the first framing asks for a small step back; a later
+  // loss only asks for the arms (one may just have left the frame).
   const HINTS = {
     bump: 'うでをそろえてね！',
     set: 'りょうてを上にあげてね！',
     spike: 'うでを上からふってね！',
   };
   const COPY = {
-    frame: 'Show your upper body!',
-    frameJP: '上半身とうでが見えるようにしてね！',
-    lost: 'Show your arms! 🙂',
-    lostJP: 'りょううでが見えるようにしてね！',
+    frame: 'MOVE BACK — SHOW BOTH ARMS!',
+    frameJP: '少しうしろに下がって、りょううでを見せてね！',
+    lost: 'SHOW BOTH ARMS!',
+    lostJP: 'りょううでを見せてね！',
     fallbackJP: 'ボールが光ったら「HIT!」をおしてね！',
   };
   const PHASES = ['bump', 'set', 'spike'];
@@ -91,7 +111,8 @@
       tutorialMs: 1200, // first appearance of each move: demo before the ball
       countdownMs: 500, // each of 3, 2, 1 before every ball
       goMs: 400,
-      startTimeout: 10000,
+      startTimeout: 10000, // no usable pose after the camera is running
+      startLimitMs: 30000, // camera + model still not started (e.g. prompt left open)
       lostPoseMs: 8000,
     },
 
@@ -129,7 +150,7 @@
           cfg, cine, screen, ui, publicState, resolve, active: true, resolved: false,
           phaseIndex: -1, pose: null, prevPose: null, ballRun: null,
           timers: new Set(), shownHints: new Set(), raf: 0, lastFrame: performance.now(),
-          startupTimer: 0, lostTimer: 0, readyTimer: 0, tutorialTimer: 0, hitButton: null,
+          cameraTimer: 0, startupTimer: 0, lostTimer: 0, readyTimer: 0, tutorialTimer: 0, hitButton: null,
           countdownTimer: 0, countdownPhase: null,
           cameraStopped: false,
         };
@@ -149,12 +170,17 @@
       const root = VA.el('div', 'volleyball-ar');
       root.setAttribute('role', 'dialog');
       root.setAttribute('aria-label', 'Beach volleyball');
+      // The camera (or fallback beach) and its shade live in one overscanned
+      // layer: the SPIKE jolt moves only this layer, never the root, so no
+      // edge can reveal the screen underneath and the UI stays still.
+      const visual = VA.el('div', 'volleyball-ar-visual');
       const video = document.createElement('video');
       video.className = 'volleyball-ar-video';
       video.muted = true;
       video.playsInline = true;
       video.setAttribute('playsinline', '');
       const shade = VA.el('div', 'volleyball-ar-shade');
+      visual.append(video, shade);
       const command = VA.el('div', 'volleyball-ar-command', COPY.frame);
       const hint = VA.el('div', 'volleyball-ar-hint', COPY.frameJP);
       const message = VA.el('div', 'volleyball-ar-message');
@@ -175,8 +201,8 @@
       const countdown = VA.el('div', 'volleyball-ar-countdown');
       countdown.setAttribute('aria-live', 'polite');
       countdown.hidden = true;
-      root.append(video, shade, command, hint, message, demo, ball, countdown);
-      return { root, video, command, hint, message, demo, ball, countdown };
+      root.append(visual, command, hint, message, demo, ball, countdown);
+      return { root, visual, video, command, hint, message, demo, ball, countdown };
     },
 
     _bind(s) {
@@ -223,7 +249,11 @@
       const p = s.publicState;
       p.mode = 'starting';
       s.ui.root.classList.add('is-camera');
-      s.startupTimer = this._later(s, this.TUNING.startTimeout, () => {
+      // Permission and model startup never eat into the pose timeout; only a
+      // start that never finishes (a prompt left open, a stalled download)
+      // falls back, after a generous limit.
+      s.cameraTimer = this._later(s, this.TUNING.startLimitMs, () => {
+        s.cameraTimer = 0;
         if (p.mode === 'starting') this._switchFallback(s);
       });
       try {
@@ -240,12 +270,20 @@
         VA.CameraPose.stop();
         return;
       }
-      this._clearTimer(s, 'startupTimer');
+      this._clearTimer(s, 'cameraTimer');
       p.mode = 'camera';
       s.ui.root.classList.add('camera-running');
       s.ui.command.textContent = COPY.frame;
       s.ui.hint.textContent = COPY.frameJP;
       this._poseLost(s);
+      // The camera and model are running: only now does the wait for a
+      // usable pose begin.
+      if (!p.poseSeen) {
+        s.startupTimer = this._later(s, this.TUNING.startTimeout, () => {
+          s.startupTimer = 0;
+          if (!p.poseSeen) this._switchFallback(s);
+        });
+      }
     },
 
     _poseComplete(pose) {
@@ -263,6 +301,7 @@
       const p = s.publicState;
       p.poseSeen = true;
       if (p.mode !== 'camera') return;
+      this._clearTimer(s, 'startupTimer');
       this._clearTimer(s, 'lostTimer');
       p.paused = false;
       if (s.ui.root.classList.contains('pose-lost')) {
@@ -288,8 +327,8 @@
         const tuning = this._effectiveTuning(s);
         const ball = p.ball;
         let hit = false;
-        if (p.phase === 'bump') hit = isBump(pose, ball, tuning);
-        else if (p.phase === 'set') hit = isSet(pose, ball, tuning);
+        if (p.phase === 'bump') hit = isBump(pose, s.prevPose, ball, tuning);
+        else if (p.phase === 'set') hit = isSet(pose, s.prevPose, ball, tuning);
         else if (p.phase === 'spike') hit = isSpike(pose, s.prevPose, ball, tuning);
         if (hit) this._hit(s, 'pose');
       }
@@ -306,7 +345,7 @@
       if (s.countdownPhase) this._stopCountdown(s);
       s.ui.root.classList.add('pose-lost');
       if (s.phaseIndex < 0) {
-        // Not found yet (before READY): keep the framing instruction.
+        // Not playing yet (before READY): keep the framing instruction.
         s.ui.command.textContent = COPY.frame;
         s.ui.message.textContent = '';
         s.ui.hint.textContent = COPY.frameJP;
@@ -314,7 +353,8 @@
         s.ui.message.textContent = COPY.lost;
         s.ui.hint.textContent = COPY.lostJP;
       }
-      if (!s.lostTimer) {
+      // Before the first usable pose the startup pose timeout applies instead.
+      if (p.poseSeen && !s.lostTimer) {
         s.lostTimer = this._later(s, this.TUNING.lostPoseMs, () => {
           s.lostTimer = 0;
           this._switchFallback(s);
@@ -589,8 +629,9 @@
       s.ui.command.textContent = run.phase === 'spike' ? 'SPIKE! 💥' : run.phase.toUpperCase() + '! ✨';
       s.ui.hint.textContent = '';
       if (run.phase === 'spike') {
-        // Strong but short: ball glow + a tiny stage jolt (none with reduced
-        // motion). Filter-only on the ball so the shrink transform is untouched.
+        // Strong but short: ball glow + a tiny jolt of the overscanned visual
+        // layer (none with reduced motion); the root and UI never move.
+        // Filter-only on the ball so the shrink transform is untouched.
         s.ui.ball.classList.add('is-spike-hit');
         s.ui.root.classList.add('spike-impact');
         this._later(s, 220, () => { s.ui.ball.classList.remove('is-spike-hit'); s.ui.root.classList.remove('spike-impact'); });
@@ -631,6 +672,7 @@
         s.cameraStopped = true;
         VA.CameraPose.stop();
       }
+      this._clearTimer(s, 'cameraTimer');
       this._clearTimer(s, 'startupTimer');
       this._clearTimer(s, 'lostTimer');
       this._clearTimer(s, 'readyTimer');

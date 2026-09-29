@@ -1733,6 +1733,12 @@ body {
   color:#fff; font-family:var(--font); background:#172c3a;
 }
 .volleyball-ar [hidden] { display:none !important; }
+/* Camera / fallback-beach surface. It overscans every edge by 12px so the
+   SPIKE jolt (max 3px) moves only this layer while the clipped root and all
+   UI stay still: nothing underneath can ever show at an edge. */
+.volleyball-ar-visual {
+  position:absolute; inset:-12px; overflow:hidden; pointer-events:none; background:#172c3a;
+}
 .volleyball-ar-video {
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
   transform:scaleX(-1); background:#172c3a;
@@ -1741,18 +1747,20 @@ body {
   position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(180deg,rgba(4,17,27,.48) 0,transparent 22%,transparent 76%,rgba(4,17,27,.45) 100%);
 }
-.volleyball-ar.is-fallback {
+.volleyball-ar.is-fallback .volleyball-ar-visual {
   background:linear-gradient(#60c7ed 0 55%,#46b8d7 55% 57%,#f2cf8a 57% 100%);
 }
-.volleyball-ar.is-fallback::before {
+.volleyball-ar.is-fallback .volleyball-ar-visual::before {
   content:""; position:absolute; left:-8%; right:-8%; top:50%; height:76px;
   background:repeating-radial-gradient(ellipse at 50% 100%,rgba(255,255,255,.88) 0 5px,transparent 7px 31px);
   opacity:.75;
 }
 .volleyball-ar.is-fallback .volleyball-ar-video { display:none; }
+/* max-content: with left:50% the shrink-to-fit width stops at half the stage,
+   so long copy (MOVE BACK — SHOW BOTH ARMS!) wrapped under the JP line. */
 .volleyball-ar-command {
   position:absolute; z-index:3; left:50%; top:14px; transform:translateX(-50%);
-  min-width:250px; max-width:720px; padding:8px 26px; border:3px solid rgba(255,255,255,.9);
+  width:max-content; min-width:250px; max-width:720px; padding:8px 26px; border:3px solid rgba(255,255,255,.9);
   border-radius:18px; background:rgba(13,43,61,.82); box-shadow:0 4px 12px rgba(0,0,0,.25);
   text-align:center; font-size:34px; font-weight:1000; letter-spacing:.04em; line-height:1.08;
 }
@@ -1781,14 +1789,15 @@ body {
   filter:drop-shadow(0 0 13px #fff) drop-shadow(0 0 23px #ffe156) drop-shadow(0 9px 7px rgba(0,0,0,.3));
 }
 .volleyball-ar-ball.is-hit { animation:volleyball-ar-hit-pop .26s ease-out; }
-/* SPIKE impact: glow only (the shrink lives in transform), plus a 3px jolt */
+/* SPIKE impact: glow only (the shrink lives in transform), plus a 3px jolt of
+   the overscanned visual layer — never the root, never the UI. */
 .volleyball-ar-ball.is-spike-hit { animation:volleyball-ar-spike-impact .2s ease-out; }
 @keyframes volleyball-ar-spike-impact {
   0% { filter:drop-shadow(0 0 0 #fff); }
   40% { filter:drop-shadow(0 0 18px #fff) drop-shadow(0 0 34px #ffe156); }
   100% { filter:drop-shadow(0 9px 7px rgba(0,0,0,.34)); }
 }
-.volleyball-ar.spike-impact { animation:volleyball-ar-spike-shake .18s ease-out; }
+.volleyball-ar.spike-impact .volleyball-ar-visual { animation:volleyball-ar-spike-shake .18s ease-out; }
 @keyframes volleyball-ar-spike-shake {
   0%, 100% { transform:translate(0,0); }
   25% { transform:translate(-3px,2px); }
@@ -1860,6 +1869,28 @@ body {
 @keyframes volleyball-ar-hit-pop { 0% { transform:translate(-50%,-50%) scale(1); } 50% { transform:translate(-50%,-50%) scale(1.28) rotate(-8deg); } 100% { transform:translate(-50%,-50%) scale(1); } }
 @keyframes volleyball-ar-window { from { filter:brightness(1); } to { filter:brightness(1.16); } }
 
+/* Title START / CONTINUE: shown only while the browser's camera prompt (or a
+   slow camera start) is still pending — see VA.Main.prepareCamera. */
+.camera-setup {
+  position:absolute; inset:0; z-index:90; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; pointer-events:auto;
+  background:rgba(13,43,61,.6); color:#fff; font-family:var(--font); text-align:center;
+}
+.camera-setup[hidden] { display:none; }
+.camera-setup-card {
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:22px 40px;
+  border:3px solid rgba(255,255,255,.9); border-radius:18px; background:rgba(13,43,61,.95);
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.camera-setup-en { font-size:34px; font-weight:1000; letter-spacing:.06em; }
+.camera-setup-jp { font-size:22px; font-weight:900; }
+/* ?debug only: pose sampling stats (VA.CameraPose._showDebugBadge) */
+.camera-pose-debug {
+  position:fixed; left:8px; bottom:8px; z-index:9999; pointer-events:none;
+  padding:4px 8px; border-radius:6px; background:rgba(0,0,0,.66); color:#9ff59f;
+  font:12px/1.3 ui-monospace,Consolas,monospace; white-space:pre;
+}
+
 /* ---- AR handoff ---- */
 .ar-handoff {
   position:absolute; inset:0; z-index:58; overflow:hidden; user-select:none;
@@ -1891,9 +1922,10 @@ body {
 .ar-handoff.is-present.is-dwelling.is-carrying .ar-handoff-npc {
   filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 22px #ffe667);
 }
+/* width:max-content for the same reason as .volleyball-ar-command */
 .ar-handoff-command {
   position:absolute; z-index:6; left:50%; top:14px; transform:translateX(-50%);
-  min-width:250px; max-width:720px; padding:8px 26px; border:3px solid rgba(255,255,255,.9);
+  width:max-content; min-width:250px; max-width:720px; padding:8px 26px; border:3px solid rgba(255,255,255,.9);
   border-radius:18px; background:rgba(13,43,61,.84); box-shadow:0 4px 12px rgba(0,0,0,.25);
   text-align:center; font-size:32px; font-weight:900; letter-spacing:.04em; line-height:1.08;
 }
@@ -1993,7 +2025,7 @@ body {
   .scene-art.drift, .hotspot, .depart-btn, #tap-btn, .map-pin, .actor.bob { animation:none !important; }
   .player-ground-shadow, .environment-light { animation:none !important; }
   .volleyball-finale-shot, .volleyball-finale-shot *, .volleyball-finale-shot::before, .volleyball-finale-shot::after { animation:none !important; transition:none !important; }
-  .volleyball-ar-ball, .volleyball-ar-hit, .volleyball-ar-countdown, .volleyball-ar.spike-impact { animation:none !important; }
+  .volleyball-ar-ball, .volleyball-ar-hit, .volleyball-ar-countdown, .volleyball-ar.spike-impact .volleyball-ar-visual { animation:none !important; }
   .volleyball-ar-demo i, .volleyball-ar-demo span { animation-duration:.01ms !important; } /* end pose only */
   .ar-handoff-object, .ar-handoff-object::after, .ar-handoff-target::after { animation:none !important; }
   .bedroom-hotspot.first-trip { animation:none; }

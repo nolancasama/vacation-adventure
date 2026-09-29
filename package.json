@@ -18,6 +18,7 @@
     "test:volleyball": "node -r ./tests/pw-path.js tests/volleyball-test.js",
     "test:soccer-voice": "node -r ./tests/pw-path.js tests/soccer-voice-test.js",
     "test:handoff": "node -r ./tests/pw-path.js tests/handoff-test.js",
-    "test:sand": "node -r ./tests/pw-path.js tests/sand-test.js"
+    "test:sand": "node -r ./tests/pw-path.js tests/sand-test.js",
+    "test:camera": "node -r ./tests/pw-path.js tests/camera-test.js"
   }
 }

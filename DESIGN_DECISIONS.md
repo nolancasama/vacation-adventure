@@ -738,3 +738,53 @@ flex `#app` was squeezing its layout width while `VA.Stage.fit()` also
 scaled it, so the right side of every screen was clipped and hit points
 drifted (found by the sand game's 700 px alignment test; it also fixed the
 bedroom guide's 800x600 glow/hint alignment check).
+
+## 2026-09-29 — Chromebook camera polish from classroom testing
+
+**What.**
+- **Early camera preflight.** START and CONTINUE await
+  `VA.CameraPose.preflight()` before the look picker / `Flows.resume()`.
+  The camera prompt now appears at the start of the game, not during
+  passport control. Preflight warms the pose model, asks for the camera,
+  stops every track at once and resolves on the decision. It never rejects,
+  and it is skipped when Camera activities is off. A "SETTING UP CAMERA… /
+  カメラをじゅんびしています…" card appears only if the decision takes
+  more than 250 ms, so a stored permission never flashes it. A denial is
+  remembered for the session: activities fall back without re-prompting
+  unless `navigator.permissions` now reports granted.
+- **Timeouts count only after the camera starts.** The handoff and volleyball
+  pose timeouts start after `CameraPose.start()` resolves. A separate 30 s
+  cap (`startLimitMs`) falls back if the start never finishes, for example
+  an unanswered prompt or a stalled model download.
+- **Adaptive sampling.** The pose loop spaces checks 50 ms apart, and
+  inference time counts toward that. A slow Chromebook samples again at
+  once instead of waiting a fixed 100 ms on top. The video request is
+  480×360 front-facing. One landmarker serves the whole session.
+  `?debug` shows a pose Hz / inference ms / video size badge.
+- **Swept BUMP/SET.** BUMP also tests the wrist-midpoint path between two
+  samples, and SET tests each wrist's path, so fast movements between
+  samples still count. SPIKE is unchanged.
+- **Move-back copy.** The first framing message is now "MOVE BACK — SHOW
+  BOTH ARMS! / 少しうしろに下がって、りょううでを見せてね！". A later loss
+  shows "SHOW BOTH ARMS! / りょううでを見せてね！". This reverses the
+  2026-09-27 rule that the copy never says move back. In classrooms,
+  students sat too close to the Chromebook camera for their arms to be in
+  frame. The copy still never says stand.
+- **SPIKE shake on an overscanned layer.** The jolt moves
+  `.volleyball-ar-visual`, which holds the video, shade and fallback beach
+  and extends 12 px past each edge, not the clipped root, so the screen
+  underneath never shows. Pose-to-screen alignment shifts by ≤ ~1% at the
+  edges, which was accepted.
+- **Command boxes size to their text** (`width:max-content`, still capped at
+  720 px). With `left:50%`, shrink-to-fit stopped at half the stage and the
+  long framing line wrapped under the JP line.
+
+**Why.** Real Chromebook classroom testing showed four problems. The
+permission prompt appeared mid-passport and used up the fallback timeout.
+Pose tracking lagged. The SPIKE shake revealed the screen underneath.
+Students sat too close for their arms to be in frame.
+
+**Rejected.** Keeping the stream open from START (the camera light would
+stay on through non-camera scenes); counting permission time toward the
+pose timeout; the GPU delegate or a different model (out of scope, and
+unverified on Chromebooks).

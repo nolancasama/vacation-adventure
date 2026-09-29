@@ -96,18 +96,50 @@ VA.Main = {
     VA.$('#btn-continue').style.display = hasSave ? 'inline-block' : 'none';
     VA.$('#btn-start').textContent = hasSave ? '✈ New Game' : '✈ Start';
 
-    VA.$('#btn-start').onclick = () => {
+    let launching = false;
+    VA.$('#btn-start').onclick = async () => {
+      if (launching) return;
+      launching = true;
       VA.Audio.init();
       VA.Audio.sfx('click');
       if (hasSave) VA.State.reset();
+      await this.prepareCamera();
+      launching = false;
       this.pickLook();
     };
-    VA.$('#btn-continue').onclick = () => {
+    VA.$('#btn-continue').onclick = async () => {
+      if (launching) return;
+      launching = true;
       VA.Audio.init();
       VA.Audio.sfx('click');
       VA.Audio.music('theme_title');
+      await this.prepareCamera();
+      launching = false;
       VA.Flows.resume();
     };
+  },
+
+  /* Ask for the camera right after START / CONTINUE (a real click), so the
+     browser's permission prompt never interrupts passport control, and warm
+     the pose model meanwhile. The title waits for the student's decision;
+     denied or unavailable just means the camera activities use their
+     fallbacks later. Skipped when Camera activities is off in Settings. */
+  async prepareCamera() {
+    const settings = VA.State.data.settings || {};
+    if (settings.camera === false || !VA.CameraPose || !VA.CameraPose.isSupported()) return;
+    const cover = VA.el('div', 'camera-setup');
+    cover.setAttribute('role', 'status');
+    const card = VA.el('div', 'camera-setup-card');
+    card.append(VA.el('div', 'camera-setup-en', 'SETTING UP CAMERA…'),
+      VA.el('div', 'camera-setup-jp', 'カメラをじゅんびしています…'));
+    cover.appendChild(card);
+    cover.hidden = true;
+    VA.$('#scr-title').appendChild(cover);
+    // A stored permission answers at once: no flash of the cover then.
+    const reveal = setTimeout(() => { cover.hidden = false; }, 250);
+    try { await VA.CameraPose.preflight(); } catch (error) { /* never fatal */ }
+    clearTimeout(reveal);
+    cover.remove();
   },
 
   async pickLook() {
