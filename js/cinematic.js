@@ -483,14 +483,23 @@ VA.Cine = {
     return image;
   },
 
+  /* Each shot is a stationary, clipped frame (.volleyball-finale-shot) around
+     an overscanned .volleyball-finale-visual that carries every shake, so a
+     shake never uncovers what is underneath. Backgrounds fill the whole
+     visual; everything else sits in .volleyball-finale-frame, which matches
+     the viewport exactly and keeps the original composition. */
   _volleyballFinaleShot(kind) {
     const shot = VA.el('div', 'volleyball-finale-shot volleyball-finale-' + kind);
+    const visual = VA.el('div', 'volleyball-finale-visual');
+    const frame = VA.el('div', 'volleyball-finale-frame');
     if (kind !== 'spike') {
       const court = kind === 'spiked'
         ? 'assets/backgrounds/volleyball_finale_spiked_court.webp'
         : 'assets/backgrounds/volleyball_finale_court.webp';
-      shot.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
+      visual.appendChild(this._volleyballFinaleImage('volleyball-finale-bg', court, 'Beach volleyball court'));
     }
+    visual.appendChild(frame);
+    shot.appendChild(visual);
 
     if (kind === 'scared') {
       const camera = VA.el('div', 'volleyball-scared-camera');
@@ -499,7 +508,7 @@ VA.Cine = {
         'assets/objects/volleyball_finale_girl_scared.webp',
         'Scared beach volleyball player',
       ));
-      shot.appendChild(camera);
+      frame.appendChild(camera);
       return shot;
     }
 
@@ -523,7 +532,7 @@ VA.Cine = {
         this._volleyballFinaleImage('volleyball-final-ball', 'assets/objects/volleyball_finale_ball.webp', 'Volleyball'),
         VA.el('span', 'volleyball-ball-glint'),
       );
-      shot.append(aura, particles, camera, VA.el('div', 'volleyball-shockwave'), VA.el('div', 'volleyball-impact-flash'));
+      frame.append(aura, particles, camera, VA.el('div', 'volleyball-shockwave'), VA.el('div', 'volleyball-impact-flash'));
       return shot;
     }
 
@@ -534,12 +543,12 @@ VA.Cine = {
       puff.style.setProperty('--delay', (i % 4) * -0.1 + 's');
       dust.appendChild(puff);
     }
-    shot.appendChild(this._volleyballFinaleImage(
+    frame.appendChild(this._volleyballFinaleImage(
       'volleyball-final-girl',
       'assets/objects/volleyball_finale_girl_cowering.webp',
       'Cowering beach volleyball player',
     ));
-    shot.appendChild(dust);
+    frame.appendChild(dust);
     return shot;
   },
 
@@ -552,17 +561,20 @@ VA.Cine = {
     const t = this.VOLLEY_FINALE_TIMING;
 
     overlay.hidden = false;
-    overlay.classList.remove('is-visible', 'is-leaving');
+    overlay.classList.remove('is-visible', 'is-leaving', 'internal-cut');
+    // The overlay fades in once, stays opaque through every shot, and fades
+    // out once at the end: the regular scene never shows between shots.
     const mountShot = kind => {
       const shot = this._volleyballFinaleShot(kind);
       overlay.replaceChildren(shot);
       void overlay.offsetWidth;
-      overlay.classList.remove('is-leaving');
+      overlay.classList.remove('internal-cut');
       overlay.classList.add('is-visible');
       return shot;
     };
+    // A hard cut: a brief opaque black frame inside the overlay.
     const cut = async () => {
-      overlay.classList.add('is-leaving');
+      overlay.classList.add('internal-cut');
       await VA.wait(t.cut);
     };
 
@@ -601,10 +613,11 @@ VA.Cine = {
     impact.classList.add('impact-settled');
     VA.Audio.ambient(['waves', 'wind', 'seagulls']);
     await VA.wait(t.impact - 800);
-    await cut();
+    overlay.classList.add('is-leaving');
+    await VA.wait(t.cut);
     overlay.hidden = true;
     overlay.replaceChildren();
-    overlay.classList.remove('is-visible', 'is-leaving');
+    overlay.classList.remove('is-visible', 'is-leaving', 'internal-cut');
   },
 
   /* --------- France soccer: say PASS → PASS → SHOOT ---------

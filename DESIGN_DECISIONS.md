@@ -788,3 +788,36 @@ Students sat too close for their arms to be in frame.
 stay on through non-camera scenes); counting permission time toward the
 pose timeout; the GPU delegate or a different model (out of scope, and
 unverified on Chromebooks).
+
+## 2026-09-30 — Phase-specific arm requirements, eat fallback, finale layers
+
+From Chromebook classroom observations.
+
+- **Arm requirements per move.** BUMP and SET need both arms (shoulder,
+  elbow and wrist on each side). SPIKE needs one complete striking arm,
+  left or right, so the other arm may leave the frame mid-swing without a
+  pause or "SHOW BOTH ARMS!". The first framing (before READY) still needs
+  both arms, because the sequence opens with BUMP. Pose loss is judged
+  against the current phase (`_poseEnoughForPhase`). A one-armed SPIKE ball
+  is served above the arm that is in view.
+- **TAP TO EAT is a real fallback.** It is hidden while the camera starts
+  and while camera eating works. It appears when the camera is off or
+  unsupported (immediately), fails, times out, or stalls (the existing
+  STALL_MS rule). Space/Enter count only while it is shown. This reverses the
+  earlier "tap is available until webcam eating is active" rule: students
+  saw TAP TO EAT during "Camera starting…" and tapped instead of eating.
+- **The volleyball finale is one opaque overlay.** It fades in once and out
+  once. Shot changes inside it are hard cuts: a brief opaque black frame
+  (`.internal-cut`), never a fade to transparent, which had shown the
+  regular volleyball scene between shots.
+- **Finale shakes move an overscanned inner layer.** Each shot is a
+  stationary clipped `.volleyball-finale-shot` around a
+  `.volleyball-finale-visual` that extends 32 px past every edge (the
+  biggest shake is 17 px) and carries the background, the CSS void and every
+  character and effect. Power-up, hit, aftershock and crater shakes animate
+  only that layer. A `.volleyball-finale-frame` inside it matches the
+  viewport exactly, so the composition is unchanged.
+
+**Rejected.** Reducing the finale shake to zero (it loses the impact);
+scaling the shots up instead of overscanning (changes the art framing);
+making SET or BUMP one-armed (they are two-hand moves).

@@ -61,6 +61,7 @@
      downward) from a raised arm — the upward pull-back never counts. */
   const isSpike = (pose, prevPose, ball, tuning) => {
     if (!pose || !prevPose || !ball || !ball.hittable) return false;
+    // Each side is tested on its own: the non-hitting arm may be out of frame.
     return ['left', 'right'].some(side => {
       const wrist = pose[side + 'Wrist'];
       const shoulder = pose[side + 'Shoulder'];
@@ -286,14 +287,30 @@
       }
     },
 
-    _poseComplete(pose) {
-      return !!(pose && pose.leftShoulder && pose.rightShoulder &&
-        pose.leftElbow && pose.rightElbow && pose.leftWrist && pose.rightWrist);
+    _hasLeftArm(pose) {
+      return !!(pose && pose.leftShoulder && pose.leftElbow && pose.leftWrist);
+    },
+
+    _hasRightArm(pose) {
+      return !!(pose && pose.rightShoulder && pose.rightElbow && pose.rightWrist);
+    },
+
+    _hasBothArms(pose) {
+      return this._hasLeftArm(pose) && this._hasRightArm(pose);
+    },
+
+    /* BUMP and SET are two-arm moves; SPIKE needs one complete striking arm,
+       so the other arm may leave the frame mid-swing. Before play starts
+       (phase < 0) both arms are required: the sequence opens with BUMP. */
+    _poseEnoughForPhase(pose, phase) {
+      if (phase === 'spike') return this._hasLeftArm(pose) || this._hasRightArm(pose);
+      return this._hasBothArms(pose);
     },
 
     _receivePose(s, pose) {
       if (!s.active || (s.publicState.mode !== 'camera' && s.publicState.mode !== 'starting')) return;
-      if (!this._poseComplete(pose)) {
+      const needed = s.phaseIndex < 0 ? 'ready' : PHASES[s.phaseIndex];
+      if (!this._poseEnoughForPhase(pose, needed)) {
         if (s.publicState.mode === 'camera') this._poseLost(s);
         return;
       }
@@ -319,7 +336,7 @@
         s.ui.hint.textContent = '';
         s.readyTimer = this._later(s, this.TUNING.readyMs, () => {
           s.readyTimer = 0;
-          if (this._poseComplete(s.pose) && s.publicState.mode === 'camera') this._startPhase(s, 0);
+          if (this._hasBothArms(s.pose) && s.publicState.mode === 'camera') this._startPhase(s, 0);
         });
       }
 
@@ -412,7 +429,13 @@
 
     _target(s, phase) {
       const pose = s.pose;
-      if (pose && this._poseComplete(pose)) {
+      if (phase === 'spike' && pose && !this._hasBothArms(pose)) {
+        // One-armed spike: serve above whichever arm is still in view.
+        const shoulder = this._hasRightArm(pose) ? pose.rightShoulder
+          : this._hasLeftArm(pose) ? pose.leftShoulder : null;
+        if (shoulder) return { x: shoulder.x, y: Math.max(0.22, shoulder.y - 0.24) };
+      }
+      if (pose && this._hasBothArms(pose)) {
         const shoulders = midpoint(pose.leftShoulder, pose.rightShoulder);
         // Lower chest / upper abdomen: above the desk edge for seated students.
         if (phase === 'bump') return { x: shoulders.x, y: Math.min(0.74, shoulders.y + 0.23) };

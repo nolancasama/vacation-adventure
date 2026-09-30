@@ -1662,19 +1662,28 @@ body {
 #volleyball-finale[hidden] { display:none; }
 #volleyball-finale.is-visible { opacity:1; }
 #volleyball-finale.is-leaving { opacity:0; transition:opacity .12s ease-in; }
+/* Internal shot changes are hard cuts inside the opaque overlay; only the
+   final exit (.is-leaving) ever fades it. */
+#volleyball-finale { background:#05070f; }
+#volleyball-finale.internal-cut::after { content:""; position:absolute; inset:0; z-index:10; background:#05070f; pointer-events:none; }
+/* The outer shot is a stationary clip and never moves. Every shake moves the
+   overscanned visual layer (32px past each edge, well beyond the 17px peak
+   shake); the frame inside it matches the viewport exactly. */
 .volleyball-finale-shot { position:absolute; inset:0; overflow:hidden; isolation:isolate; background:#35a9df; }
+.volleyball-finale-visual { position:absolute; inset:-32px; isolation:isolate; background:#35a9df; will-change:transform; }
+.volleyball-finale-frame { position:absolute; inset:32px; }
 .volleyball-finale-bg { position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:cover; }
 .volleyball-final-girl { position:absolute; z-index:2; left:70%; bottom:-3%; height:88%; width:auto; max-width:none; transform:translateX(-50%); filter:drop-shadow(0 8px 8px rgba(38,24,12,.32)); }
 
 /* Shot 1: the beach stays calm while the close-up becomes absurdly ominous. */
 .volleyball-scared-camera { position:absolute; inset:-220px 0 -200px; z-index:1; animation:volleyballScaredPan 3.4s cubic-bezier(.25,.7,.25,1) both; will-change:transform; }
-.volleyball-finale-scared::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none; background:radial-gradient(ellipse at center, transparent 40%, rgba(10,20,38,.06) 62%, rgba(5,12,25,.48) 100%); animation:volleyballVignette 3.4s ease-in both; }
+.volleyball-finale-scared .volleyball-finale-visual::after { content:""; position:absolute; inset:32px; z-index:3; pointer-events:none; background:radial-gradient(ellipse at center, transparent 40%, rgba(10,20,38,.06) 62%, rgba(5,12,25,.48) 100%); animation:volleyballVignette 3.4s ease-in both; }
 .volleyball-finale-scared .volleyball-final-girl { left:50%; top:50%; bottom:auto; height:980px; animation:volleyballScaredShiver 3.4s steps(1,end) both; }
 
 /* Shot 2: CSS-only comic void, which keeps the player and ball completely clear. */
-.volleyball-finale-spike { background:#060816; }
-.volleyball-finale-spike::before { content:""; position:absolute; inset:-42%; z-index:0; pointer-events:none; background:repeating-conic-gradient(from 8deg at 50% 56%, rgba(255,246,205,.9) 0 .55deg, transparent .9deg 7deg); -webkit-mask-image:radial-gradient(circle at 50% 56%, transparent 0 11%, #000 25% 67%, transparent 86%); mask-image:radial-gradient(circle at 50% 56%, transparent 0 11%, #000 25% 67%, transparent 86%); opacity:.16; transform:scale(.72); will-change:transform,opacity; }
-.volleyball-finale-spike::after { content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:radial-gradient(ellipse at 50% 60%, rgba(255,143,57,.7), rgba(247,46,69,.25) 31%, transparent 65%), linear-gradient(90deg, rgba(2,4,12,.9), transparent 30% 70%, rgba(2,4,12,.9)); opacity:.25; }
+.volleyball-finale-spike, .volleyball-finale-spike .volleyball-finale-visual { background:#060816; }
+.volleyball-finale-spike .volleyball-finale-visual::before { content:""; position:absolute; inset:-42%; z-index:0; pointer-events:none; background:repeating-conic-gradient(from 8deg at 50% 56%, rgba(255,246,205,.9) 0 .55deg, transparent .9deg 7deg); -webkit-mask-image:radial-gradient(circle at 50% 56%, transparent 0 11%, #000 25% 67%, transparent 86%); mask-image:radial-gradient(circle at 50% 56%, transparent 0 11%, #000 25% 67%, transparent 86%); opacity:.16; transform:scale(.72); will-change:transform,opacity; }
+.volleyball-finale-spike .volleyball-finale-visual::after { content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:radial-gradient(ellipse at 50% 60%, rgba(255,143,57,.7), rgba(247,46,69,.25) 31%, transparent 65%), linear-gradient(90deg, rgba(2,4,12,.9), transparent 30% 70%, rgba(2,4,12,.9)); opacity:.25; }
 .volleyball-power-aura { position:absolute; left:50%; top:55%; z-index:1; width:680px; height:820px; border-radius:50%; transform:translate(-50%,-50%) scale(.55); opacity:0; background:radial-gradient(ellipse, rgba(255,238,136,.86), rgba(255,86,46,.35) 38%, transparent 70%); filter:blur(12px); will-change:transform,opacity; }
 .volleyball-energy-particles { position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none; opacity:0; }
 .volleyball-energy-particle { position:absolute; left:var(--x); top:var(--y); width:4px; height:18px; border-radius:99px; background:#fff5bc; box-shadow:0 0 11px 4px rgba(255,163,55,.85); animation:volleyballParticle .42s var(--delay) linear infinite; will-change:transform,opacity; }
@@ -1684,30 +1693,30 @@ body {
 .volleyball-ball-glint { position:absolute; z-index:4; left:63%; top:188px; color:#fff; font:700 58px/1 Arial,sans-serif; text-shadow:0 0 10px #fff,0 0 24px #ffe87a; transform:translate(-50%,-50%) scale(0); opacity:0; }
 .volleyball-shockwave { position:absolute; z-index:5; left:50%; top:43%; width:140px; height:140px; border:10px solid rgba(255,250,206,.95); border-radius:50%; transform:translate(-50%,-50%) scale(.1); opacity:0; pointer-events:none; will-change:transform,opacity; }
 .volleyball-impact-flash { position:absolute; inset:0; z-index:6; background:#fff; opacity:0; pointer-events:none; }
-.volleyball-finale-spike.spike-rising { animation:volleyballScreenBump .16s linear 4; }
-.volleyball-finale-spike.spike-rising::before { opacity:.94; transform:scale(1.08) rotate(4deg); transition:transform 1s cubic-bezier(.1,.9,.15,1), opacity .3s; }
-.volleyball-finale-spike.spike-rising::after { opacity:1; transition:opacity .25s; }
+.volleyball-finale-spike.spike-rising .volleyball-finale-visual { animation:volleyballScreenBump .16s linear 4; }
+.volleyball-finale-spike.spike-rising .volleyball-finale-visual::before { opacity:.94; transform:scale(1.08) rotate(4deg); transition:transform 1s cubic-bezier(.1,.9,.15,1), opacity .3s; }
+.volleyball-finale-spike.spike-rising .volleyball-finale-visual::after { opacity:1; transition:opacity .25s; }
 .volleyball-finale-spike.spike-rising .volleyball-power-aura { opacity:.95; transform:translate(-50%,-50%) scale(1.08); animation:volleyballAuraPulse .36s ease-in-out infinite alternate; }
 .volleyball-finale-spike.spike-rising .volleyball-energy-particles { opacity:1; }
 .volleyball-finale-spike.spike-rising .volleyball-spike-camera { animation:volleyballSpikeRise 1s cubic-bezier(.12,.9,.12,1) forwards; }
-.volleyball-finale-spike.spike-freeze::before, .volleyball-finale-spike.spike-freeze::after { animation:none; }
+.volleyball-finale-spike.spike-freeze .volleyball-finale-visual, .volleyball-finale-spike.spike-freeze .volleyball-finale-visual::before, .volleyball-finale-spike.spike-freeze .volleyball-finale-visual::after { animation:none; }
 .volleyball-finale-spike.spike-freeze .volleyball-power-aura, .volleyball-finale-spike.spike-freeze .volleyball-energy-particles, .volleyball-finale-spike.spike-freeze .volleyball-final-ball { animation:none; }
 .volleyball-finale-spike.spike-freeze .volleyball-ball-glint { opacity:1; transform:translate(-50%,-50%) scale(1); animation:volleyballGlint .3s ease-out both; }
-.volleyball-finale-spike.spike-hit { animation:volleyballHitShake .32s steps(2,end) both; }
-.volleyball-finale-spike.spike-hit::before { opacity:1; transform:scale(1.45) rotate(20deg); transition:transform .3s ease-out; }
+.volleyball-finale-spike.spike-hit .volleyball-finale-visual { animation:volleyballHitShake .32s steps(2,end) both; }
+.volleyball-finale-spike.spike-hit .volleyball-finale-visual::before { opacity:1; transform:scale(1.45) rotate(20deg); transition:transform .3s ease-out; }
 .volleyball-finale-spike.spike-hit .volleyball-final-ball { animation:volleyballBallSpike .3s cubic-bezier(.13,.82,.18,1) both; }
 .volleyball-finale-spike.spike-hit .volleyball-shockwave { animation:volleyballShockwave .42s ease-out both; }
 .volleyball-finale-spike.spike-hit .volleyball-impact-flash { animation:volleyballFlash .24s steps(2,end) both; }
-.volleyball-finale-spike.spike-aftershock { animation:volleyballAftershock .22s linear 2; }
+.volleyball-finale-spike.spike-aftershock .volleyball-finale-visual { animation:volleyballAftershock .22s linear 2; }
 .volleyball-finale-spike.spike-aftershock .volleyball-impact-flash { animation:volleyballFlash .18s steps(2,end) both; }
 
 /* Shot 3: a brief rumble, then the peaceful beach returns as the punchline. */
 .volleyball-finale-spiked .volleyball-final-girl { left:71%; height:82%; bottom:-5%; }
 .volleyball-dust { position:absolute; inset:0; z-index:3; pointer-events:none; }
 .volleyball-dust-puff { position:absolute; left:var(--x); bottom:22%; width:26px; height:18px; border-radius:50%; background:rgba(235,202,137,.84); filter:blur(2px); opacity:0; animation:volleyballDust .72s var(--delay) ease-out both; will-change:transform,opacity; }
-.volleyball-finale-spiked.impact-rumble { animation:volleyballImpactShake .8s cubic-bezier(.35,.1,.65,.9) both; }
+.volleyball-finale-spiked.impact-rumble .volleyball-finale-visual { animation:volleyballImpactShake .8s cubic-bezier(.35,.1,.65,.9) both; }
 .volleyball-finale-spiked.impact-rumble::after { content:""; position:absolute; inset:0; z-index:4; pointer-events:none; background:#fff7d6; animation:volleyballImpactFlash .18s ease-out both; }
-.volleyball-finale-spiked.impact-settled { animation:none; }
+.volleyball-finale-spiked.impact-settled .volleyball-finale-visual { animation:none; }
 
 @keyframes volleyballScaredPan { from { transform:translateY(-150px) scale(1.13); } to { transform:translateY(138px) scale(1.28); } }
 @keyframes volleyballVignette { from { opacity:.1; } to { opacity:1; } }

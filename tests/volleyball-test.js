@@ -111,6 +111,9 @@ async function installProvider(page, mode = 'ok') {
       if (window.__poseKind === 'mirror') pose.leftShoulder = { x: 0.8, y: 0.42 };
       // arms wide apart and low: visible, but never a BUMP/SET/SPIKE
       if (window.__poseKind === 'apart') { pose.leftWrist = { x: 0.2, y: 0.72 }; pose.rightWrist = { x: 0.8, y: 0.72 }; }
+      // one arm out of frame (its elbow and wrist are not detected)
+      if (window.__poseKind === 'rightOnly') { delete pose.leftElbow; delete pose.leftWrist; }
+      if (window.__poseKind === 'leftOnly') { delete pose.rightElbow; delete pose.rightWrist; }
       if (window.__poseKind !== 'follow') return [screenPose(pose)];
       const state = VA.VolleyballAR && VA.VolleyballAR.state();
       const ball = state && state.ball;
@@ -126,11 +129,18 @@ async function installProvider(page, mode = 'ok') {
       } else if (state.phase === 'spike') {
         // Raised above the ball ↔ swung down through and past it. Only the
         // downward half of each cycle may count; the upward recovery must not.
+        // window.__spikeArm ('left'/'right') swings that arm and takes the
+        // other arm out of frame.
         window.__spikeSample++;
         const raised = window.__spikeSample % 2 === 1;
-        pose.leftWrist = raised
+        const side = window.__spikeArm || 'left';
+        pose[side + 'Wrist'] = raised
           ? { x: ball.x, y: Math.max(0.05, ball.y - 0.15) }
           : { x: ball.x, y: ball.y + 0.12 };
+        if (window.__spikeArm) {
+          const other = side === 'left' ? 'right' : 'left';
+          delete pose[other + 'Elbow']; delete pose[other + 'Wrist'];
+        }
       }
       return [screenPose(pose)];
     };
@@ -400,6 +410,56 @@ let server;
   check(!geom.spikeNoWindow, 'SPIKE: nothing counts outside the hit window');
   check(geom.liveTuningHasDownward, 'live (forgiveness) tuning carries spikeDownwardMin');
 
+  console.log('pose requirements per phase (pure)');
+  const req = await page.evaluate(() => {
+    const V = VA.VolleyballAR;
+    const g = V._geom;
+    const t = V.TUNING;
+    const both = {
+      nose: { x: 0.5, y: 0.2 },
+      leftShoulder: { x: 0.4, y: 0.42 }, rightShoulder: { x: 0.6, y: 0.42 },
+      leftElbow: { x: 0.42, y: 0.58 }, rightElbow: { x: 0.58, y: 0.58 },
+      leftWrist: { x: 0.45, y: 0.7 }, rightWrist: { x: 0.55, y: 0.7 },
+    };
+    const without = (pose, ...keys) => { const copy = { ...pose }; keys.forEach(k => delete copy[k]); return copy; };
+    const rightOnly = without(both, 'leftElbow', 'leftWrist');
+    const leftOnly = without(both, 'rightElbow', 'rightWrist');
+    const rightNoLeftShoulder = without(both, 'leftShoulder', 'leftElbow', 'leftWrist');
+    const noArms = without(both, 'leftElbow', 'leftWrist', 'rightWrist');
+    const enough = (pose, phase) => V._poseEnoughForPhase(pose, phase);
+    // One-arm swept SPIKE: the striking wrist crosses the ball downward.
+    const spikeBall = { x: 0.6, y: 0.3, hittable: true };
+    const rightPrev = { ...rightOnly, rightWrist: { x: 0.6, y: 0.15 } };
+    const rightCur = { ...rightOnly, rightWrist: { x: 0.6, y: 0.5 } };
+    const leftBall = { x: 0.4, y: 0.3, hittable: true };
+    const leftPrev = { ...leftOnly, leftWrist: { x: 0.4, y: 0.15 } };
+    const leftCur = { ...leftOnly, leftWrist: { x: 0.4, y: 0.5 } };
+    // Mid-move: both arms in the previous sample, only the striker now.
+    const bothPrev = { ...both, rightWrist: { x: 0.6, y: 0.15 } };
+    return {
+      bumpBoth: enough(both, 'bump'), bumpRight: enough(rightOnly, 'bump'), bumpLeft: enough(leftOnly, 'bump'),
+      setBoth: enough(both, 'set'), setRight: enough(rightOnly, 'set'), setLeft: enough(leftOnly, 'set'),
+      spikeBoth: enough(both, 'spike'), spikeRight: enough(rightOnly, 'spike'), spikeLeft: enough(leftOnly, 'spike'),
+      spikeRightNoLeftShoulder: enough(rightNoLeftShoulder, 'spike'), spikeNone: enough(noArms, 'spike'),
+      readyRight: enough(rightOnly, 'ready'), readyBoth: enough(both, 'ready'),
+      spikeHitRight: g.isSpike(rightCur, rightPrev, spikeBall, t),
+      spikeHitLeft: g.isSpike(leftCur, leftPrev, leftBall, t),
+      spikeHitMidMove: g.isSpike(rightCur, bothPrev, spikeBall, t),
+      targetRight: V._target({ pose: rightOnly }, 'spike'),
+      targetLeft: V._target({ pose: leftOnly }, 'spike'),
+    };
+  });
+  check(req.bumpBoth && !req.bumpRight && !req.bumpLeft, 'BUMP accepts both arms and rejects a pose missing one arm');
+  check(req.setBoth && !req.setRight && !req.setLeft, 'SET accepts both arms and rejects a pose missing one arm');
+  check(req.spikeBoth && req.spikeRight && req.spikeLeft && req.spikeRightNoLeftShoulder,
+    'SPIKE accepts one complete arm (left or right), even with the other arm fully out of frame');
+  check(!req.spikeNone, 'SPIKE still needs one complete arm (shoulder + elbow + wrist)');
+  check(!req.readyRight && req.readyBoth, 'initial framing (before BUMP) still needs both arms');
+  check(req.spikeHitRight && req.spikeHitLeft, 'a one-arm swept SPIKE hits with the right arm and with the left arm');
+  check(req.spikeHitMidMove, 'SPIKE still hits when the other arm leaves the frame mid-swing');
+  check(Math.abs(req.targetRight.x - 0.6) < 1e-9 && Math.abs(req.targetLeft.x - 0.4) < 1e-9,
+    'a one-arm SPIKE ball is served above the arm that is in view');
+
   console.log('ball reaction after a hit (pure)');
   const react = await page.evaluate(() => {
     const V = VA.VolleyballAR;
@@ -453,7 +513,7 @@ let server;
     return {
       hints: V.HINTS, copy: V.COPY,
       banned: ['立って', '全身', 'Stand', 'stand up', 'whole body', 'WHOLE BODY'].filter(w => all.includes(w)),
-      waistUp: V._poseComplete(waistUp),
+      waistUp: V._hasBothArms(waistUp),
       bump: V._target({ pose: waistUp }, 'bump'),
       bumpLow: V._target({ pose: low }, 'bump'),
     };
@@ -810,6 +870,175 @@ let server;
   const reducedShake = await shakeProbe(page, null);
   check(reducedShake.visualAnims.length === 0 && reducedShake.rootAnims.length === 0, 'reduced motion: no SPIKE jolt at all');
   await page.evaluate(() => VA.Screens.show('explore'));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  console.log('one-arm SPIKE: the other arm may leave the frame');
+  for (const arm of ['right', 'left']) {
+    await installProvider(page, 'ok');
+    await startSynthetic(page);
+    await page.evaluate(() => { window.__poseKind = 'base'; window.__spikeArm = null; });
+    await precondition(page, () => VA.VolleyballAR.state().phase === 'bump', undefined, arm + ': BUMP began');
+    // Jump straight to SPIKE with both arms in view, then let the striking
+    // arm swing while the other one leaves the frame.
+    await page.evaluate(a => {
+      window.__spikeArm = a;
+      window.__spikePaused = false;
+      window.__spikeLostCopy = false;
+      window.__spikeHit = false;
+      clearInterval(window.__spikeWatch);
+      window.__spikeWatch = setInterval(() => {
+        const st = VA.VolleyballAR.state();
+        if (!st.active || st.phase !== 'spike') return;
+        if (st.paused) window.__spikePaused = true;
+        if (st.lastHit) window.__spikeHit = true;
+        const msg = document.querySelector('.volleyball-ar-message');
+        if (msg && msg.textContent === 'SHOW BOTH ARMS!') window.__spikeLostCopy = true;
+      }, 10);
+      VA.VolleyballAR._startPhase(VA.VolleyballAR._session, 2);
+      window.__poseKind = 'follow';
+    }, arm);
+    await precondition(page, () => window.__volleyDone, undefined, arm + '-arm SPIKE finished the game', 15000);
+    const oneArm = await page.evaluate(() => {
+      clearInterval(window.__spikeWatch);
+      window.__spikeArm = null;
+      const raw = window.__lastRawPose;
+      return { paused: window.__spikePaused, lost: window.__spikeLostCopy, hit: window.__spikeHit,
+        // raw indices 13/15 = left elbow/wrist, 14/16 = right elbow/wrist
+        visible: raw && [13, 15, 14, 16].map(i => raw[i].visibility) };
+    });
+    const gone = arm === 'right' ? oneArm.visible.slice(0, 2) : oneArm.visible.slice(2);
+    check(gone.every(v => v === 0), arm + '-arm SPIKE: the other arm really was out of frame ' + JSON.stringify(oneArm.visible));
+    check(oneArm.hit, arm + '-arm SPIKE: the swing hit the ball');
+    check(!oneArm.paused && !oneArm.lost, arm + '-arm SPIKE: no pause and no SHOW BOTH ARMS! while the other arm is out of frame');
+    await page.evaluate(() => VA.Screens.show('explore'));
+  }
+
+  console.log('BUMP and READY still need both arms in the live game');
+  await installProvider(page, 'ok');
+  await startSynthetic(page);
+  await precondition(page, () => VA.VolleyballAR.state().mode === 'camera', undefined, 'camera mode before one-arm framing');
+  await page.evaluate(() => { window.__poseKind = 'rightOnly'; });
+  await page.waitForTimeout(900);
+  const oneArmFrame = await page.evaluate(() => ({ st: VA.VolleyballAR.state(), command: document.querySelector('.volleyball-ar-command').textContent }));
+  check(oneArmFrame.st.phaseIndex === -1 && oneArmFrame.command === 'MOVE BACK — SHOW BOTH ARMS!',
+    'one arm in view is not READY: the framing still asks for both arms (' + oneArmFrame.command + ')');
+  await page.evaluate(() => { window.__poseKind = 'base'; });
+  await precondition(page, () => document.querySelector('.volleyball-ar-command').textContent === 'READY!', undefined, 'both arms give READY!', 3000);
+  await precondition(page, () => VA.VolleyballAR.state().phase === 'bump', undefined, 'BUMP began after READY');
+  await page.evaluate(() => { window.__poseKind = 'leftOnly'; });
+  await precondition(page, () => VA.VolleyballAR.state().paused, undefined, 'one arm during BUMP pauses play', 3000);
+  check(await page.evaluate(() => document.querySelector('.volleyball-ar-message').textContent) === 'SHOW BOTH ARMS!',
+    'one arm during BUMP asks for both arms');
+  await page.evaluate(() => VA.Screens.show('explore'));
+
+  console.log('anime finale: one opaque overlay, hard internal cuts');
+  const sampleFinale = () => page.evaluate(async () => {
+    const T = VA.Cine.VOLLEY_FINALE_TIMING;
+    const saved = { ...T };
+    Object.assign(T, { scared: 400, powerUp: 120, rise: 200, freeze: 80, spike: 120, aftermath: 150, impact: 900, cut: 120 });
+    const overlay = document.querySelector('#volleyball-finale');
+    const samples = [];
+    // A tight interval, not rAF: headless frames can be ~50 ms apart, long
+    // enough to miss a 120 ms fade entirely.
+    const tick = () => {
+      const shot = overlay.querySelector('.volleyball-finale-shot');
+      samples.push({
+        kind: shot ? ['scared', 'spike', 'spiked'].find(k => shot.classList.contains('volleyball-finale-' + k)) : null,
+        opacity: parseFloat(getComputedStyle(overlay).opacity), hidden: overlay.hidden,
+        leaving: overlay.classList.contains('is-leaving'), cut: overlay.classList.contains('internal-cut'),
+      });
+    };
+    const sampler = setInterval(tick, 4);
+    try { await VA.Cine.showVolleyballFinale(); }
+    finally { clearInterval(sampler); Object.assign(T, saved); }
+    return samples;
+  });
+  const judgeFinale = (samples, label) => {
+    const firstOpaque = samples.findIndex(s => s.opacity >= 0.999);
+    const finalExit = samples.findIndex(s => s.kind === 'spiked' && s.leaving);
+    const middle = samples.slice(firstOpaque, finalExit < 0 ? samples.length : finalExit);
+    const kinds = [...new Set(samples.map(s => s.kind).filter(Boolean))];
+    const dips = middle.filter(s => s.opacity < 0.999 || s.hidden);
+    check(kinds.join() === 'scared,spike,spiked', label + ': shows scared → spike → spiked (' + kinds.join() + ')');
+    check(firstOpaque >= 0 && finalExit > firstOpaque && middle.some(s => s.cut),
+      label + ': internal cuts happen while the overlay is up (' + middle.filter(s => s.cut).length + ' cut frames)');
+    check(firstOpaque >= 0 && dips.length === 0, label + ': #volleyball-finale stays fully opaque and shown through every internal shot change (' +
+      dips.length + ' dips; opaque from sample ' + firstOpaque + ', exit at ' + finalExit + ' of ' + samples.length + ')');
+    check(!middle.some(s => s.leaving), label + ': is-leaving is only used for the final exit');
+  };
+  judgeFinale(await sampleFinale(), 'finale');
+  check(await page.evaluate(() => { const o = document.querySelector('#volleyball-finale'); return o.hidden && !o.children.length; }),
+    'after the final fade the overlay is hidden and emptied');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  judgeFinale(await sampleFinale(), 'reduced motion finale');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  console.log('anime finale shakes move only the overscanned inner visual');
+  const finaleShake = (kind, classes, expected) => page.evaluate(([k, cls, name]) => {
+    const overlay = document.querySelector('#volleyball-finale');
+    overlay.hidden = false;
+    overlay.classList.add('is-visible');
+    const shot = VA.Cine._volleyballFinaleShot(k);
+    overlay.replaceChildren(shot);
+    void shot.offsetWidth;
+    cls.forEach(c => shot.classList.add(c));
+    const visual = shot.querySelector('.volleyball-finale-visual');
+    const frame = shot.querySelector('.volleyball-finale-frame');
+    const anims = visual.getAnimations().filter(a => a.animationName === name);
+    let maxShift = 0;
+    anims.forEach(anim => anim.effect.getKeyframes().forEach(f => {
+      (String(f.transform || '').match(/-?\d+(\.\d+)?px/g) || []).forEach(v => { maxShift = Math.max(maxShift, Math.abs(parseFloat(v))); });
+    }));
+    // Freeze at every keyframe and measure the worst edge coverage.
+    const r = shot.getBoundingClientRect();
+    let worst = Infinity;
+    anims.forEach(anim => {
+      anim.pause();
+      const duration = anim.effect.getComputedTiming().duration;
+      anim.effect.getKeyframes().forEach(f => {
+        anim.currentTime = Math.min(f.computedOffset, 0.999) * duration;
+        const v = visual.getBoundingClientRect();
+        worst = Math.min(worst, r.left - v.left, r.top - v.top, v.right - r.right, v.bottom - r.bottom);
+      });
+    });
+    anims.forEach(a => a.cancel());
+    const fr = frame.getBoundingClientRect(); // at rest
+    const out = {
+      visualAnim: anims.length > 0,
+      shotAnims: shot.getAnimations().map(a => a.animationName),
+      shotTransform: getComputedStyle(shot).transform,
+      shotOverflow: getComputedStyle(shot).overflow,
+      overscan: -parseFloat(getComputedStyle(visual).top),
+      maxShift, worst,
+      frameMatches: Math.abs(fr.left - r.left) < 0.5 && Math.abs(fr.top - r.top) < 0.5 &&
+        Math.abs(fr.width - r.width) < 0.5 && Math.abs(fr.height - r.height) < 0.5,
+      bgInVisual: k === 'spike' || !!visual.querySelector(':scope > .volleyball-finale-bg'),
+      contentInVisual: !shot.querySelector(':scope > :not(.volleyball-finale-visual)'),
+    };
+    overlay.replaceChildren();
+    overlay.hidden = true;
+    overlay.classList.remove('is-visible');
+    return out;
+  }, [kind, classes, expected]);
+  for (const [kind, classes, expected] of [
+    ['spike', ['spike-rising'], 'volleyballScreenBump'],
+    ['spike', ['spike-rising', 'spike-freeze', 'spike-hit'], 'volleyballHitShake'],
+    ['spike', ['spike-rising', 'spike-freeze', 'spike-hit', 'spike-aftershock'], 'volleyballAftershock'],
+    ['spiked', ['impact-rumble'], 'volleyballImpactShake'],
+  ]) {
+    const probe = await finaleShake(kind, classes, expected);
+    check(probe.visualAnim, expected + ': animates .volleyball-finale-visual');
+    check(probe.shotAnims.length === 0 && probe.shotTransform === 'none' && probe.shotOverflow === 'hidden',
+      expected + ': the clipped outer .volleyball-finale-shot never moves (' + probe.shotAnims.join() + ')');
+    check(probe.overscan >= 24 && probe.overscan > probe.maxShift && probe.worst > 0,
+      expected + `: ${probe.overscan}px overscan covers the ${probe.maxShift}px shake (worst edge still ${probe.worst.toFixed(1)}px past the viewport)`);
+    check(probe.frameMatches && probe.bgInVisual && probe.contentInVisual,
+      expected + ': background and all shot content move together; the content frame matches the viewport');
+  }
+  check((await finaleShake('scared', [], 'none')).frameMatches, 'scared shot: the content frame matches the viewport too');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedFinale = await finaleShake('spiked', ['impact-rumble'], 'volleyballImpactShake');
+  check(!reducedFinale.visualAnim && reducedFinale.shotAnims.length === 0, 'reduced motion: no finale shake');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   console.log('leaving mid-game is idempotent cleanup');

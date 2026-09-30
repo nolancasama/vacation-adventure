@@ -2,49 +2,46 @@
 
 ## Current Goal
 
-Chromebook camera + motion-recognition polish, based on real classroom
-testing. The code and tests are done and validated headless. What's left is
-checking it on a real Chromebook (Next Steps).
+Chromebook classroom fixes (2026-09-30): phase-specific arm requirements for
+volleyball, TAP TO EAT as a real fallback, and volleyball-finale layering.
+The code and tests are done and validated headless. What's left is checking
+it on a real Chromebook (Next Steps).
 
-## What Changed (camera polish)
+## What Changed (2026-09-30)
 
-- `js/camera-pose.js`: `preflight()` runs from START / CONTINUE. It warms the
-  model, asks for the camera, stops the tracks and resolves on the decision.
-  A denial is remembered for the session. One landmarker serves the whole
-  session. The sampling loop is adaptive: 50 ms spacing, with inference time
-  counted toward it. The video is 480×360. `state()` reports
-  `inferenceMs`/`poseHz`/`frameIntervalMs`/video size/permission/model.
-  `?debug` shows a stats badge.
-- `js/main.js`: `prepareCamera()` shows a "SETTING UP CAMERA…" card
-  (`.camera-setup-card`) only if the decision takes more than 250 ms. A
-  `launching` flag guards double clicks.
-- `js/ar-handoff.js`, `js/volleyball-ar.js`: the pose timeout starts only
-  after `CameraPose.start()` resolves. A separate 30 s `startLimitMs` cap
-  covers a start that never finishes. New copy: "MOVE BACK — SHOW BOTH ARMS!"
-  and "SHOW BOTH ARMS!". BUMP/SET also test the swept wrist path. The SPIKE
-  jolt moves the overscanned `.volleyball-ar-visual` layer.
-- `styles.css`: the visual layer and shake, the setup card, the debug badge,
-  and `width:max-content` on both command boxes (the long framing line used
-  to wrap under the JP line).
-- Tests: new `tests/camera-test.js` (`npm run test:camera`). It has been
-  checked against known-bad code (no preflight, fixed wait) and fails
-  correctly. `handoff-test.js` and `volleyball-test.js` gained no-overlap
-  checks for the framing command.
+- `js/volleyball-ar.js`: `_hasLeftArm`/`_hasRightArm`/`_hasBothArms` and
+  `_poseEnoughForPhase`. BUMP/SET and the first framing need both arms.
+  SPIKE needs one complete arm, so the other arm may leave the frame with no
+  pause. A one-arm SPIKE ball is served above the visible arm.
+- `js/eat-game.js`: TAP TO EAT is hidden while the camera starts or works.
+  It shows when the camera is off or unsupported, fails, times out or stalls.
+- `js/cinematic.js` + `styles.css`: the finale overlay stays opaque, and shot
+  changes are `.internal-cut` hard cuts. Each shot is a stationary clip
+  around `.volleyball-finale-visual` (32 px overscan), which carries every
+  shake. `.volleyball-finale-frame` matches the viewport.
+- Tests: `volleyball-test.js` gained pure pose-requirement checks, live
+  one-arm SPIKE runs (left and right), one-arm framing and BUMP checks, a
+  finale opacity sampler (normal and reduced motion) and finale shake-layer
+  probes. `eat-test.js` now expects no tap button during camera start. Each
+  new check was run against the old code and failed correctly.
 
-Decisions are recorded in `DESIGN_DECISIONS.md` (2026-09-29 entry).
+The earlier camera polish (2026-09-29: preflight, adaptive sampling,
+move-back copy, AR SPIKE overscan) is unchanged. Decisions are in
+`DESIGN_DECISIONS.md` (2026-09-29 and 2026-09-30 entries).
 
-## Test Status (2026-09-29)
+## Test Status (2026-09-30)
 
-- Pass: `test:camera`, `test:handoff`, `test:volleyball`, `test`, `test:e2e`,
-  `test:depart`, `test:bedroom`, `test:eat`.
-- `test:speech`: 1 failure, pre-existing (it also fails on 835fed0; see
-  Known Issues).
+- Pass: `test:volleyball`, `test:eat`, `test`, `test:e2e`, `test:handoff`,
+  `test:camera`, `test:depart`, `test:bedroom`.
+- `test:speech`: 1 failure, pre-existing (passport fallback plus auto
+  "Here you are."; see Known Issues).
 - Not run this round: `test:guide`, `test:look`, `test:japanese`,
   `test:sand`, `test:soccer-voice`.
 
 ## Codex / Delegated Work
 
-- Camera polish: done by Claude directly; nothing delegated.
+- Camera polish and the 2026-09-30 classroom fixes: done by Claude directly;
+  nothing delegated.
 - 3D soccer (`.ai/wo-soccer3d*.json`): parked by the user, uncommitted on disk
   and not accepted. Resume only if asked.
 - Phone attention (chain e1268742…, `.ai/wo-phone.json`): returned but not
@@ -66,8 +63,10 @@ Decisions are recorded in `DESIGN_DECISIONS.md` (2026-09-29 entry).
 ## Next Steps
 
 1. On a real Chromebook: the fresh-permission START flow; `?debug` pose Hz
-   and inference ms; BUMP/SET/SPIKE at normal speed; the move-back framing;
-   and no edges showing on SPIKE.
+   and inference ms; BUMP/SET/SPIKE at normal speed (SPIKE with the other
+   arm out of frame); the move-back framing; no edges showing on the AR
+   SPIKE or any finale shake; no regular scene flashing between finale
+   shots; no TAP TO EAT during "Camera starting…".
 2. Review the phone-attention work (`test:guide` failures).
 
 ## Repository State
